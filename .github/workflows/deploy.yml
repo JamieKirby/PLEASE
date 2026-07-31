@@ -1,0 +1,79 @@
+name: Build and deploy
+
+# Runs automatically on every push to main, and can also be triggered
+# manually from the Actions tab (handy for re-deploying without needing
+# an actual content change first). Nobody ever runs "node build.js" by
+# hand — this is that command, just run by GitHub instead of a person.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# If a push lands while a previous deploy is still running, cancel the
+# old one rather than letting two deploys race each other.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Regenerates scriptorium/dist/ from whatever's currently in
+      # scriptorium/data/*.json — this is the step that was previously a
+      # manual "node build.js" someone had to remember to run locally,
+      # then remember to upload. Now it happens fresh on every push,
+      # from source, so the live site can never be running build output
+      # that doesn't match what's actually in the repo.
+      - name: Build the Scriptorium pages
+        working-directory: scriptorium
+        run: node build.js
+
+      # Assembles the map (a plain static file, no build step of its
+      # own) and the freshly-built Scriptorium output into one folder
+      # that mirrors exactly what gets served: index.html/sw.js at the
+      # site root, Scriptorium content under scriptorium/ — matching
+      # every relative path already baked into both index.html
+      # (scriptorium/manifest.json) and build.js's own output
+      # (../../index.html, ../<category>/<id>.html).
+      - name: Assemble the deployable site
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+          cp sw.js _site/
+          mkdir -p _site/scriptorium
+          cp -r scriptorium/dist/. _site/scriptorium/
+          # Tells GitHub Pages to skip its default Jekyll processing
+          # entirely — we're deploying 100% custom-built static output,
+          # and without this, Pages' Jekyll layer has a known history of
+          # mishandling file types (including .json) it doesn't expect.
+          touch _site/.nojekyll
+
+      - name: Upload the built site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
