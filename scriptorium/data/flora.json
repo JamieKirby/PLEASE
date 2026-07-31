@@ -1,10 +1,220 @@
 [
   {
+    "id": "eyebright",
+    "category": "flora",
+    "title": "Eyebright",
+    "irishTitle": "",
+    "summary": "Low-growing semi-parasitic herb from the Burren karst; its tannins are extracted via cold spring water and linen filtration for ocular care.",
+    "content": "<p><em>Euphrasia officinalis</em>. Low-growing semi-parasitic herb from the Burren karst; its tannins are extracted via cold spring water and linen filtration for ocular care.</p>",
+    "oghamName": "ᚓᚑᚋᚏᚐᚄᚔᚐ",
+    "oghamGloss": "Euphrasia"
+  },
+  {
+    "id": "mountain-avens",
+    "category": "flora",
+    "title": "Mountain Avens",
+    "irishTitle": "",
+    "summary": "Iconic arctic-alpine creeping dwarf shrub covering the limestone pavement with white eight-petaled blossoms.",
+    "content": "<p><em>Dryas octopetala</em>. Iconic arctic-alpine creeping dwarf shrub covering the limestone pavement with white eight-petaled blossoms.</p>"
+  },
+  {
     "id": "spring-gentian",
     "category": "flora",
     "title": "Spring Gentian",
-    "irishTitle": "Ceadharlach Bealtaine",
-    "summary": "An Arctic-alpine wildflower with vivid blue star-shaped blooms, thriving on Burren limestone far from its usual mountain habitats.",
-    "content": "<p>An Arctic-alpine wildflower whose intense blue, star-shaped flowers are the best-known symbol of the Burren's flora. Rarely growing taller than a few centimetres, it flowers from April through June, opening fully only in bright sunlight.</p><p>Its presence here at near sea level, far from the mountain and tundra habitats it usually favours, is one of the Burren's defining ecological curiosities \u2014 thriving on thin, calcium-rich soil over bare limestone pavement.</p>"
+    "irishTitle": "",
+    "summary": "Renowned for its intensely vivid blue star-shaped flowers carpeting the short turf in spring.",
+    "content": "<p><em>Gentiana verna</em>. Renowned for its intensely vivid blue star-shaped flowers carpeting the short turf in spring.</p>"
+  },
+  {
+    "id": "bloody-cranes-bill",
+    "category": "flora",
+    "title": "Bloody Crane's-bill",
+    "irishTitle": "",
+    "summary": "Vibrant magenta wildflower that thrives across the exposed limestone rocks and hazel scrub.",
+    "content": "<p><em>Geranium sanguineum</em>. Vibrant magenta wildflower that thrives across the exposed limestone rocks and hazel scrub.</p>"
+  },
+  {
+    "id": "orchis-early-purple-orchid",
+    "category": "flora",
+    "title": "Orchis / Early Purple Orchid",
+    "irishTitle": "",
+    "summary": "Striking purple spike orchid emerging early in the woodland clearings and sheltered grassland grips.",
+    "content": "<p><em>Orchis mascula</em>. Striking purple spike orchid emerging early in the woodland clearings and sheltered grassland grips.</p>"
+  },
+  {
+    "id": "pyramidal-orchid",
+    "category": "flora",
+    "title": "Pyramidal Orchid",
+    "irishTitle": "",
+    "summary": "Distinctive dense pink conical flower heads found commonly across the dry calcareous pastures.",
+    "content": "<p><em>Anacamptis pyramidalis</em>. Distinctive dense pink conical flower heads found commonly across the dry calcareous pastures.</p>"
+  },
+  {
+    "id": "bee-orchid",
+    "category": "flora",
+    "title": "Bee Orchid",
+    "irishTitle": "",
+    "summary": "Mimicry orchid featuring a lip designed to resemble a female bee to attract pollinators.",
+    "content": "<p><em>Ophrys apifera</em>. Mimicry orchid featuring a lip designed to resemble a female bee to attract pollinators.</p>"
+  },
+  {
+    "id": "fly-orchid",
+    "category": "flora",
+    "title": "Fly Orchid",
+    "irishTitle": "",
+    "summary": "Slender dark orchid species mimicking insect morphology found in damp calcareous scrub edges.",
+    "content": "<p><em>Ophrys insectifera</em>. Slender dark orchid species mimicking insect morphology found in damp calcareous scrub edges.</p>"
+  },
+  {
+    "id": "butterfly-orchid",
+    "category": "flora",
+    "title": "Butterfly Orchid",
+    "irishTitle": "",
+    "summary": "Pale green-white orchid with long spurs known for its nocturnal fragrance and moth pollination.",
+    "content": "<p><em>Platanthera chlorantha</em>. Pale green-white orchid with long spurs known for its nocturnal fragrance and moth pollination.</p>"
+  },
+  {
+    "id": "burnet-rose",
+    "category": "flora",
+    "title": "Burnet Rose",
+    "irishTitle": "",
+    "summary": "Low, suckering native rose with creamy white blooms and dark hips across limestone dunes and pavement.",
+    "content": "<p><em>Rosa pimpinellifolia</em>. Low, suckering native rose with creamy white blooms and dark hips across limestone dunes and pavement.</p>"
+  },
+  {
+    "id": "hairy-violet",
+    "category": "flora",
+    "title": "Hairy Violet",
+    "irishTitle": "",
+    "summary": "Low perennial violet species inhabiting dry limestone grassland and scrub margins.",
+    "content": "<p><em>Viola hirta</em>. Low perennial violet species inhabiting dry limestone grassland and scrub margins.</p>"
+  },
+  {
+    "id": "kidney-vetch",
+    "category": "flora",
+    "title": "Kidney Vetch",
+    "irishTitle": "",
+    "summary": "Silky-haired yellow globe flower acting as a primary food plant for small blue butterfly larvae.",
+    "content": "<p><em>Anthyllis vulneraria</em>. Silky-haired yellow globe flower acting as a primary food plant for small blue butterfly larvae.</p>"
+  },
+  {
+    "id": "horseshoe-vetch",
+    "category": "flora",
+    "title": "Horseshoe Vetch",
+    "irishTitle": "",
+    "summary": "Mat-forming legume with clusters of yellow horseshoe-shaped pods favored by chalk hill blues.",
+    "content": "<p><em>Hippocrepis comosa</em>. Mat-forming legume with clusters of yellow horseshoe-shaped pods favored by chalk hill blues.</p>"
+  },
+  {
+    "id": "blue-fleabane",
+    "category": "flora",
+    "title": "Blue Fleabane",
+    "irishTitle": "",
+    "summary": "Small composite flower with purple-pink ray florets thriving on bare gravelly limestone.",
+    "content": "<p><em>Erigeron acris</em>. Small composite flower with purple-pink ray florets thriving on bare gravelly limestone.</p>"
+  },
+  {
+    "id": "thyme-leaved-speedwell",
+    "category": "flora",
+    "title": "Thyme-leaved Speedwell",
+    "irishTitle": "",
+    "summary": "Small creeping ground cover with pale blue flowers in open turf gaps.",
+    "content": "<p><em>Veronica serpyllifolia</em>. Small creeping ground cover with pale blue flowers in open turf gaps.</p>"
+  },
+  {
+    "id": "wild-thyme",
+    "category": "flora",
+    "title": "Wild Thyme",
+    "irishTitle": "",
+    "summary": "Low aromatic creeping woody perennial forming fragrant purple mats over sun-baked rocks.",
+    "content": "<p><em>Thymus drucei</em>. Low aromatic creeping woody perennial forming fragrant purple mats over sun-baked rocks.</p>"
+  },
+  {
+    "id": "milkwort",
+    "category": "flora",
+    "title": "Milkwort",
+    "irishTitle": "",
+    "summary": "Low perennial bearing intense blue, pink, or white tufted racemes in short pasture turf.",
+    "content": "<p><em>Polygala vulgaris</em>. Low perennial bearing intense blue, pink, or white tufted racemes in short pasture turf.</p>"
+  },
+  {
+    "id": "eyebright-slender",
+    "category": "flora",
+    "title": "Eyebright (Slender)",
+    "irishTitle": "",
+    "summary": "Alpine-celtic variant of eyebright adapted to exposed limestone pavement ecosystems.",
+    "content": "<p><em>Euphrasia salisburgensis</em>. Alpine-celtic variant of eyebright adapted to exposed limestone pavement ecosystems.</p>"
+  },
+  {
+    "id": "yellow-rattle",
+    "category": "flora",
+    "title": "Yellow Rattle",
+    "irishTitle": "",
+    "summary": "Semi-parasitic herbaceous annual with yellow blooms that suppresses coarse grasses to aid diversity.",
+    "content": "<p><em>Rhinanthus minor</em>. Semi-parasitic herbaceous annual with yellow blooms that suppresses coarse grasses to aid diversity.</p>"
+  },
+  {
+    "id": "quaking-grass",
+    "category": "flora",
+    "title": "Quaking Grass",
+    "irishTitle": "",
+    "summary": "Graceful perennial grass with heart-shaped spikelets that tremble continuously in light breezes.",
+    "content": "<p><em>Briza media</em>. Graceful perennial grass with heart-shaped spikelets that tremble continuously in light breezes.</p>"
+  },
+  {
+    "id": "blue-moor-grass",
+    "category": "flora",
+    "title": "Blue Moor-grass",
+    "irishTitle": "",
+    "summary": "Dominant turf-forming grass of the limestone pavements with silvery-blue early spring panicles.",
+    "content": "<p><em>Sesleria caerulea</em>. Dominant turf-forming grass of the limestone pavements with silvery-blue early spring panicles.</p>"
+  },
+  {
+    "id": "sheeps-fescue",
+    "category": "flora",
+    "title": "Sheep's Fescue",
+    "irishTitle": "",
+    "summary": "Fine-leaved tufted bunchgrass adapting tightly to dry upland sheep-grazed limestone soils.",
+    "content": "<p><em>Festuca ovina</em>. Fine-leaved tufted bunchgrass adapting tightly to dry upland sheep-grazed limestone soils.</p>"
+  },
+  {
+    "id": "crested-hair-grass",
+    "category": "flora",
+    "title": "Crested Hair-grass",
+    "irishTitle": "",
+    "summary": "Compact perennial grass forming dense tufts across dry calcareous grassland slopes.",
+    "content": "<p><em>Koeleria macrantha</em>. Compact perennial grass forming dense tufts across dry calcareous grassland slopes.</p>"
+  },
+  {
+    "id": "red-fescue",
+    "category": "flora",
+    "title": "Red Fescue",
+    "irishTitle": "",
+    "summary": "Creeping rhizomatous grass common in coastal machair and stable dune fringes.",
+    "content": "<p><em>Festuca rubra</em>. Creeping rhizomatous grass common in coastal machair and stable dune fringes.</p>"
+  },
+  {
+    "id": "sweet-vernal-grass",
+    "category": "flora",
+    "title": "Sweet Vernal-grass",
+    "irishTitle": "",
+    "summary": "Early-flowering fragrant grass containing coumarin, giving off a distinct scent of new-mown hay.",
+    "content": "<p><em>Anthoxanthum odoratum</em>. Early-flowering fragrant grass containing coumarin, giving off a distinct scent of new-mown hay.</p>"
+  },
+  {
+    "id": "downy-oat-grass",
+    "category": "flora",
+    "title": "Downy Oat-grass",
+    "irishTitle": "",
+    "summary": "Soft, downy-leaved perennial grass growing in rich limestone meadows and ungrazed grips.",
+    "content": "<p><em>Helictotrichon pubescens</em>. Soft, downy-leaved perennial grass growing in rich limestone meadows and ungrazed grips.</p>"
+  },
+  {
+    "id": "cocks-foot",
+    "category": "flora",
+    "title": "Cock's-foot",
+    "irishTitle": "",
+    "summary": "Tall tussock-forming grass with dense, one-sided cluster panicles along field boundaries.",
+    "content": "<p><em>Dactylis glomerata</em>. Tall tussock-forming grass with dense, one-sided cluster panicles along field boundaries.</p>"
   }
 ]

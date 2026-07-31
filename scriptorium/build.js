@@ -113,8 +113,19 @@ function fillTemplate(template, entry, allEntries) {
   // consistent with that rather than introducing a second, id-based
   // lookup path the map would need special-casing to support.
   const mapLink = `${MAP_RELATIVE_PATH}?entry=${entry.category}:${encodeURIComponent(entry.title)}`;
+  // A flat placeholder can't conditionally omit a whole element the way
+  // a real template engine could — so the *decision* of whether to show
+  // an Irish-name line at all happens here, in JS, rather than leaving
+  // template.html to render an empty <p class="entry-irish"></p> for
+  // every entry that doesn't have one (most of the flora set, it turns
+  // out — real species data rarely comes with an Irish common name
+  // pre-filled, unlike the placenames used for towns/sites).
+  const irishBlock = entry.irishTitle
+    ? `<p class="entry-irish">${escapeHtml(entry.irishTitle)}</p>`
+    : '';
   return template
     .split('{{TITLE}}').join(escapeHtml(entry.title))
+    .split('{{IRISH_BLOCK}}').join(irishBlock)
     .split('{{IRISH}}').join(escapeHtml(entry.irishTitle))
     .split('{{CATEGORY}}').join(escapeHtml(entry.category))
     .split('{{SUMMARY}}').join(escapeHtml(deriveSummary(entry)))
@@ -177,14 +188,22 @@ function build() {
   // everything into one manifest up front — worth revisiting then, not
   // before.
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-  const manifest = entries.map((entry) => ({
-    id: entry.id,
-    category: entry.category,
-    title: entry.title,
-    irishTitle: entry.irishTitle,
-    summary: deriveSummary(entry),
-    content: entry.content
-  }));
+  const manifest = entries.map((entry) => {
+    const item = {
+      id: entry.id,
+      category: entry.category,
+      title: entry.title,
+      irishTitle: entry.irishTitle,
+      summary: deriveSummary(entry),
+      content: entry.content
+    };
+    // Optional fields — present only for entries that actually have
+    // them (currently just a couple of flora entries), so most entries'
+    // manifest objects stay lean rather than carrying empty keys around.
+    if (entry.oghamName) item.oghamName = entry.oghamName;
+    if (entry.oghamGloss) item.oghamGloss = entry.oghamGloss;
+    return item;
+  });
   fs.writeFileSync(path.join(OUTPUT_DIR, 'manifest.json'), JSON.stringify(manifest), 'utf8');
 
   const total = entries.length;

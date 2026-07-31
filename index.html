@@ -3768,7 +3768,8 @@
           searchIndex.push({
             kind: entry.category, name: entry.title, category: entry.category,
             discipline: entry.category, note: entry.summary || '',
-            irish: entry.irishTitle, habitatTags: [], slug: entry.id
+            irish: entry.irishTitle, habitatTags: [], slug: entry.id,
+            oghamName: entry.oghamName, oghamGloss: entry.oghamGloss
           });
         });
         renderFacets();
