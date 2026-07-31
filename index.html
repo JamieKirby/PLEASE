@@ -505,13 +505,22 @@
      cluster, rather than a hardcoded page coordinate that would drift
      out of sync the moment a control gets added or removed. */
   .info-ctrl-wrap { position: relative; }
+  /* Was max-width:320px with no height cap — at that width this much text
+     turned into a very tall, awkward vertical column that could run off
+     the bottom of the screen with no way to scroll to the rest of it.
+     Widening it into a proper landscape rectangle (and capping height with
+     its own scroll) is what actually makes it usable, not just tidier. */
   .caveat-panel {
-    position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; max-width: 320px;
+    position: absolute; top: calc(100% + 8px); left: 0; z-index: 20;
+    width: min(440px, 86vw); max-height: min(50vh, 360px); overflow-y: auto;
     background: rgba(18,18,18,.94); border: 1px solid rgba(255,255,255,.12); border-radius: 6px;
-    padding: 12px 16px; font-size: .76rem; color: var(--ink-dim); font-style: italic; line-height: 1.6;
+    padding: 14px 18px; font-size: .76rem; color: var(--ink-dim); font-style: italic; line-height: 1.6;
     display: none;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent;
   }
   .caveat-panel.open { display: block; }
+  .caveat-panel::-webkit-scrollbar { width: 4px; }
+  .caveat-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.25); border-radius: 4px; }
 
   .legend {
     position: absolute; left: 16px; bottom: 16px; z-index: 20;
@@ -523,6 +532,19 @@
   .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
   .legend-dot.hollow { background: transparent; border: 1.4px solid var(--lore); }
   .legend-dot.dashed { background: transparent; border: 1.2px dashed var(--geology); }
+
+  /* MapLibre's default attribution control ships styled for a light page
+     (white pill, dark text) — inverted here to sit quietly against this
+     dark UI instead of standing out as a bright white dot. compact:true
+     (see map init) already forces it closed by default; this just
+     recolours it and its popup to match everything else on the map. */
+  .maplibregl-ctrl-attrib.maplibregl-compact { background-color: rgba(18,18,18,.75); }
+  .maplibregl-ctrl-attrib-button { filter: invert(1) grayscale(1); opacity: .55; }
+  .maplibregl-ctrl-attrib-button:hover { opacity: .85; }
+  .maplibregl-ctrl-attrib.maplibregl-compact.maplibregl-compact-show {
+    background-color: rgba(18,18,18,.94); border-radius: 6px;
+  }
+  .maplibregl-ctrl-attrib a { color: var(--ink-dim); }
 
   /* 3D/isometric toggle, grouped with MapLibre's own zoom control (reuses
      its .maplibregl-ctrl-group styling for a consistent look) */
@@ -617,10 +639,11 @@
      view rather than sitting below the fold. */
   .site-entry { display: flex; flex-direction: column; min-height: 45vh; }
 
-  /* "Open in Google/Apple Maps" handoff — deliberately NOT styled like a
-     chip (no pill, no border, no accent colour): those represent other
-     in-app content to jump to, this is a quiet exit to a different app,
-     so it reads as a distinct, muted utility row — a thin divider above
+  /* "Open in Google/Apple Maps" handoff — styled as a grey pill button
+     matching .deep-dive-btn's shape (rounded, bordered, same padding),
+     just in a neutral grey rather than the discipline accent colour, so
+     it still reads as a distinct exit-to-another-app action without
+     looking like a bare, un-affordanced text link. A thin divider above
      separates it from whatever content happens to sit right before it.
      Centred (rather than left-aligned like everything above it) so the
      two links read as their own deliberately-placed pair, not just one
@@ -638,14 +661,15 @@
     position: sticky; bottom: 0; background: var(--canvas-2);
   }
   .maplink-btn {
-    display: inline-flex; align-items: center; gap: 5px;
-    background: none; border: none; padding: 0;
-    color: #c4c4c4; font-size: .74rem;
-    font-family: -apple-system, sans-serif; text-decoration: none; cursor: pointer;
-    transition: color .15s ease;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(30,34,30,.7); border: 1px solid rgba(255,255,255,.22);
+    color: #d8d8d8; padding: 8px 16px; border-radius: 20px; font-size: .8rem;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    text-decoration: none; cursor: pointer;
+    transition: background .2s ease, border-color .2s ease;
   }
-  .maplink-btn:hover { color: var(--parchment); }
-  .maplink-btn svg { width: 12px; height: 12px; flex: 0 0 auto; opacity: .95; }
+  .maplink-btn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.4); }
+  .maplink-btn svg { width: 13px; height: 13px; flex: 0 0 auto; opacity: .95; }
 
   /* Inline auto-links inside a town's description (see autoLinkNote) — a
      plain underlined word within the prose, not a pill button like the
@@ -2020,8 +2044,16 @@
     maxZoom: 17,
     pitch: 0,
     bearing: 0,
-    pixelRatio: mapPixelRatio
+    pixelRatio: mapPixelRatio,
+    // MapLibre's default attribution control auto-detects "compact" based
+    // on container width, so on a wide screen it can render as an
+    // always-open strip of text rather than the small closed "i" button.
+    // Turning the built-in one off and adding it back explicitly with
+    // compact:true forces it to always start as the closed icon button
+    // (see .maplibregl-ctrl-attrib-button below for its recoloured look).
+    attributionControl: false
   });
+  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
   map.addControl(new maplibregl.NavigationControl(), 'top-left');
 
   // 3D terrain — genuinely lazy now, not just "on but invisible at pitch
