@@ -222,7 +222,7 @@
      same footprint as a .mk.cluster group emblem (roughly double a
      regular 26px .mk), with every inner part scaled up to match rather
      than just stretching the outer box around a still-tiny icon. */
-  .mk.town { width: 38px; height: 38px; }
+  .mk.town { width: 38px; height: 38px; z-index: 1; }
   .mk.town .mk-body { inset: 4px; }
   .mk.town .mk-body svg { width: 19px; height: 19px; }
   .mk.town .mk-halo { inset: -12px; }
@@ -283,8 +283,12 @@
      z-index on the *marker itself* while hovered/focused brings that
      marker's whole stacking context — popup included — above every
      sibling cluster, which a z-index set only on the popup could never
-     do on its own. */
-  .mk.cluster:hover, .mk.cluster:focus-visible { z-index: 500; }
+     do on its own. Town markers hit the exact same problem once they
+     got their own .cluster-hover-popup (see TOWN OVERHAUL below) — their
+     popups were reported opening "underneath" neighbouring markers for
+     the identical reason, so they share this same rule rather than
+     needing a parallel one. */
+  .mk.cluster:hover, .mk.cluster:focus-visible, .mk.town:hover, .mk.town:focus-visible { z-index: 500; }
   .mk-emblem-body {
     position: absolute; inset: 0; border-radius: 50%;
     background: rgba(18,18,18,.94); border: 1.6px solid var(--parchment);
@@ -672,36 +676,40 @@
      view rather than sitting below the fold. */
   .site-entry { display: flex; flex-direction: column; min-height: 45vh; }
 
-  /* "Open in Google/Apple Maps" handoff — no background box or border
-     (that read as "not very premium"), just the icon + text in a bright
-     grey that brightens further on hover — a quiet exit to a different
-     app rather than another boxed button competing with real in-app
-     content. A thin divider above
+  /* "Open in Google/Apple Maps" handoff — the buttons themselves are
+     grey pills matching .deep-dive-btn's shape. What they sit on is not
+     a flat box, though: that read as a slab behind the pair, which is
+     what "not very premium" was pointing at. A thin divider above
      separates it from whatever content happens to sit right before it.
      Centred (rather than left-aligned like everything above it) so the
      two links read as their own deliberately-placed pair, not just one
      more line of left-justified content.
 
-     position:sticky (new) is what actually guarantees these stay within
-     the visible viewport — bottom:0 means once scrolling would carry
-     them past the viewport's own bottom edge, they stick there instead,
-     rather than requiring a further scroll to reach. Needs its own
-     background (matching the drawer's canvas colour) so content
-     scrolling up from underneath doesn't show through while it's stuck. */
+     position:sticky is what actually guarantees these stay within the
+     visible viewport — bottom:0 means once scrolling would carry them
+     past the viewport's own bottom edge, they stick there instead of
+     requiring a further scroll to reach — this is the effect that was
+     worth keeping. Rather than a flat background colour to stop content
+     scrolling up from showing through while it's stuck (the "box"), a
+     short top-to-bottom fade does the same job — content behind fades
+     out before it reaches the buttons rather than being cut off behind
+     a hard edge, the same fade-not-cut approach already used for
+     .drawer.full .drawer-body's own scroll mask above. */
   .site-maplinks {
     margin-top: auto; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08);
     display: flex; flex-wrap: wrap; justify-content: center; gap: 16px;
-    position: sticky; bottom: 0; background: var(--canvas-2);
+    position: sticky; bottom: 0;
+    background: linear-gradient(180deg, transparent, var(--canvas-2) 45%);
   }
   .maplink-btn {
     display: inline-flex; align-items: center; gap: 6px;
-    background: none; border: none; padding: 0;
-    color: #d8d8d8; font-size: .8rem;
+    background: rgba(30,34,30,.7); border: 1px solid rgba(255,255,255,.22);
+    color: #d8d8d8; padding: 8px 16px; border-radius: 20px; font-size: .8rem;
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
     text-decoration: none; cursor: pointer;
-    transition: color .2s ease;
+    transition: background .2s ease, border-color .2s ease;
   }
-  .maplink-btn:hover { color: var(--parchment); }
+  .maplink-btn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.4); }
   .maplink-btn svg { width: 13px; height: 13px; flex: 0 0 auto; opacity: .95; }
 
   /* Inline auto-links inside a town's description (see autoLinkNote) — a
@@ -753,6 +761,17 @@
   .soundscape-toggle.playing { background: rgba(222,210,179,.18); }
   .soundscape-volume { width: 70px; accent-color: var(--parchment); }
   .soundscape-mode { font-size: .7rem; color: var(--ink-dim); font-style: italic; min-width: 46px; }
+  /* Fixed positioning means this widget ignores the drawer's own layout
+     entirely, so on the narrow/mobile layout (same 899px break the
+     drawer itself switches on) it was floating on top of the open
+     drawer rather than sitting beside it as it does on a wide screen.
+     display:none removes it from layout, hit-testing, and screen
+     readers alike — a full disable, not just a visual fade — rather
+     than trying to reposition a fixed corner widget around a drawer
+     that can cover the whole viewport on this size screen. */
+  @media (max-width: 899px) {
+    .soundscape-widget { display: none; }
+  }
 
   /* ---- Search drawer (Cmd+K) — a second, independent overlay from the
      site/route drawer above. Opening/closing it never touches drawerCurrent,
@@ -3297,11 +3316,35 @@
 
       var visited = new Array(n).fill(false);
       var groups = [];
+      var townPosByKey = {};
       for (var i = 0; i < n; i++) {
         if (projected[i].p.kind === 'town') {
           groups.push({ kind: 'town', item: projected[i], absorbedCount: townAbsorbed[i] || 0, absorbedItems: townAbsorbedItems[i] || [] });
           visited[i] = true;
+          townPosByKey[projected[i].p.key] = projected[i];
         }
+      }
+      // A legend linked to a town sits a couple hundred metres away from
+      // it on the map, cross-linked via a chip rather than clustered
+      // together — but since the TOWN OVERHAUL made town markers roughly
+      // double size with a permanent name caption above them, that small
+      // real-world offset often isn't enough screen distance any more to
+      // keep the two from visually colliding at low/medium zoom. Rather
+      // than changing the linked offset itself, the legend just stays
+      // hidden (same invisible/non-interactive "grouped" state used
+      // elsewhere) until zooming in has pushed it far enough from its
+      // town on screen to no longer overlap — same self-correcting idea
+      // as a cluster splitting apart, just keyed to one specific town
+      // instead of screen-distance to any nearby point.
+      var TOWN_LEGEND_CLEARANCE = 56;
+      for (i = 0; i < n; i++) {
+        if (visited[i] || projected[i].p.kind !== 'legend') continue;
+        var ld = legendData[projected[i].p.name];
+        if (!ld || !ld.linkedTo || ld.linkedTo.kind !== 'town') continue;
+        var townPos = townPosByKey['town:' + ld.linkedTo.name];
+        if (!townPos) continue;
+        var lldx = projected[i].x - townPos.x, lldy = projected[i].y - townPos.y;
+        if (Math.sqrt(lldx * lldx + lldy * lldy) < TOWN_LEGEND_CLEARANCE) visited[i] = true;
       }
       for (i = 0; i < n; i++) {
         if (visited[i] || absorbed[i]) continue;
