@@ -494,19 +494,19 @@
     .drawer.full .drawer-body { max-height: none; }
   }
 
-  /* Moved to the left, stacked above the legend — right:16 collided with
-     the drawer, which is 380px wide and opens right over that corner,
-     so "About this map" was getting hidden underneath it whenever a
-     drawer was open. It only ever opens on click either way (display:none
-     until .open is added), that part wasn't broken. */
-  .caveat-toggle {
-    position: absolute; left: 16px; bottom: 172px; z-index: 20;
-    background: rgba(18,18,18,.85); border: 1px solid rgba(255,255,255,.1);
-    color: var(--ink-dim); border-radius: 20px; padding: 6px 14px;
-    font-family: -apple-system, sans-serif; font-size: .72rem; cursor: pointer;
-  }
+  /* "About this map" is now a small icon button living inside the
+     top-left camera-control cluster (see InfoControl, styled to match
+     Tilt3DControl/SatelliteToggleControl/etc.) rather than its own
+     free-floating pill — .info-ctrl-wrap just needs position:relative
+     so .caveat-panel below can anchor to it directly, the same
+     "relative parent, absolute child" pattern already used elsewhere in
+     this file for dropdown-style popovers. That's what lets the panel
+     correctly follow wherever MapLibre actually renders the top-left
+     cluster, rather than a hardcoded page coordinate that would drift
+     out of sync the moment a control gets added or removed. */
+  .info-ctrl-wrap { position: relative; }
   .caveat-panel {
-    position: absolute; left: 16px; bottom: 212px; z-index: 20; max-width: 320px;
+    position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; max-width: 320px;
     background: rgba(18,18,18,.94); border: 1px solid rgba(255,255,255,.12); border-radius: 6px;
     padding: 12px 16px; font-size: .76rem; color: var(--ink-dim); font-style: italic; line-height: 1.6;
     display: none;
@@ -604,13 +604,18 @@
      empty ("negative") space is left in the panel for a short entry,
      rather than sitting immediately under the last chip — for a longer
      entry that already fills the space, the auto margin just collapses
-     to nothing and they sit right after the content as normal. Bumped
-     from 40vh to 60vh — the first pass still left them looking like
-     they were floating partway down rather than anchored near the
-     panel's actual bottom edge; this is the one number to raise further
-     still if they should sit lower yet, or lower if they end up needing
-     a scroll to reach on a short entry. */
-  .site-entry { display: flex; flex-direction: column; min-height: 60vh; }
+     to nothing and they sit right after the content as normal.
+
+     min-height went 40vh → 60vh → 45vh: 40 still looked like floating,
+     but 60 overshot into requiring a scroll to actually reach them on a
+     short entry — exactly the failure this comment's earlier version
+     already flagged as the thing to watch for. 45 is the safer middle
+     ground, and position:sticky on .site-maplinks itself (below) is the
+     real guarantee here rather than another vh guess: it keeps the
+     links pinned within the visible viewport as you scroll, so even if
+     45vh still turns out too tall on some screen, they'd stick into
+     view rather than sitting below the fold. */
+  .site-entry { display: flex; flex-direction: column; min-height: 45vh; }
 
   /* "Open in Google/Apple Maps" handoff — deliberately NOT styled like a
      chip (no pill, no border, no accent colour): those represent other
@@ -619,20 +624,28 @@
      separates it from whatever content happens to sit right before it.
      Centred (rather than left-aligned like everything above it) so the
      two links read as their own deliberately-placed pair, not just one
-     more line of left-justified content. */
+     more line of left-justified content.
+
+     position:sticky (new) is what actually guarantees these stay within
+     the visible viewport — bottom:0 means once scrolling would carry
+     them past the viewport's own bottom edge, they stick there instead,
+     rather than requiring a further scroll to reach. Needs its own
+     background (matching the drawer's canvas colour) so content
+     scrolling up from underneath doesn't show through while it's stuck. */
   .site-maplinks {
     margin-top: auto; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08);
     display: flex; flex-wrap: wrap; justify-content: center; gap: 16px;
+    position: sticky; bottom: 0; background: var(--canvas-2);
   }
   .maplink-btn {
     display: inline-flex; align-items: center; gap: 5px;
     background: none; border: none; padding: 0;
-    color: var(--ink-dim); font-size: .74rem;
+    color: #c4c4c4; font-size: .74rem;
     font-family: -apple-system, sans-serif; text-decoration: none; cursor: pointer;
     transition: color .15s ease;
   }
   .maplink-btn:hover { color: var(--parchment); }
-  .maplink-btn svg { width: 12px; height: 12px; flex: 0 0 auto; opacity: .85; }
+  .maplink-btn svg { width: 12px; height: 12px; flex: 0 0 auto; opacity: .95; }
 
   /* Inline auto-links inside a town's description (see autoLinkNote) — a
      plain underlined word within the prose, not a pill button like the
@@ -662,10 +675,15 @@
   .bookmark-btn.saved svg { fill: var(--parchment); }
   .entry-header-row { display: flex; align-items: center; gap: 8px; }
 
-  /* ---- Ambient soundscape control — small persistent corner widget,
-     opposite corner from "About this map" so the two never collide ---- */
+  /* ---- Ambient soundscape control — small persistent corner widget.
+     Moved here (was bottom-right) to sit directly above the legend —
+     "About this map" used to occupy this exact spot (bottom:172px, a
+     height already proven to clear the legend below it) before moving
+     to a small icon button alongside the camera controls at top-left,
+     which freed this spot up for something more logical to live here
+     instead. ---- */
   .soundscape-widget {
-    position: fixed; right: 16px; bottom: 16px; z-index: 150;
+    position: fixed; left: 16px; bottom: 172px; z-index: 150;
     display: flex; align-items: center; gap: 8px;
     background: rgba(18,18,18,.9); border: 1px solid rgba(255,255,255,.14);
     border-radius: 20px; padding: 6px 12px; font-family: -apple-system, sans-serif;
@@ -811,8 +829,7 @@
       <div class="legend-item"><span class="legend-dot dashed"></span> Provisional location</div>
     </div>
 
-    <button class="caveat-toggle" id="caveatToggle" aria-expanded="false">About this map</button>
-    <div class="caveat-panel" id="caveatPanel">This is a real OpenStreetMap basemap (via MapLibre GL JS + OpenFreeMap, no API key required), recolored to match the Scriptorium palette. Roads, coastline, lakes, and turloughs are real survey data, not illustrated. Major road names are shown; minor roads, tracks, and route-number shields are hidden to keep the map quiet. Nearby markers only merge into a numbered cluster once they'd actually overlap on screen, and that radius shrinks further as the discipline pills filter more points off the map, so a thinned-out map declutters faster — click a cluster to zoom in and split it apart. Towns never disappear into one of those anonymous clusters; if something else lands right on top of a town at low zoom, the town stays as its own marker with a small badge in the corner showing how many more are stacked there, and clicking that badge zooms in until they separate. A legend tied to a site or town sits just beside it on the map — close enough to read as the same place, but as its own separate marker in the Lore colour with the spiral icon — and each one's drawer carries a link chip straight to the other, so you can hop between the tale and the place it's about in one click. The "Routes" menu in the top bar suggests themed trails between sites — open a site's drawer and look for "Part of…" to jump to a trail it belongs to. Several coordinates are approximate pending field verification (dashed ring): Seven Streams of Teeskagh, Carran Turlough, the Carron and New Quay village centres, St Brigid's Well, and three legends with no site of their own yet on the map — Glasgeivnagh Hill/Slievenaglasha, Hag's Head, and Kilnaboy Church. Eyebright and "Burren Karst" describe a species and a landscape, not a single point, so they aren't pinned. The "SAT" button (top-right, next to the 3D toggle) swaps the base map for real aerial/satellite imagery — Esri World Imagery, no account needed, imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community — with roads, labels, and all markers still on top of it; click it again to go back to the recoloured map. Faint parchment contour lines are draped over the terrain throughout — real elevation data (AWS's open Terrarium tiles), not illustrated — and the ground itself gains real 3D relief once you tilt into the isometric view with the "3D" button.</div>
+    <div class="caveat-panel" id="caveatPanel">This is a real OpenStreetMap basemap (via MapLibre GL JS + OpenFreeMap, no API key required), recolored to match the Scriptorium palette. Roads, coastline, lakes, and turloughs are real survey data, not illustrated. Major road names are shown; minor roads, tracks, and route-number shields are hidden to keep the map quiet. Nearby markers only merge into a numbered cluster once they'd actually overlap on screen, and that radius shrinks further as the discipline pills filter more points off the map, so a thinned-out map declutters faster — click a cluster to zoom in and split it apart. Towns never disappear into one of those anonymous clusters; if something else lands right on top of a town at low zoom, the town stays as its own marker with a small badge in the corner showing how many more are stacked there, and clicking that badge zooms in until they separate. A legend tied to a site or town sits just beside it on the map — close enough to read as the same place, but as its own separate marker in the Lore colour with the spiral icon — and each one's drawer carries a link chip straight to the other, so you can hop between the tale and the place it's about in one click. The "Routes" menu in the top bar suggests themed trails between sites — open a site's drawer and look for "Part of…" to jump to a trail it belongs to. Several coordinates are approximate pending field verification (dashed ring): Seven Streams of Teeskagh, Carran Turlough, the Carron and New Quay village centres, St Brigid's Well, and three legends with no site of their own yet on the map — Glasgeivnagh Hill/Slievenaglasha, Hag's Head, and Kilnaboy Church. Eyebright and "Burren Karst" describe a species and a landscape, not a single point, so they aren't pinned. The "SAT" button (top-left, next to the 3D toggle) swaps the base map for real aerial/satellite imagery — Esri World Imagery, no account needed, imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community — with roads, labels, and all markers still on top of it; click it again to go back to the recoloured map. Faint parchment contour lines are draped over the terrain throughout — real elevation data (AWS's open Terrarium tiles), not illustrated — and the ground itself gains real 3D relief once you tilt into the isometric view with the "3D" button.</div>
   </div>
 </div>
 
@@ -832,19 +849,23 @@
 
 <div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Site details" aria-hidden="true">
 
-  <!-- preserveAspectRatio="none" (not the old xMidYMid slice) is
-       deliberate — this SVG is a direct child of .drawer itself, so it
-       spans the compact sidebar (narrow, tall) AND the 100vw Deeper
-       Dive/full mode (wide) with wildly different aspect ratios. "slice"
-       scaled to COVER each container, cropping whichever dimension
-       overflowed — which meant a differently-cropped, differently-
-       bunched slice of the same fixed 65-row layout depending on which
-       mode was open, read as overlapping/duplicate-looking text
-       specifically in full mode. "none" stretches non-uniformly instead
-       of cropping, so the full evenly-spaced layout is always what's
-       shown, just at a different aspect — a much safer failure mode for
-       gently-curved decorative text than visible cropping artifacts. -->
-  <svg class="matrix-svg" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
+  <!-- Starting value here matches the drawer's default (compact) state
+       — see syncAmbientAspectRatio (called from deepenDrawer/
+       collapseDrawer) for why this now toggles at runtime instead of
+       being one fixed value. This SVG is a direct child of .drawer
+       itself, so it spans both the narrow, tall compact sidebar AND the
+       ~100vw Deeper Dive/full mode, and those two container shapes are
+       different enough that no single preserveAspectRatio value reads
+       correctly for both — "slice" (uniform, crops overflow) suits the
+       narrow compact case; "none" (independent per-axis scaling) suits
+       the wide full-mode case, where "slice" was cropping vertically
+       and causing overlapping/bunched-looking text. Applying "none" to
+       the narrow case, though, compressed its X axis far more than Y,
+       steepening every curve toward vertical and pulling their
+       endpoints (deliberately drawn off-canvas to stay hidden) into
+       view — hence needing to actually switch between the two rather
+       than picking one. -->
+  <svg class="matrix-svg" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
     <defs>
       <!-- stdDeviation reduced from the original 22 — this filter is
            masking the ambient-row group, which animates continuously
@@ -1083,15 +1104,17 @@
         path.setAttribute('d', 'M ' + AMBIENT_ARC_X_LEFT + ',' + yLeft + ' Q ' + AMBIENT_ARC_CX + ',' + yControl + ' ' + AMBIENT_ARC_X_RIGHT + ',' + yRight);
         svg.insertBefore(path, anchor);
       }
-      // Peak opacity now varies noticeably row to row (7 distinct levels,
-      // 0.10 up to a 0.25 ceiling — up from a narrow 0.13–0.15 band) so
-      // the backdrop reads as a field of unevenly-lit lines rather than
-      // one flat wash. pulseDur (the actual breathing cadence) is left
-      // completely untouched — that rhythm was already right. Sway is
-      // both much bigger (a real side-to-side traverse of the panel, not
-      // a small wobble) and about 3x faster than before (was 240–380s
-      // for a full there-and-back; now 80–125s).
-      var peak = (0.10 + (i % 7) * 0.025).toFixed(3);
+      // Peak opacity varies row to row (7 distinct levels) so the
+      // backdrop reads as a field of unevenly-lit lines rather than one
+      // flat wash — ceiling brought back down to 0.15 (was pushed up to
+      // 0.25 for a period, then asked back down again), same 7-level
+      // variation pattern just rescaled to the new range. pulseDur (the
+      // actual breathing cadence) is left completely untouched — that
+      // rhythm was already right. Sway is both much bigger (a real
+      // side-to-side traverse of the panel, not a small wobble) and
+      // about 3x faster than before (was 240–380s for a full there-and-
+      // back; now 80–125s).
+      var peak = (0.06 + (i % 7) * 0.015).toFixed(3);
       defs.push({
         curve: id,
         peak: peak,
@@ -2366,6 +2389,42 @@
   };
   map.addControl(new MarsStyleControl(), 'top-left');
 
+  // "About this map" — was its own free-floating pill button; now a
+  // small icon matching the rest of the camera-control cluster, since
+  // that's a more consistent home for a toggle than a standalone button
+  // competing for space with the legend. The panel itself (#caveatPanel)
+  // already exists in the static HTML with its content unchanged — this
+  // just re-parents that same element into the control's own container
+  // instead of duplicating or rewriting its content, and relies on
+  // .info-ctrl-wrap's position:relative (see CSS) so the panel opens
+  // directly under this button and keeps following it correctly even if
+  // the top-left cluster's own position or size ever changes.
+  function InfoControl() {}
+  InfoControl.prototype.onAdd = function (mapInstance) {
+    this._map = mapInstance;
+    this._container = document.createElement('div');
+    this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group info-ctrl-wrap';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.title = 'About this map';
+    btn.setAttribute('aria-expanded', 'false');
+    btn.innerHTML = '<span style="font:italic 700 13px Georgia, serif;">i</span>';
+    var panel = document.getElementById('caveatPanel');
+    btn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      var open = panel.classList.toggle('open');
+      btn.setAttribute('aria-expanded', String(open));
+    });
+    this._container.appendChild(btn);
+    if (panel) this._container.appendChild(panel);
+    return this._container;
+  };
+  InfoControl.prototype.onRemove = function () {
+    this._container.parentNode.removeChild(this._container);
+    this._map = undefined;
+  };
+  map.addControl(new InfoControl(), 'top-left');
+
   // Belt and braces: if 'load' never fires for some reason (tile host
   // down, network failure), don't leave the load overlay covering the
   // page forever with nothing else visible at all — a broken map
@@ -2712,10 +2771,30 @@
     function deepenDrawer() {
       document.getElementById('drawer').classList.add('full');
       updateDrawerBackVisibility();
+      syncAmbientAspectRatio();
     }
     function collapseDrawer() {
       document.getElementById('drawer').classList.remove('full');
       updateDrawerBackVisibility();
+      syncAmbientAspectRatio();
+    }
+    // The ambient SVG's own aspect-ratio handling has to differ between
+    // the two drawer modes — their container shapes are too different
+    // for one fixed choice to work for both. "slice" (uniform scaling,
+    // crops whichever dimension overflows) reads fine for the narrow,
+    // tall compact sidebar, where it was the original, preferred look.
+    // But applying that same "slice" to the ~100vw full/Deeper-Dive
+    // mode was what caused the original cropping/bunching bug — a wide
+    // container forces "slice" to scale based on width, which crops
+    // vertically instead. "none" (independent, non-uniform scaling per
+    // axis) fixed that for full mode, but applying "none" back to the
+    // narrow compact mode compresses X far more than Y, which is what
+    // steepened every curve toward vertical and pulled their endpoints
+    // (deliberately drawn off-canvas to stay hidden) into view. Neither
+    // setting is "wrong" — each is right for a different aspect ratio.
+    function syncAmbientAspectRatio() {
+      var svg = document.querySelector('.matrix-svg');
+      if (svg) svg.setAttribute('preserveAspectRatio', isDrawerFull() ? 'none' : 'xMidYMid slice');
     }
     function updateDrawerBackVisibility() {
       var btn = document.getElementById('drawerBack');
@@ -4264,13 +4343,6 @@
     var backBtn = document.getElementById('drawerBack');
     if (backBtn) backBtn.classList.remove('visible');
   }
-
-  var caveatToggle = document.getElementById('caveatToggle');
-  var caveatPanel = document.getElementById('caveatPanel');
-  caveatToggle.addEventListener('click', function () {
-    var open = caveatPanel.classList.toggle('open');
-    caveatToggle.setAttribute('aria-expanded', String(open));
-  });
 
   Soundscape.mount();
 </script>
