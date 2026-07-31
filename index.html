@@ -649,6 +649,46 @@
   .constraint-panel .constraint-reason .n { color: var(--parchment); font-weight: 700; flex: 0 0 auto; }
   .constraint-panel .constraint-hint { font-style: italic; color: var(--ink-dim); font-size: .72rem; border-top: 1px solid rgba(255,255,255,.08); padding-top: 8px; margin-top: 2px; }
 
+  /* ---- Burger menu ("personal area") — bookmarks + route planning,
+     previously only reachable via the search drawer's Saved facet.
+     Three bars morphing into an X on open, same idea as any standard
+     mobile nav toggle; the panel itself reuses the same dropdown
+     treatment as .routes-panel/.constraint-panel for consistency. */
+  .burger-menu-wrap { position: relative; }
+  .burger-menu-btn {
+    width: 34px; height: 34px; flex: 0 0 auto; padding: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+    background: rgba(30,34,30,.7); border: 1px solid rgba(255,255,255,.14); border-radius: 8px;
+    cursor: pointer;
+  }
+  .burger-menu-btn span {
+    display: block; width: 16px; height: 2px; border-radius: 2px;
+    background: var(--ink-dim); transition: transform .25s ease, opacity .2s ease, background .2s ease;
+  }
+  .burger-menu-btn:hover span, .burger-menu-btn[aria-expanded="true"] span { background: var(--parchment); }
+  .burger-menu-btn[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .burger-menu-btn[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+  .burger-menu-btn[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  .burger-menu-panel {
+    position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: 240px;
+    background: rgba(18,18,18,.97); border: 1px solid rgba(255,255,255,.14); border-radius: 8px;
+    padding: 8px; display: none; flex-direction: column; gap: 4px;
+    box-shadow: 0 14px 32px rgba(0,0,0,.45);
+  }
+  .burger-menu-panel.open { display: flex; }
+  .burger-menu-item {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    background: none; border: none; padding: 9px 10px; border-radius: 6px; margin: 0;
+    font-family: -apple-system, sans-serif; font-size: .82rem; color: var(--ink); cursor: pointer;
+    transition: background .15s ease;
+  }
+  .burger-menu-item:hover, .burger-menu-item:focus-visible { background: rgba(255,255,255,.07); outline: none; }
+  .burger-menu-item svg { width: 15px; height: 15px; flex: 0 0 auto; color: var(--parchment); }
+  .burger-menu-item .count-pill {
+    margin-left: auto; background: rgba(222,210,179,.15); color: var(--parchment);
+    font-size: .68rem; font-weight: 700; padding: 1px 7px; border-radius: 10px;
+  }
+
   /* "Part of X trail" chips shown inside a site/town drawer entry */
   .site-routes { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
   .route-chip {
@@ -874,6 +914,12 @@
 
 <div class="app">
   <div class="topbar">
+    <div class="burger-menu-wrap">
+      <button class="burger-menu-btn" id="burgerMenuBtn" aria-expanded="false" aria-haspopup="true" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="burger-menu-panel" id="burgerMenuPanel"></div>
+    </div>
     <h1>The Burren & Clare Coast</h1>
     <span class="sub">Brought to you by Fir Dana</span>
     <div class="filters" role="group" aria-label="Filter by discipline">
@@ -2542,8 +2588,27 @@
         // visible are our own — otherwise panning/rotating reveals OSM's
         // built-in labels anywhere on the map, which looks like "our"
         // points scattering, when really they were just off-screen before.
+        //
+        // Matching only an id containing "poi"/"place" turned out to miss
+        // real layers — OpenMapTiles-schema styles (this one included)
+        // often name settlement-label layers "settlement-major-label",
+        // "settlement-minor-label", etc., which contains neither
+        // substring, so their labels (and, on some layers, a small
+        // background/icon swatch behind the text) were slipping through
+        // as a stray grey box sitting right behind our own custom town
+        // markers. Checking the layer's source-layer — the actual vector
+        // tile data layer, "place" in the OpenMapTiles spec regardless of
+        // how a given style chooses to name its paint layers — is the
+        // reliable match; the id-substring checks stay on as a fallback
+        // for any schema that doesn't follow that convention.
         var idLower = l.id.toLowerCase();
-        if (idLower.indexOf('poi') !== -1 || idLower.indexOf('place') !== -1) {
+        var sourceLayer = (l['source-layer'] || '').toLowerCase();
+        var isPlaceOrPoi = sourceLayer === 'place' || sourceLayer === 'poi' ||
+          idLower.indexOf('poi') !== -1 || idLower.indexOf('place') !== -1 ||
+          idLower.indexOf('settlement') !== -1 || idLower.indexOf('town') !== -1 ||
+          idLower.indexOf('village') !== -1 || idLower.indexOf('city') !== -1 ||
+          idLower.indexOf('hamlet') !== -1 || idLower.indexOf('suburb') !== -1;
+        if (isPlaceOrPoi) {
           map.setLayoutProperty(l.id, 'visibility', 'none');
         }
       } catch (e) { /* some layers don't support every property; skip quietly */ }
@@ -3719,6 +3784,31 @@
     map.on('rotateend', function () { applyMapTheme(currentMapTheme); });
     map.on('pitchend', function () { applyMapTheme(currentMapTheme); });
 
+    // ---- Safety net for the reported "stuck ghost/grouped" bug ----
+    // Reported repeatedly: after a mobile pinch-zoom all the way in and
+    // back out, markers end up stuck in the wrong visual state — some
+    // stay fully visible when they should have re-clustered/re-ghosted,
+    // others stay dimmed/hidden with no filter change to explain it.
+    // renderAll() is a pure function of the map's current zoom/rotation
+    // and the filter pills' current state, so it always computes the
+    // *correct* result whenever it actually runs — the failure mode is
+    // it not running at the right moment. zoomend/rotateend/pitchend
+    // don't reliably cover every touch gesture on every mobile browser
+    // (a pinch that combines zoom+pan, or momentum/rubber-band bounce
+    // after a hard fling to the zoom limit, can settle without cleanly
+    // firing the specific one this depends on). MapLibre's 'idle' event
+    // is the more general "the map has genuinely stopped moving and
+    // finished rendering" signal, regardless of which combination of
+    // gestures got it there, so it's added here as a catch-all re-sync
+    // rather than replacing the more specific listeners above. It can
+    // fire several times in quick succession during a single settle, so
+    // it's debounced rather than calling renderAll on every tick.
+    var idleRenderTimer = null;
+    map.on('idle', function () {
+      clearTimeout(idleRenderTimer);
+      idleRenderTimer = setTimeout(renderAll, 60);
+    });
+
     document.querySelectorAll('.filter-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var active = btn.getAttribute('data-active') === 'true';
@@ -4470,6 +4560,73 @@
       });
       renderResults();
     })();
+
+    // ---- Burger menu ("personal area") ----
+    // Bookmarked entries were only ever reachable by opening the Cmd+K
+    // search drawer and then finding the small ★ Saved facet chip inside
+    // it — a real find, not a shortcut, for something meant to be a
+    // quick personal reference. This adds a direct, always-visible entry
+    // point instead, without duplicating any of the Saved-view or route-
+    // generation logic already built: both menu actions just drive the
+    // existing search drawer / generateFieldNotesRoute through their own
+    // stable DOM ids and public functions, the same way a person clicking
+    // through by hand would.
+    var burgerMenuBtn = document.getElementById('burgerMenuBtn');
+    var burgerMenuPanel = document.getElementById('burgerMenuPanel');
+
+    function closeBurgerMenu() {
+      burgerMenuPanel.classList.remove('open');
+      burgerMenuBtn.setAttribute('aria-expanded', 'false');
+    }
+    // Opens the search drawer already switched to its Saved-only view —
+    // reuses the drawer's own #savedOnlyBtn toggle (only clicking it if
+    // it isn't already active) rather than reaching into that closure's
+    // private showSavedOnly state directly.
+    function openSavedItemsView() {
+      var overlay = document.getElementById('searchOverlay');
+      var trigger = document.getElementById('searchTrigger');
+      if (!overlay.classList.contains('open')) trigger.click();
+      var savedBtn = document.getElementById('savedOnlyBtn');
+      if (savedBtn && savedBtn.getAttribute('data-active') !== 'true') savedBtn.click();
+    }
+    function renderBurgerMenu() {
+      var savedCount = fieldNotesList().length;
+      burgerMenuPanel.innerHTML =
+        '<button type="button" class="burger-menu-item" id="menuBookmarksBtn">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h12v18l-6-4.5L6 21V3z"/></svg>' +
+        'Bookmarked Items' + (savedCount ? '<span class="count-pill">' + savedCount + '</span>' : '') +
+        '</button>' +
+        '<button type="button" class="burger-menu-item" id="menuPlanRouteBtn">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20 L9 5 L14 16 L20 4"/></svg>' +
+        'Plan a Route' +
+        '</button>';
+      document.getElementById('menuBookmarksBtn').addEventListener('click', function () {
+        closeBurgerMenu();
+        openSavedItemsView();
+      });
+      document.getElementById('menuPlanRouteBtn').addEventListener('click', function () {
+        closeBurgerMenu();
+        // Enough saved, mappable stops already exist — jump straight to
+        // the generated route instead of making them go find the
+        // "Generate Journey Route" button themselves; otherwise land on
+        // the same Saved view that button lives in, since that's also
+        // where the "you need at least 2" messaging is.
+        if (fieldNotesRouteStops().length >= 2) generateFieldNotesRoute();
+        else openSavedItemsView();
+      });
+    }
+    burgerMenuBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var wasOpen = burgerMenuPanel.classList.contains('open');
+      if (wasOpen) { closeBurgerMenu(); return; }
+      renderBurgerMenu();
+      burgerMenuPanel.classList.add('open');
+      burgerMenuBtn.setAttribute('aria-expanded', 'true');
+    });
+    document.addEventListener('click', function (e) {
+      if (burgerMenuPanel.classList.contains('open') && !burgerMenuPanel.contains(e.target) && e.target !== burgerMenuBtn) closeBurgerMenu();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeBurgerMenu(); });
 
     // Fires the deep-link bootstrap now that the map itself is ready —
     // resolves immediately for a site/town/legend kind; a Scriptorium
