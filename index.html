@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>The Burren — Field Map (Real Basemap)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js" crossorigin="anonymous"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css" rel="stylesheet" crossorigin="anonymous" />
@@ -34,11 +34,39 @@
   html, body { height: 100%; overflow: hidden; }
   body { background: var(--canvas); color: var(--ink); font-family: Georgia, "Times New Roman", serif; }
 
-  .app { display: flex; flex-direction: column; height: 100vh; }
+  /* ---- Load overlay ----
+     Covers the map while it's still assembling itself — tiles fetching,
+     markers mounting, contour/terrain sources attaching — so that
+     process is never something the person actually watches happen
+     piecemeal. Deliberately simple for now (a plain ring, one caption)
+     rather than an elaborate first-impression piece; the point tonight
+     is just replacing "raw tiles and markers popping in ad hoc" with
+     one deliberate, on-brand moment, not a finished design. */
+  #loadOverlay {
+    position: fixed; inset: 0; z-index: 999;
+    background: var(--canvas);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+    transition: opacity .6s ease, visibility .6s ease;
+  }
+  #loadOverlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .load-ring {
+    width: 58px; height: 58px; border-radius: 50%;
+    border: 2px solid rgba(222,210,179,.16);
+    border-top-color: var(--parchment);
+    animation: loadRingSpin 1.3s linear infinite;
+  }
+  @keyframes loadRingSpin { to { transform: rotate(360deg); } }
+  .load-caption {
+    font-family: Georgia, serif; font-style: italic; color: var(--ink-dim);
+    font-size: .85rem; letter-spacing: .5px; opacity: .85;
+  }
+
+  .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 
   .topbar {
     flex: 0 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 14px;
-    padding: 14px 3%; background: linear-gradient(180deg, rgba(18,18,18,.95), rgba(18,18,18,.85));
+    padding: 14px calc(3% + env(safe-area-inset-right)) 14px calc(3% + env(safe-area-inset-left));
+    background: linear-gradient(180deg, rgba(18,18,18,.95), rgba(18,18,18,.85));
     border-bottom: 1px solid rgba(255,255,255,.08); z-index: 25; position: relative;
   }
   .topbar h1 { font-size: 1.25rem; font-weight: 400; margin-right: 6px; white-space: nowrap; }
@@ -62,32 +90,6 @@
 
   .map-area { position: relative; flex: 1 1 auto; }
 
-  /* ---- Atmospheric drifting mist overlay ----
-     A single large SVG feTurbulence noise field (fractalNoise, tinted
-     parchment-grey via feColorMatrix, softened with feGaussianBlur),
-     very low opacity, blended with `overlay` so it reads as rolling fog
-     tinting the map rather than a flat grey wash sitting on top of it.
-     pointer-events:none throughout — purely atmospheric, never intercepts
-     a click, pan, or zoom. Movement is a single CSS transform animation
-     on the SVG — the noise itself is generated once, not recomputed per
-     frame, so this is one GPU-composited layer sliding, not a live
-     shader. It sways (ease-in-out, alternate) rather than scrolling one
-     way on a loop: the turbulence is one generated field, not a tileable
-     repeating pattern, so alternating avoids the seam a one-way loop
-     would otherwise need to hide. */
-  .mist-layer {
-    position: absolute; inset: 0; z-index: 5; overflow: hidden; pointer-events: none;
-    mix-blend-mode: overlay; opacity: .18;
-  }
-  .mist-layer svg {
-    position: absolute; top: -25%; left: -60%; width: 220%; height: 150%;
-    will-change: transform;
-    animation: mistDrift 175s ease-in-out infinite alternate;
-  }
-  @keyframes mistDrift {
-    0%   { transform: translate(0%, 0%); }
-    100% { transform: translate(7%, -3%); }
-  }
   #map { position: absolute; inset: 0; }
 
   /* ==========================================================================
@@ -132,7 +134,7 @@
      plain class-driven opacity kept getting reset to full on every zoom.
      These rules are really documentation of the values used; opacity is
      also the one property .mk itself transitions — GPU-composited,
-     main-thread-free, same reasoning as the mist/ambient-row animations
+     main-thread-free, same reasoning as the ambient-row animations
      elsewhere in this file. The scale transform for .grouped lives on
      the separate .mk-inner wrapper (see buildMarkerEl) rather than on
      .mk itself, since MapLibre already uses .mk's own transform for
@@ -158,10 +160,12 @@
      brief pop as it appears (a group condensing on zoom-out) or
      disappears (a group splitting apart on zoom-in), rather than an
      instant cut. .exiting is added right before the marker is actually
-     removed (see clearRenderedMarkers); .entering is added at creation
-     and removed on the next frame (see renderClusterBubble), which is
-     what makes the transition actually fire instead of the "before" and
-     "after" states landing in the same paint. */
+     removed (see exitClusterBubbles, called only for bubbles whose
+     membership genuinely doesn't exist anymore this pass — not on every
+     recompute); .entering is added at creation and removed on the next
+     frame (see renderClusterBubble), which is what makes the transition
+     actually fire instead of the "before" and "after" states landing in
+     the same paint. */
   .mk.cluster.exiting .mk-inner { transform: scale(1.6); opacity: 0; }
   .mk.cluster.entering .mk-inner { transform: scale(.2); opacity: 0; }
   /* Soft grounding shadow — mainly reads once the map is tilted into the
@@ -332,7 +336,7 @@
      animated backdrop; only the layout around it changes.
      ========================================================================== */
   .drawer {
-    position: fixed; top: 0; right: 0; bottom: 0; width: 380px; max-width: 92vw; height: 100vh;
+    position: fixed; top: 0; right: 0; bottom: 0; width: 380px; max-width: 92vw; height: 100vh; height: 100dvh;
     background: var(--canvas-2);
     overflow: hidden;
     transform: translateX(100%);
@@ -384,7 +388,10 @@
   /* Floating chrome — the left slot is dual-purpose: it's a plain history
      "back" when there's a navigation stack, or "collapse to compact" while
      .full is active (see updateDrawerBackVisibility/the click handler). */
-  .drawer-chrome { position: absolute; top: 14px; left: 14px; right: 14px; z-index: 40; display: flex; justify-content: space-between; pointer-events: none; }
+  .drawer-chrome {
+    position: absolute; top: calc(14px + env(safe-area-inset-top)); z-index: 40; display: flex; justify-content: space-between; pointer-events: none;
+    left: calc(14px + env(safe-area-inset-left)); right: calc(14px + env(safe-area-inset-right));
+  }
   .drawer-close, .drawer-back {
     pointer-events: auto; background: rgba(18,18,18,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
     border: 1px solid rgba(255,255,255,.16); color: var(--ink-dim); width: 34px; height: 34px; border-radius: 50%;
@@ -401,17 +408,29 @@
     /* ~2.5x the old 220px cap (which was already the binding constraint
        on most real screens, since 34vh alone exceeds 220px above a
        ~650px-tall viewport) — height bumped to match so the max-height
-       is what actually governs on typical laptop/desktop windows. */
+       is what actually governs on typical laptop/desktop windows.
+       The transition here (and on .drawer-content below) matters most
+       on mobile: .drawer's own width is already 100vw in compact mode
+       there (see the max-width:700px rule), so toggling .full doesn't
+       animate the drawer itself at all — these internal dimensions
+       (height 70vh→30vh, content width 100%→88vw, margins) were the
+       only things actually changing, and with no transition of their
+       own they just snapped instantly, reading as an odd "pop to a
+       different aspect" rather than Deeper Dive expanding smoothly. */
     position: relative; width: 100%; height: 70vh; max-height: 550px;
     margin: 0; display: flex; align-items: center; justify-content: center;
     cursor: grab; touch-action: pan-y; padding-top: 52px;
+    transition: height .4s cubic-bezier(.2,.8,.2,1), width .4s cubic-bezier(.2,.8,.2,1), margin .4s cubic-bezier(.2,.8,.2,1), padding .4s cubic-bezier(.2,.8,.2,1);
   }
   .drawer-specimen svg { width: 84%; height: 84%; overflow: visible; pointer-events: none; }
   .specimen-label { font-family: Georgia, serif; font-size: 13px; letter-spacing: .5px; fill: var(--parchment); opacity: .85; }
   .specimen-line { fill: none; stroke: var(--parchment); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
   .specimen-leader { fill: none; stroke: var(--parchment); stroke-width: 1; opacity: .5; }
 
-  .drawer-content { position: relative; z-index: 20; width: 100%; margin: 0; padding: 8px 26px 30px; }
+  .drawer-content {
+    position: relative; z-index: 20; width: 100%; margin: 0; padding: 8px 26px 30px;
+    transition: width .4s cubic-bezier(.2,.8,.2,1), margin .4s cubic-bezier(.2,.8,.2,1), padding .4s cubic-bezier(.2,.8,.2,1);
+  }
   .drawer-empty { padding: 60px 0; color: var(--ink-dim); font-style: italic; font-size: .9rem; }
 
   .drawer-body { max-height: none; overflow: visible; padding: 0; mask-image: none; -webkit-mask-image: none; }
@@ -750,6 +769,15 @@
 </head>
 <body>
 
+<!-- Shown by default (no JS needed to display it — only to hide it once
+     the map's initial setup genuinely finishes), so there's never a gap
+     where the raw unstyled page/map tiles are visible mid-load. See
+     .hidden below and the removal trigger inside map.on('load'). -->
+<div id="loadOverlay" aria-hidden="true">
+  <div class="load-ring"></div>
+  <p class="load-caption">Charting the karst&hellip;</p>
+</div>
+
 <div class="app">
   <div class="topbar">
     <h1>The Burren & Clare Coast</h1>
@@ -773,23 +801,6 @@
 
   <div class="map-area">
     <div id="map"></div>
-
-    <div class="mist-layer" aria-hidden="true">
-      <svg viewBox="0 0 1000 1000" preserveAspectRatio="none">
-        <defs>
-          <filter id="mistTurbulence" x="-10%" y="-10%" width="120%" height="120%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.010 0.018" numOctaves="3" seed="7" result="mistNoise"/>
-            <feColorMatrix in="mistNoise" type="matrix" values="
-              0 0 0 0 0.86
-              0 0 0 0 0.82
-              0 0 0 0 0.72
-              0.28 0.28 0.28 0 0" result="mistTinted"/>
-            <feGaussianBlur in="mistTinted" stdDeviation="4"/>
-          </filter>
-        </defs>
-        <rect width="1000" height="1000" filter="url(#mistTurbulence)"/>
-      </svg>
-    </div>
 
     <div class="legend">
       <div class="legend-item"><span class="legend-dot" style="background:var(--flora)"></span> Flora & Herbalism</div>
@@ -821,10 +832,30 @@
 
 <div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Site details" aria-hidden="true">
 
-  <svg class="matrix-svg" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <!-- preserveAspectRatio="none" (not the old xMidYMid slice) is
+       deliberate — this SVG is a direct child of .drawer itself, so it
+       spans the compact sidebar (narrow, tall) AND the 100vw Deeper
+       Dive/full mode (wide) with wildly different aspect ratios. "slice"
+       scaled to COVER each container, cropping whichever dimension
+       overflowed — which meant a differently-cropped, differently-
+       bunched slice of the same fixed 65-row layout depending on which
+       mode was open, read as overlapping/duplicate-looking text
+       specifically in full mode. "none" stretches non-uniformly instead
+       of cropping, so the full evenly-spaced layout is always what's
+       shown, just at a different aspect — a much safer failure mode for
+       gently-curved decorative text than visible cropping artifacts. -->
+  <svg class="matrix-svg" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
     <defs>
+      <!-- stdDeviation reduced from the original 22 — this filter is
+           masking the ambient-row group, which animates continuously
+           for as long as any drawer is open, so its cost is paid
+           repeatedly for the whole time a drawer's open, not once. A
+           smaller radius is meaningfully cheaper to compute (Gaussian
+           blur cost scales with radius) while the fade still reads as
+           soft, since it's already softened further by the gradual
+           curve shape of the mask path itself, not the blur alone. -->
       <filter id="drawerSoftEdge" x="-20%" y="-20%" width="140%" height="140%">
-        <feGaussianBlur stdDeviation="22"/>
+        <feGaussianBlur stdDeviation="10"/>
       </filter>
       <mask id="drawerFadeMask">
         <rect width="1000" height="1000" fill="black"/>
@@ -982,7 +1013,17 @@
   // top) to make room for the bigger, more legible font size above —
   // fewer lines, but each one has real breathing room instead of
   // stacking into an illegible wall of tiny text.
-  var AMBIENT_ROW_COUNT = 65;
+  //
+  // Cut again (65→48) after this same fixed row set turned out to be
+  // the direct cause of reported lag specifically in Deeper Dive/full
+  // mode — every row is still a compositor layer (will-change:
+  // transform, opacity), and the *same* 48/65 layers render at a much
+  // larger physical pixel area once the drawer is ~100vw instead of a
+  // narrow sidebar, which costs meaningfully more to composite per
+  // frame even though the row count and animation logic are identical.
+  // Cutting the count is the direct, low-risk lever for that, rather
+  // than a fragile per-mode conditional animation system.
+  var AMBIENT_ROW_COUNT = 48;
 
   // Movement/opacity used to run on SMIL <animate> (attribute animation,
   // resampled by the layout engine every frame) — switched to CSS
@@ -1934,6 +1975,19 @@
   });
   demSource.setupMaplibre(maplibregl);
 
+  // Same touch/coarse-pointer media feature used for the CSS above —
+  // MapLibre renders at the device's full native pixel ratio by default,
+  // so a 2x-DPI device (which most modern tablets and phones are) is
+  // rasterizing 4x the actual pixel count every single frame compared to
+  // a standard display. That's a genuine, ongoing GPU cost independent
+  // of how much content is on screen. Capping it at 1.5 on touch devices
+  // cuts that meaningfully (roughly 44% fewer pixels than a full 2x
+  // render) while staying clearly sharper than a plain 1x render; left
+  // alone on desktop/mouse devices, which typically have more GPU
+  // headroom at the same pixel ratio to begin with.
+  var isTouchDevice = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  var mapPixelRatio = isTouchDevice ? Math.min(window.devicePixelRatio || 1, 1.5) : (window.devicePixelRatio || 1);
+
   var map = new maplibregl.Map({
     container: 'map',
     style: 'https://tiles.openfreemap.org/styles/positron',
@@ -1942,9 +1996,42 @@
     minZoom: 8,
     maxZoom: 17,
     pitch: 0,
-    bearing: 0
+    bearing: 0,
+    pixelRatio: mapPixelRatio
   });
-  map.addControl(new maplibregl.NavigationControl(), 'top-right');
+  map.addControl(new maplibregl.NavigationControl(), 'top-left');
+
+  // 3D terrain — genuinely lazy now, not just "on but invisible at pitch
+  // 0": the DEM source/setTerrain call only happens the first time
+  // someone actually turns the 3D toggle on (see its click handler
+  // below), not unconditionally at page load for every visitor whether
+  // they ever use it or not. That unconditional cost (continuous DEM
+  // tile fetching + WebGL mesh deformation from the moment the page
+  // loads) turned out to be a real, avoidable performance cost — worth
+  // paying only for the people who actually tilt into the 3D view.
+  var terrainEnabled = false;
+  function enableTerrain() {
+    if (terrainEnabled) return;
+    if (!map.isStyleLoaded()) { map.once('load', enableTerrain); return; }
+    terrainEnabled = true;
+    try {
+      // raster-dem source for the actual 3D deformation — sharedDemProtocolUrl
+      // reuses the same cached tile fetch enableContours draws from too,
+      // rather than downloading the elevation data twice if both get used.
+      map.addSource('terrain-dem', {
+        type: 'raster-dem',
+        tiles: [demSource.sharedDemProtocolUrl],
+        encoding: 'terrarium',
+        tileSize: 256,
+        maxzoom: 13
+      });
+      // Gentle exaggeration — enough for the Burren's limestone terraces
+      // and the sea cliffs to actually read as relief once tilted into
+      // the 3D view, without caricaturing what's a fairly low, flat
+      // karst plateau into something more mountainous than it is.
+      map.setTerrain({ source: 'terrain-dem', exaggeration: 1.3 });
+    } catch (e) { console.warn('3D terrain unavailable — map still works flat:', e); }
+  }
 
   // Loads flat by default — a tilted view reads great but is a bit harder
   // to get your bearings from at a glance, needs a two-finger drag to
@@ -1967,6 +2054,7 @@
         mapInstance.easeTo({ pitch: 0, bearing: 0, duration: 900 });
         btn.classList.remove('tilt-toggle-active');
       } else {
+        enableTerrain(); // lazy — first genuine activation only
         mapInstance.easeTo({ pitch: 58, bearing: -17, duration: 900 });
         btn.classList.add('tilt-toggle-active');
       }
@@ -1978,7 +2066,7 @@
     this._container.parentNode.removeChild(this._container);
     this._map = undefined;
   };
-  map.addControl(new Tilt3DControl(), 'top-right');
+  map.addControl(new Tilt3DControl(), 'top-left');
 
   // Satellite toggle — swaps the base map for real aerial/satellite imagery
   // (Esri World Imagery, no API key/account needed, same "no lock-in"
@@ -2007,6 +2095,87 @@
     ['contour-lines-minor', 'contour-lines-major', 'contour-labels'].forEach(function (id) {
       try { map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none'); } catch (e) {}
     });
+  }
+  // Contour lines — genuinely lazy, same reasoning as enableTerrain above:
+  // the vector source and its three layers only get added the first time
+  // someone actually turns the CTR toggle on, not unconditionally at page
+  // load (contours defaulted to off already, but the source/layers were
+  // still being added and the demSource fetch machinery engaged
+  // regardless — this closes that gap too). Re-applies the current map
+  // theme immediately after adding the layers, since they'd otherwise be
+  // stuck with their default dark-theme colours until the next zoom/
+  // rotate/pitch if Mars theme happened to already be active.
+  var contoursSourceAdded = false;
+  function enableContours() {
+    if (contoursSourceAdded) return;
+    if (!map.isStyleLoaded()) { map.once('load', enableContours); return; }
+    contoursSourceAdded = true;
+    try {
+      map.addSource('contour-source', {
+        type: 'vector',
+        tiles: [demSource.contourProtocolUrl({
+          multiplier: 1, // metres — a Clare field guide, not a US road atlas
+          thresholds: {
+            // zoom: [minor spacing, major/index spacing], both in metres —
+            // coarser at low zoom so the initial view isn't a thicket of
+            // lines, finer once you're zoomed in enough to want it.
+            8: [25, 100],
+            11: [10, 50],
+            13: [5, 25],
+            15: [5, 25]
+          },
+          contourLayer: 'contours',
+          elevationKey: 'ele',
+          levelKey: 'level'
+        })],
+        maxzoom: 15
+      });
+
+      // Minor lines — thin, faint ink-on-vellum; no labels of their own.
+      try {
+        map.addLayer({
+          id: 'contour-lines-minor',
+          type: 'line',
+          source: 'contour-source',
+          'source-layer': 'contours',
+          filter: ['==', ['get', 'level'], 0],
+          paint: { 'line-color': '#ded2b3', 'line-width': 0.6, 'line-opacity': 0.18 }
+        });
+      } catch (e) {}
+
+      // Major/index lines — a touch heavier and more present.
+      try {
+        map.addLayer({
+          id: 'contour-lines-major',
+          type: 'line',
+          source: 'contour-source',
+          'source-layer': 'contours',
+          filter: ['>', ['get', 'level'], 0],
+          paint: { 'line-color': '#ded2b3', 'line-width': 1.0, 'line-opacity': 0.38 }
+        });
+      } catch (e) {}
+
+      // Elevation labels along the index lines only — minor lines stay
+      // unlabelled so the map doesn't fill up with numbers.
+      try {
+        map.addLayer({
+          id: 'contour-labels',
+          type: 'symbol',
+          source: 'contour-source',
+          'source-layer': 'contours',
+          filter: ['>', ['get', 'level'], 0],
+          layout: {
+            'symbol-placement': 'line',
+            'text-size': 10,
+            'text-field': ['concat', ['number-format', ['get', 'ele'], {}], ' m'],
+            'text-font': ['Noto Sans Regular']
+          },
+          paint: { 'text-color': '#ded2b3', 'text-opacity': 0.55, 'text-halo-color': '#121212', 'text-halo-width': 1 }
+        });
+      } catch (e) {}
+    } catch (e) { console.warn('Contour lines unavailable — map still works without them:', e); }
+    updateContourVisibility();
+    applyMapTheme(currentMapTheme);
   }
   function setSatellite(on) {
     satelliteOn = on;
@@ -2037,7 +2206,7 @@
     this._container.parentNode.removeChild(this._container);
     this._map = undefined;
   };
-  map.addControl(new SatelliteToggleControl(), 'top-right');
+  map.addControl(new SatelliteToggleControl(), 'top-left');
 
   // ---- Contour lines toggle — grouped with 3D/SAT, on by default ----
   function ContourToggleControl() {}
@@ -2053,6 +2222,7 @@
     btn.addEventListener('click', function () {
       contoursEnabled = !contoursEnabled;
       btn.classList.toggle('tilt-toggle-active', contoursEnabled);
+      if (contoursEnabled) enableContours(); // lazy — first genuine activation only
       updateContourVisibility();
     });
     this._container.appendChild(btn);
@@ -2062,7 +2232,7 @@
     this._container.parentNode.removeChild(this._container);
     this._map = undefined;
   };
-  map.addControl(new ContourToggleControl(), 'top-right');
+  map.addControl(new ContourToggleControl(), 'top-left');
 
   // ---- Alternate accessible colour scheme ("Mars"), toggled independently
   // of satellite/contours ----
@@ -2194,7 +2364,16 @@
     this._container.parentNode.removeChild(this._container);
     this._map = undefined;
   };
-  map.addControl(new MarsStyleControl(), 'top-right');
+  map.addControl(new MarsStyleControl(), 'top-left');
+
+  // Belt and braces: if 'load' never fires for some reason (tile host
+  // down, network failure), don't leave the load overlay covering the
+  // page forever with nothing else visible at all — a broken map
+  // underneath is still more useful than an infinite spinner.
+  setTimeout(function () {
+    var overlay = document.getElementById('loadOverlay');
+    if (overlay) overlay.classList.add('hidden');
+  }, 12000);
 
   map.on('load', function () {
     // ---- Recolor the base style toward the Scriptorium's dark palette ----
@@ -2313,98 +2492,18 @@
       map.addLayer({ id: 'satellite-layer', type: 'raster', source: 'satellite', layout: { visibility: 'none' } }, layers[0] && layers[0].id);
     } catch (e) {}
 
-    // ---- 3D terrain + contour lines (see demSource, set up above the
-    // map itself) ----
-    // Always on, in both the flat 2D view and the tilted 3D/isometric
-    // one — the karst plateau's relief is worth reading either way, and
-    // MapLibre's terrain rendering degrades gracefully to "no visible
-    // effect" at pitch 0 rather than needing its own toggle. Each piece
-    // gets its own try/catch (matching the fadeIn-style defensive
-    // pattern used throughout this file) so a hiccup in, say, the label
-    // font doesn't take the line layers down with it.
-    try {
-      // raster-dem source for the actual 3D deformation — sharedDemProtocolUrl
-      // reuses the same cached tile fetch the contour source below draws
-      // from, rather than downloading the elevation data twice.
-      map.addSource('terrain-dem', {
-        type: 'raster-dem',
-        tiles: [demSource.sharedDemProtocolUrl],
-        encoding: 'terrarium',
-        tileSize: 256,
-        maxzoom: 13
-      });
-      // Gentle exaggeration — enough for the Burren's limestone terraces
-      // and the sea cliffs to actually read as relief once tilted into
-      // the 3D view, without caricaturing what's a fairly low, flat
-      // karst plateau into something more mountainous than it is.
-      map.setTerrain({ source: 'terrain-dem', exaggeration: 1.3 });
-    } catch (e) { console.warn('3D terrain unavailable — map still works flat:', e); }
-
-    try {
-      map.addSource('contour-source', {
-        type: 'vector',
-        tiles: [demSource.contourProtocolUrl({
-          multiplier: 1, // metres — a Clare field guide, not a US road atlas
-          thresholds: {
-            // zoom: [minor spacing, major/index spacing], both in metres —
-            // coarser at low zoom so the initial view isn't a thicket of
-            // lines, finer once you're zoomed in enough to want it.
-            8: [25, 100],
-            11: [10, 50],
-            13: [5, 25],
-            15: [5, 25]
-          },
-          contourLayer: 'contours',
-          elevationKey: 'ele',
-          levelKey: 'level'
-        })],
-        maxzoom: 15
-      });
-
-      // Minor lines — thin, faint ink-on-vellum; no labels of their own.
-      try {
-        map.addLayer({
-          id: 'contour-lines-minor',
-          type: 'line',
-          source: 'contour-source',
-          'source-layer': 'contours',
-          filter: ['==', ['get', 'level'], 0],
-          paint: { 'line-color': '#ded2b3', 'line-width': 0.6, 'line-opacity': 0.18 }
-        });
-      } catch (e) {}
-
-      // Major/index lines — a touch heavier and more present.
-      try {
-        map.addLayer({
-          id: 'contour-lines-major',
-          type: 'line',
-          source: 'contour-source',
-          'source-layer': 'contours',
-          filter: ['>', ['get', 'level'], 0],
-          paint: { 'line-color': '#ded2b3', 'line-width': 1.0, 'line-opacity': 0.38 }
-        });
-      } catch (e) {}
-
-      // Elevation labels along the index lines only — minor lines stay
-      // unlabelled so the map doesn't fill up with numbers.
-      try {
-        map.addLayer({
-          id: 'contour-labels',
-          type: 'symbol',
-          source: 'contour-source',
-          'source-layer': 'contours',
-          filter: ['>', ['get', 'level'], 0],
-          layout: {
-            'symbol-placement': 'line',
-            'text-size': 10,
-            'text-field': ['concat', ['number-format', ['get', 'ele'], {}], ' m'],
-            'text-font': ['Noto Sans Regular']
-          },
-          paint: { 'text-color': '#ded2b3', 'text-opacity': 0.55, 'text-halo-color': '#121212', 'text-halo-width': 1 }
-        });
-      } catch (e) {}
-    } catch (e) { console.warn('Contour lines unavailable — map still works without them:', e); }
-    updateContourVisibility(); // in case the CTR/SAT toggle was clicked before these layers existed
+    // 3D terrain and contour lines are lazy-loaded now (see enableTerrain/
+    // enableContours below, called from the 3D/CTR toggles' click
+    // handlers) — this used to run unconditionally right here, fetching
+    // DEM tiles and deforming the render mesh for every visitor from the
+    // moment the page loaded, whether they ever touched either toggle or
+    // not. That was a real, avoidable cost, especially on mobile, where
+    // it turned out to be a major contributor to a reported performance
+    // regression — terrain rendering (WebGL mesh tessellation from
+    // raster-dem tiles) is one of the more expensive things a map
+    // library does, so paying that cost unconditionally rather than only
+    // for the people who actually use the 3D view was the wrong trade.
+    updateContourVisibility(); // in case the CTR/SAT toggle was clicked before enableContours ever ran
 
     // ---- Marker data, combined into one list so clustering can treat
     // sites and towns uniformly ----
@@ -2956,27 +3055,23 @@
       return routeReversed[routeId] ? ordered.slice().reverse() : ordered;
     }
 
-    function clearRenderedMarkers() {
-      // Cluster bubbles are still torn down and rebuilt each recompute —
-      // they're a synthetic aggregate (a temporary stand-in over a dense
-      // neighbourhood), not a real entry, so there's no continuity worth
-      // preserving the way there is for an actual site/town/legend
-      // marker (see mountAllPointMarkers, which stays mounted for the
-      // life of the page). But an instant yank read as the group just
-      // vanishing rather than dividing into its members, so this plays
-      // a brief "pop and fade" exit first (see .mk.cluster.exiting) and
-      // only actually detaches the marker once that's finished, timed to
-      // match the CSS transition duration below.
-      clusterMarkers.forEach(function (m) {
-        var el = m.getElement ? m.getElement() : null;
+    // Only called with the specific bubbles that didn't survive this
+    // pass (see renderAll) — a cluster whose membership is unchanged
+    // between passes never reaches here at all, which is the actual fix
+    // for the animation firing on every zoom tick rather than only
+    // genuine splits/merges. Still plays the same "pop and fade" exit
+    // (see .mk.cluster.exiting) before actually detaching each one, timed
+    // to match the CSS transition duration below.
+    function exitClusterBubbles(bubbles) {
+      bubbles.forEach(function (bubble) {
+        var el = bubble.marker.getElement ? bubble.marker.getElement() : null;
         if (el) {
           el.classList.add('exiting');
-          setTimeout(function () { m.remove(); }, 260);
+          setTimeout(function () { bubble.marker.remove(); }, 260);
         } else {
-          m.remove();
+          bubble.marker.remove();
         }
       });
-      clusterMarkers = [];
     }
 
     // The discipline pills used to physically remove non-matching markers
@@ -3162,13 +3257,19 @@
 
     // ---- Mount every entry's marker exactly once ----
     // pointMarkers holds the real, permanent per-entry markers (never
-    // destroyed); clusterMarkers holds the ephemeral bubble markers (torn
-    // down and rebuilt every recompute, see clearRenderedMarkers);
-    // renderedMarkers is the flat view of "whatever's currently the
-    // visible, interactive thing on the map" that the Cmd+K search
+    // destroyed); activeClusterBubbles holds the ephemeral bubble
+    // markers, keyed by a signature of their current membership (sorted
+    // member point keys) rather than a plain list — see renderAll below
+    // for why: a cluster whose membership is byte-for-byte identical to
+    // last pass (e.g. a zoom tick that didn't cross any declustering
+    // threshold) is left completely alone, not destroyed and recreated,
+    // which is what was making the group/split "cell division" animation
+    // fire on every single zoom event rather than only genuine splits or
+    // merges. renderedMarkers is the flat view of "whatever's currently
+    // the visible, interactive thing on the map" that the Cmd+K search
     // dimming further down reads — same shape and role it always had.
     var pointMarkers = {}; // key -> { marker, el, point }
-    var clusterMarkers = [];
+    var activeClusterBubbles = {}; // signature (sorted member keys) -> { marker, el, disciplines, names }
     var renderedMarkers = [];
 
     function mountAllPointMarkers() {
@@ -3236,7 +3337,6 @@
       });
 
       var marker = new maplibregl.Marker({ element: el, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([lng, lat]).addTo(map);
-      clusterMarkers.push(marker);
       // Double rAF: a single frame can still land the "entering" class
       // and its removal in the same paint (no transition would fire at
       // all) — waiting one extra frame guarantees the scaled-down start
@@ -3290,8 +3390,7 @@
     // refreshes the constraint badge — never destroys a real entry's
     // marker, on a filter toggle, a route change, or a zoom/rotate/pitch.
     function renderAll() {
-      clearRenderedMarkers();
-      renderedMarkers = []; // fresh bookkeeping list each pass — clearRenderedMarkers above only removes the actual cluster-bubble markers from the map
+      renderedMarkers = []; // fresh bookkeeping list each pass
       var activeSet = activeDisciplineSet();
       var hiddenPoints = [];
       var groups = computeGroups();
@@ -3346,15 +3445,46 @@
         renderedMarkers.push({ marker: entry.marker, el: entry.el, disciplines: p.disciplines, names: [p.name] });
       });
 
+      // A cluster's signature is its sorted member point keys — unique
+      // within a single pass (a point belongs to at most one group), and
+      // stable across passes as long as the same set of points is still
+      // clustered together. Reusing the bubble untouched when the
+      // signature matches last pass (rather than destroying and
+      // recreating it, which is what used to happen unconditionally on
+      // every single zoom/rotate/pitch tick) is what ties the "cell
+      // division" pop animation to an actual split or merge instead of
+      // firing constantly regardless of whether anything really changed.
+      var nextActiveClusterBubbles = {};
       groups.forEach(function (group) {
-        if (group.kind === 'cluster') renderedMarkers.push(renderClusterBubble(group.items));
+        if (group.kind !== 'cluster') return;
+        var signature = group.items.map(function (it) { return it.p.key; }).sort().join('|');
+        var bubble = activeClusterBubbles[signature] || renderClusterBubble(group.items);
+        nextActiveClusterBubbles[signature] = bubble;
+        renderedMarkers.push(bubble);
       });
+      // Whatever's left in the OLD set never made it into the new one —
+      // those clusters genuinely dissolved this pass (split apart or
+      // merged into a different grouping), so they're the only ones that
+      // actually get the exit animation.
+      var goneBubbles = Object.keys(activeClusterBubbles)
+        .filter(function (sig) { return !nextActiveClusterBubbles[sig]; })
+        .map(function (sig) { return activeClusterBubbles[sig]; });
+      exitClusterBubbles(goneBubbles);
+      activeClusterBubbles = nextActiveClusterBubbles;
 
       updateConstraintBadge(activeSet, hiddenPoints);
     }
 
     mountAllPointMarkers();
     renderAll();
+    // The map, its markers, and (if the manifest fetch is fast enough)
+    // even some Scriptorium search results are all genuinely in place
+    // by this point — one rAF first so the fade-out starts only once
+    // the browser has actually painted that, not a frame early.
+    requestAnimationFrame(function () {
+      var overlay = document.getElementById('loadOverlay');
+      if (overlay) overlay.classList.add('hidden');
+    });
     map.on('zoomend', renderAll);
     map.on('rotateend', renderAll);
     map.on('pitchend', renderAll);
