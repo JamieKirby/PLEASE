@@ -216,5 +216,223 @@
     "irishTitle": "",
     "summary": "Tall tussock-forming grass with dense, one-sided cluster panicles along field boundaries.",
     "content": "<p><em>Dactylis glomerata</em>. Tall tussock-forming grass with dense, one-sided cluster panicles along field boundaries.</p>"
+  },
+  {
+    "id": "common-hazel",
+    "category": "flora",
+    "title": "Common Hazel",
+    "irishTitle": "",
+    "summary": "Dominant native deciduous understory tree forming extensive scrub woods across the limestone pavement grips.",
+    "content": "<p><em>Corylus avellana</em>. Dominant native deciduous understory tree forming extensive scrub woods across the limestone pavement grips.</p>",
+    "oghamName": "\u1689\u1691\u1682\u1682",
+    "oghamGloss": "Coll / Hazel"
+  },
+  {
+    "id": "hawthorn",
+    "category": "flora",
+    "title": "Hawthorn",
+    "irishTitle": "",
+    "summary": "Hardy, wind-sheared native scrub tree with dense white spring blossoms and deep red autumn haws.",
+    "content": "<p><em>Crataegus monogyna</em>. Hardy, wind-sheared native scrub tree with dense white spring blossoms and deep red autumn haws.</p>",
+    "oghamName": "\u1686\u1692\u1690\u1688\u1686",
+    "oghamGloss": "Uath / Whitethorn"
+  },
+  {
+    "id": "blackthorn",
+    "category": "flora",
+    "title": "Blackthorn",
+    "irishTitle": "",
+    "summary": "Dense, spiny thicket-forming shrub bursting with stark white blossoms before leaf-out in early spring.",
+    "content": "<p><em>Prunus spinosa</em>. Dense, spiny thicket-forming shrub bursting with stark white blossoms before leaf-out in early spring.</p>",
+    "oghamName": "\u1684\u1688\u168f\u1690\u1694\u168f",
+    "oghamGloss": "Straif / Blackthorn"
+  },
+  {
+    "id": "elder",
+    "category": "flora",
+    "title": "Elder",
+    "irishTitle": "",
+    "summary": "Fast-growing deciduous shrub with flat-topped clusters of creamy flowers and dark berries near ruins.",
+    "content": "<p><em>Sambucus nigra</em>. Fast-growing deciduous shrub with flat-topped clusters of creamy flowers and dark berries near ruins.</p>",
+    "oghamName": "\u1688\u168f\u1691\u168b",
+    "oghamGloss": "Trom / Elder"
+  },
+  {
+    "id": "spindle",
+    "category": "flora",
+    "title": "Spindle",
+    "irishTitle": "",
+    "summary": "Native woodland shrub noted for its brilliant pink and orange lobed autumn seed capsules.",
+    "content": "<p><em>Euonymus europaeus</em>. Native woodland shrub noted for its brilliant pink and orange lobed autumn seed capsules.</p>"
+  },
+  {
+    "id": "gorse",
+    "category": "flora",
+    "title": "Gorse",
+    "irishTitle": "",
+    "summary": "Spiny evergreen shrub blazing with bright yellow, coconut-scented flowers across acidic pockets.",
+    "content": "<p><em>Ulex europaeus</em>. Spiny evergreen shrub blazing with bright yellow, coconut-scented flowers across acidic pockets.</p>",
+    "oghamName": "\u1691\u1685\u1685",
+    "oghamGloss": "Onn / Gorse"
+  },
+  {
+    "id": "bramble-blackberry",
+    "category": "flora",
+    "title": "Bramble / Blackberry",
+    "irishTitle": "",
+    "summary": "Rambling, prickly vine forming dense thickets along field boundaries and woodland edges.",
+    "content": "<p><em>Rubus fruticosus</em>. Rambling, prickly vine forming dense thickets along field boundaries and woodland edges.</p>",
+    "oghamName": "\u168b\u1691\u1694\u1685",
+    "oghamGloss": "Muin / Bramble"
+  },
+  {
+    "id": "dog-rose",
+    "category": "flora",
+    "title": "Dog Rose",
+    "irishTitle": "",
+    "summary": "Scrambling native wild rose with delicate pale pink petals and slender curved thorns.",
+    "content": "<p><em>Rosa canina</em>. Scrambling native wild rose with delicate pale pink petals and slender curved thorns.</p>"
+  },
+  {
+    "id": "wayfaring-tree",
+    "category": "flora",
+    "title": "Wayfaring Tree",
+    "irishTitle": "",
+    "summary": "Calcicole shrub with downy grey-green leaves and flat clusters of creamy-white flowers.",
+    "content": "<p><em>Viburnum lantana</em>. Calcicole shrub with downy grey-green leaves and flat clusters of creamy-white flowers.</p>"
+  },
+  {
+    "id": "purging-buckthorn",
+    "category": "flora",
+    "title": "Purging Buckthorn",
+    "irishTitle": "",
+    "summary": "Thorny deciduous shrub with glossy oval leaves characteristic of base-rich limestone scrub.",
+    "content": "<p><em>Rhamnus cathartica</em>. Thorny deciduous shrub with glossy oval leaves characteristic of base-rich limestone scrub.</p>"
+  },
+  {
+    "id": "ash",
+    "category": "flora",
+    "title": "Ash",
+    "irishTitle": "",
+    "summary": "Tall native deciduous hardwood thriving exceptionally well in deep limestone soil pockets and fissures.",
+    "content": "<p><em>Fraxinus excelsior</em>. Tall native deciduous hardwood thriving exceptionally well in deep limestone soil pockets and fissures.</p>",
+    "oghamName": "\u1685\u1694\u1691\u1685",
+    "oghamGloss": "Nion / Ash"
+  },
+  {
+    "id": "downy-birch",
+    "category": "flora",
+    "title": "Downy Birch",
+    "irishTitle": "",
+    "summary": "Graceful slender tree with peeling white-grey bark adapting to damp acidic pockets over the plateau.",
+    "content": "<p><em>Betula pubescens</em>. Graceful slender tree with peeling white-grey bark adapting to damp acidic pockets over the plateau.</p>",
+    "oghamName": "\u1681\u1693\u1694\u1694\u1688\u1686",
+    "oghamGloss": "Beith / Birch"
+  },
+  {
+    "id": "rowan-mountain-ash",
+    "category": "flora",
+    "title": "Rowan / Mountain Ash",
+    "irishTitle": "",
+    "summary": "Resilient upland tree bearing clusters of bright red berries that attract autumn foraging birds.",
+    "content": "<p><em>Sorbus aucuparia</em>. Resilient upland tree bearing clusters of bright red berries that attract autumn foraging birds.</p>",
+    "oghamName": "\u1682\u1692\u1694\u1684",
+    "oghamGloss": "Luis / Rowan"
+  },
+  {
+    "id": "scots-pine",
+    "category": "flora",
+    "title": "Scots Pine",
+    "irishTitle": "",
+    "summary": "Iconic two-needled conifer with reddish-brown upper bark, re-establishing across upland tracts.",
+    "content": "<p><em>Pinus sylvestris</em>. Iconic two-needled conifer with reddish-brown upper bark, re-establishing across upland tracts.</p>",
+    "oghamName": "\u1690\u1694\u1682\u168b",
+    "oghamGloss": "Ailm / Pine"
+  },
+  {
+    "id": "oak-pedunculate",
+    "category": "flora",
+    "title": "Oak (Pedunculate)",
+    "irishTitle": "",
+    "summary": "Long-lived native canopy tree historically forming ancient timber stands across deeper soils.",
+    "content": "<p><em>Quercus robur</em>. Long-lived native canopy tree historically forming ancient timber stands across deeper soils.</p>",
+    "oghamName": "\u1687\u1690\u1694\u168f",
+    "oghamGloss": "Dair / Oak"
+  },
+  {
+    "id": "wych-elm",
+    "category": "flora",
+    "title": "Wych Elm",
+    "irishTitle": "",
+    "summary": "Broad-leaved native elm found scattered in sheltered limestone valleys and rocky scree slopes.",
+    "content": "<p><em>Ulmus glabra</em>. Broad-leaved native elm found scattered in sheltered limestone valleys and rocky scree slopes.</p>",
+    "oghamName": "\u1690\u1694\u1682\u168b",
+    "oghamGloss": "Ailm / Elm"
+  },
+  {
+    "id": "aspen",
+    "category": "flora",
+    "title": "Aspen",
+    "irishTitle": "",
+    "summary": "Native poplar whose flattened leaf petioles cause the foliage to tremble in the slightest breeze.",
+    "content": "<p><em>Populus tremula</em>. Native poplar whose flattened leaf petioles cause the foliage to tremble in the slightest breeze.</p>",
+    "oghamName": "\u1693\u1690\u1687\u1686\u1690",
+    "oghamGloss": "Eadha / Aspen"
+  },
+  {
+    "id": "holly",
+    "category": "flora",
+    "title": "Holly",
+    "irishTitle": "",
+    "summary": "Dense evergreen understory tree with glossy spiny leaves and bright red winter berries.",
+    "content": "<p><em>Ilex aquifolium</em>. Dense evergreen understory tree with glossy spiny leaves and bright red winter berries.</p>",
+    "oghamName": "\u1688\u1694\u1685\u1685\u1693",
+    "oghamGloss": "Tinne / Holly"
+  },
+  {
+    "id": "crab-apple",
+    "category": "flora",
+    "title": "Crab Apple",
+    "irishTitle": "",
+    "summary": "Small wild deciduous tree bearing tart, greenish-yellow fruit along ancient woodland margins.",
+    "content": "<p><em>Malus sylvestris</em>. Small wild deciduous tree bearing tart, greenish-yellow fruit along ancient woodland margins.</p>",
+    "oghamName": "\u168a\u1692\u1693\u168f\u1688",
+    "oghamGloss": "Quert / Apple"
+  },
+  {
+    "id": "alder",
+    "category": "flora",
+    "title": "Alder",
+    "irishTitle": "",
+    "summary": "Moisture-loving deciduous tree lining the edges of turloughs, streams, and low-lying wet zones.",
+    "content": "<p><em>Alnus glutinosa</em>. Moisture-loving deciduous tree lining the edges of turloughs, streams, and low-lying wet zones.</p>",
+    "oghamName": "\u1684\u168a",
+    "oghamGloss": "Fearn / Alder"
+  },
+  {
+    "id": "shrubby-cinquefoil",
+    "category": "flora",
+    "title": "Shrubby Cinquefoil",
+    "irishTitle": "",
+    "summary": "Deciduous native bush carrying bright yellow flowers across open rocky terrain.",
+    "content": "<p><em>Potentilla fruticosa</em>. Deciduous native bush carrying bright yellow flowers across open rocky terrain.</p>"
+  },
+  {
+    "id": "common-juniper",
+    "category": "flora",
+    "title": "Common Juniper",
+    "irishTitle": "",
+    "summary": "Low-growing evergreen conifer forming dense mats over limestone hillslopes.",
+    "content": "<p><em>Juniperus communis</em>. Low-growing evergreen conifer forming dense mats over limestone hillslopes.</p>"
+  },
+  {
+    "id": "yew",
+    "category": "flora",
+    "title": "Yew",
+    "irishTitle": "",
+    "summary": "Ancient evergreen conifer found clinging to deep rocky grikes and sheltered clifftops.",
+    "content": "<p><em>Taxus baccata</em>. Ancient evergreen conifer found clinging to deep rocky grikes and sheltered clifftops.</p>",
+    "oghamName": "\u1694\u1691\u1687\u1686\u1691",
+    "oghamGloss": "Ido / Yew"
   }
 ]

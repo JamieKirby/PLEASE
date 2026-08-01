@@ -416,11 +416,30 @@
      main-thread time. transform/opacity are the two properties browsers
      can animate purely on the compositor thread — deliberately the only
      two used here. See renderAmbientRows for how --peak/--sway/timings
-     get set per row. */
+     get set per row.
+
+     ambientFadeIn is the entrance: opacity 0→peak together with a short
+     slide in from the left (a small fixed -36px, deliberately NOT tied
+     to the row's own much bigger --sway distance, so every row's entry
+     reads the same regardless of how far it swings once settled), both
+     finishing at the same instant. ambientSway used to start at the SAME
+     moment as the fade, at its own translateX(-sway) extreme — since the
+     fade completed in a couple of seconds but --sway is 160-370px, rows
+     were reaching full opacity while still sitting far off to one side,
+     which is what actually made the whole thing feel like it "took a
+     long time to start": already faded in, just not visibly *there* yet.
+     ambientSway is now a single non-alternating loop through the centre
+     (0 → +sway → 0 → -sway → 0) instead of two-point alternate — its 0%
+     is translateX(0), the exact value ambientFadeIn's slide ends on, so
+     the handoff between them (see renderAmbientRows for the delay math)
+     never jumps. Doubling swayDur when this is used as the new
+     animation-duration keeps the full there-and-back pace unchanged from
+     before — that part was never the complaint and stays exactly as
+     fast/slow as it already was. */
   .ambient-row-text { opacity: 0; will-change: transform, opacity; }
-  @keyframes ambientFadeIn { 0% { opacity: 0; } 100% { opacity: var(--peak, .12); } }
+  @keyframes ambientFadeIn { 0% { opacity: 0; transform: translateX(-36px); } 100% { opacity: var(--peak, .12); transform: translateX(0); } }
   @keyframes ambientPulse { 0%, 100% { opacity: var(--peak, .12); } 50% { opacity: calc(var(--peak, .12) - 0.06); } }
-  @keyframes ambientSway { 0% { transform: translateX(calc(var(--sway, 60px) * -1)); } 100% { transform: translateX(var(--sway, 60px)); } }
+  @keyframes ambientSway { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(var(--sway, 60px)); } 75% { transform: translateX(calc(var(--sway, 60px) * -1)); } }
 
   /* Floating chrome — the left slot is dual-purpose: it's a plain history
      "back" when there's a navigation stack, or "collapse to compact" while
@@ -453,10 +472,20 @@
        (height 70vh→30vh, content width 100%→88vw, margins) were the
        only things actually changing, and with no transition of their
        own they just snapped instantly, reading as an odd "pop to a
-       different aspect" rather than Deeper Dive expanding smoothly. */
+       different aspect" rather than Deeper Dive expanding smoothly.
+
+       align-items:flex-start + padding-top:12vh (was center + a flat
+       52px) — centering across the full 70vh box put the image's
+       vertical middle around 35vh, and since the svg itself renders with
+       overflow:visible (a specimen's label text/leader lines often sit
+       right up near the top of its own 400x520 viewBox), that read as
+       the top getting cut off rather than comfortably placed. Anchoring
+       to the top with a real vh-based gap lands it in the upper third
+       consistently across phone and desktop viewport heights, where a
+       fixed px value wouldn't. */
     position: relative; width: 100%; height: 70vh; max-height: 550px;
-    margin: 0; display: flex; align-items: center; justify-content: center;
-    cursor: grab; touch-action: pan-y; padding-top: 52px;
+    margin: 0; display: flex; align-items: flex-start; justify-content: center;
+    cursor: grab; touch-action: pan-y; padding-top: 12vh;
     transition: height .4s cubic-bezier(.2,.8,.2,1), width .4s cubic-bezier(.2,.8,.2,1), margin .4s cubic-bezier(.2,.8,.2,1), padding .4s cubic-bezier(.2,.8,.2,1);
   }
   .drawer-specimen svg { width: 84%; height: 84%; overflow: visible; pointer-events: none; }
@@ -1166,7 +1195,7 @@
     flora: 'rgba(122,153,130,.75)',
     lore: 'rgba(96,140,168,.75)',
     town: 'rgba(154,147,132,.75)',
-    grave: 'rgba(179,58,58,.75)'
+    grave: 'rgba(215,70,70,.75)'
   };
 
   // Short field-vocabulary phrase banks, one per discipline plus a neutral
@@ -1276,6 +1305,13 @@
       // side-to-side traverse of the panel, not a small wobble) and
       // about 3x faster than before (was 240–380s for a full there-and-
       // back; now 80–125s).
+      //
+      // fadeDelay's per-row stagger — was i*0.12, so with 50-65 rows the
+      // last ones didn't even start entering until several seconds in.
+      // Cut to i*0.05: the same idea (rows still arrive in a gentle
+      // cascade, not all at once) but the whole field is fully in within
+      // a couple of seconds regardless of row count, rather than that
+      // count directly setting how long the entrance takes.
       var peak = (0.06 + (i % 7) * 0.015).toFixed(3);
       defs.push({
         curve: id,
@@ -1283,7 +1319,7 @@
         pulseDur: 34 + (i % 5) * 5,
         sway: 160 + (i % 7) * 35,          // px, each row's own sway distance
         swayDur: 80 + (i % 6) * 9,
-        fadeDelay: (i * 0.12).toFixed(2)
+        fadeDelay: (i * 0.05).toFixed(2)
       });
     }
     return defs;
@@ -1443,11 +1479,14 @@
   }
 
   // Rebuilding this <g> from scratch every time a drawer opens means every
-  // animation restarts from t=0 at that moment. Fade-in and sway both
-  // begin at the SAME time per row (fadeDelay, staggered a little per
-  // row so 65 rows don't all start at once), so a row always enters
-  // from zero opacity together with its first sway — never mid-cycle.
-  var AMBIENT_FADE_IN_DUR = 1.8;
+  // animation restarts from t=0 at that moment. Sway now starts the
+  // instant the entrance (fade + slide) finishes, not at the same time as
+  // it — see the ambientFadeIn/ambientSway comment above for why that
+  // overlap was actually the "takes too long to start" complaint in
+  // disguise, and why the handoff between the two doesn't jump. Cut from
+  // 1.8s to 1.0s on top of that — a faster entrance was asked for
+  // separately from the overlap fix, not instead of it.
+  var AMBIENT_FADE_IN_DUR = 1.0;
 
   // bankKey picks the generic fallback/top-up bank (a discipline, or
   // 'town'/'legend'/'route'); entryKind+entryName (both optional) look up
@@ -1460,10 +1499,11 @@
     var g = document.getElementById('drawerAmbientGroup');
     if (!g) return;
     g.innerHTML = AMBIENT_ROW_DEFS.map(function (row, i) {
+      var swayStart = (parseFloat(row.fadeDelay) + AMBIENT_FADE_IN_DUR).toFixed(2);
       var style = '--peak:' + row.peak + '; --sway:' + row.sway + 'px; ' +
         'animation: ambientFadeIn ' + AMBIENT_FADE_IN_DUR + 's ease-out ' + row.fadeDelay + 's 1 normal forwards, ' +
-        'ambientSway ' + row.swayDur + 's ease-in-out ' + row.fadeDelay + 's infinite alternate, ' +
-        'ambientPulse ' + row.pulseDur + 's ease-in-out ' + (parseFloat(row.fadeDelay) + AMBIENT_FADE_IN_DUR) + 's infinite;';
+        'ambientSway ' + (row.swayDur * 2) + 's ease-in-out ' + swayStart + 's infinite, ' +
+        'ambientPulse ' + row.pulseDur + 's ease-in-out ' + swayStart + 's infinite;';
       return '<text class="ambient-row-text" style="' + style + '">' +
         '<textPath href="#' + row.curve + '" startOffset="0%">' +
         ambientRowText(bank, i) +
@@ -2891,7 +2931,10 @@
         // alongside — deliberately its own visual layer, not a shade of
         // an existing discipline (the icon itself was a specific request:
         // a phoenix rising within a tombstone, in red).
-        return { iconKey: 'grave', primary: '#B33A3A', secondary: null, town: false, provisional: p.provisional, contested: p.contested };
+        // Brightened from the original #B33A3A — close enough in luma to
+        // the dark UI grey around it to read as muddy rather than
+        // vividly red. Same hue, just lighter/more saturated.
+        return { iconKey: 'grave', primary: '#D74646', secondary: null, town: false, provisional: p.provisional, contested: p.contested };
       }
       var d = siteData[p.name];
       var parts = d.discipline.split(' / ');
@@ -3400,7 +3443,7 @@
     // the archaeology gold it's filtered alongside.
     function openGraveDrawer(name) {
       var gv = graveData[name];
-      var accent = '#B33A3A';
+      var accent = '#D74646'; // brightened from #B33A3A — see styleForPoint's grave case for why
       var drawerEl = document.getElementById('drawer');
       drawerEl.style.setProperty('--accent', accent);
       drawerEl.style.setProperty('--accent-soft', accentSoftColor.grave);

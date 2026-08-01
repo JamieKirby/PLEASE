@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wych Elm — The Burren Scriptorium</title>
+<meta name="description" content="Broad-leaved native elm found scattered in sheltered limestone valleys and rocky scree slopes.">
+<!-- Hook for later styling — theme-flora on <body> below is what
+     lets a stylesheet target "story" pages differently from "flora"
+     pages, etc., without any per-page CSS. Relative, not root-relative —
+     every entry page lives exactly one folder level under the
+     scriptorium root (dist/<category>/<id>.html), so ../ consistently
+     reaches it regardless of whether the site's served from a domain
+     root or a GitHub Pages project subpath like /SCPRIT_TEST/. A
+     root-relative "/styles.css" would resolve against the domain root
+     and miss that subpath entirely — same failure mode as the old
+     hardcoded BASE_URL bug, just one path type over. -->
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body class="theme-flora">
+
+  <!-- Home and the two category links point at hub pages that don't
+       exist yet (see the earlier note on dropped features) — the paths
+       themselves are correct now for whenever those get built, so nav
+       won't need a second round of path-fixing later. -->
+  <nav>
+    <a href="../index.html" class="nav-home">The Burren Scriptorium</a>
+    <a href="../index.html">Home</a>
+    <a href="../flora/">Flora</a>
+    <a href="../story/">Stories &amp; Sites</a>
+  </nav>
+
+  <main>
+    <header class="entry-header">
+      <p class="entry-category">flora</p>
+      <h1 class="entry-title">Wych Elm</h1>
+      
+    </header>
+
+    <article class="entry-content">
+      <p><em>Ulmus glabra</em>. Broad-leaved native elm found scattered in sheltered limestone valleys and rocky scree slopes.</p>
+    </article>
+
+    <p class="explore-on-map">
+      <a href="../../index.html?entry=flora:Wych%20Elm">Explore Wych Elm on the interactive map &rarr;</a>
+    </p>
+  </main>
+
+</body>
+</html>
