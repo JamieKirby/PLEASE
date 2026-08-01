@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corcomroe Abbey — The Burren Scriptorium</title>
+<meta name="description" content="A ruined but remarkably intact 12th-century Cistercian abbey in a sheltered Burren valley, known for its finely carved stonework.">
+<!-- Hook for later styling — theme-story on <body> below is what
+     lets a stylesheet target "story" pages differently from "flora"
+     pages, etc., without any per-page CSS. Relative, not root-relative —
+     every entry page lives exactly one folder level under the
+     scriptorium root (dist/<category>/<id>.html), so ../ consistently
+     reaches it regardless of whether the site's served from a domain
+     root or a GitHub Pages project subpath like /SCPRIT_TEST/. A
+     root-relative "/styles.css" would resolve against the domain root
+     and miss that subpath entirely — same failure mode as the old
+     hardcoded BASE_URL bug, just one path type over. -->
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body class="theme-story">
+
+  <!-- Home and the two category links point at hub pages that don't
+       exist yet (see the earlier note on dropped features) — the paths
+       themselves are correct now for whenever those get built, so nav
+       won't need a second round of path-fixing later. -->
+  <nav>
+    <a href="../index.html" class="nav-home">The Burren Scriptorium</a>
+    <a href="../index.html">Home</a>
+    <a href="../flora/">Flora</a>
+    <a href="../story/">Stories &amp; Sites</a>
+  </nav>
+
+  <main>
+    <header class="entry-header">
+      <p class="entry-category">story</p>
+      <h1 class="entry-title">Corcomroe Abbey</h1>
+      <p class="entry-irish">Mainistir Chorca Mrua</p>
+    </header>
+
+    <article class="entry-content">
+      <p>A ruined Cistercian abbey set in a sheltered valley on the northern edge of the Burren, founded around 1194 by Donal Mór Ua Briain, King of Thomond. Known historically as <em>Sancta Maria de Petra Fertili</em> — St Mary of the Fertile Rock — a nod to the unusually rich soil found beneath the surrounding karst.</p><p>Unlike many ruined abbeys reduced to bare walls, Corcomroe's cruciform church still stands largely intact, its carved capitals depicting human faces and stylised foliage among the finest surviving Cistercian stonework in Ireland.</p>
+    </article>
+
+    <p class="explore-on-map">
+      <a href="../../index.html?entry=story:Corcomroe%20Abbey">Explore Corcomroe Abbey on the interactive map &rarr;</a>
+    </p>
+  </main>
+
+</body>
+</html>

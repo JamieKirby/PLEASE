@@ -463,6 +463,13 @@
   .specimen-label { font-family: Georgia, serif; font-size: 13px; letter-spacing: .5px; fill: var(--parchment); opacity: .85; }
   .specimen-line { fill: none; stroke: var(--parchment); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
   .specimen-leader { fill: none; stroke: var(--parchment); stroke-width: 1; opacity: .5; }
+  /* Inline field-guide illustrations embedded directly in a Scriptorium
+     entry's own content (currently the orchids) — reuses the three
+     classes above, which are already global, so no extra styling was
+     needed for those. This just keeps the illustration itself from
+     stretching edge-to-edge inside the narrower drawer content column. */
+  .specimen-illustration { max-width: 320px; margin: 4px auto 16px; }
+  .specimen-illustration svg { width: 100%; height: auto; display: block; }
 
   .drawer-content {
     position: relative; z-index: 20; width: 100%; margin: 0; padding: 8px 26px 30px;
@@ -498,6 +505,31 @@
   .deep-dive-btn:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
   .deep-dive-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .drawer.full .deep-dive-btn { display: none; }
+
+  /* ---- "All sites near <town>" distance table — deep-dive only. The
+     compact drawer gets the short nearestSitesChipsHtml() pill row
+     instead (reuses .route-chip, already styled); this fuller table
+     only makes sense once there's room for it, same reasoning as
+     .drawer.full .deep-dive-btn above hiding the button that got you
+     there. Each row is a real <button> (not a div) so it's keyboard-
+     focusable for free — :focus-visible gets the same hover reveal as
+     a mouse hover, rather than a second, separate implementation. */
+  .town-sites-panel { display: none; }
+  .drawer.full .town-sites-panel { display: block; margin-top: 28px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.1); }
+  .town-sites-heading { font-family: Georgia, serif; font-weight: 400; font-size: 1rem; color: var(--parchment); margin: 0 0 10px; }
+  .site-distance-row {
+    display: block; width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid rgba(255,255,255,.06);
+    padding: 9px 4px; margin: 0; cursor: pointer; font-family: -apple-system, sans-serif;
+  }
+  .site-distance-row:hover, .site-distance-row:focus-visible { background: rgba(255,255,255,.04); outline: none; }
+  .site-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .site-row-name { font-size: .85rem; color: var(--ink); }
+  .site-row-dist { font-size: .74rem; color: var(--ink-dim); flex: 0 0 auto; }
+  .site-row-desc {
+    display: block; max-height: 0; opacity: 0; overflow: hidden; font-size: .74rem; color: var(--ink-dim); font-style: italic;
+    line-height: 1.5; transition: max-height .25s ease, opacity .2s ease, margin-top .25s ease;
+  }
+  .site-distance-row:hover .site-row-desc, .site-distance-row:focus-visible .site-row-desc { max-height: 60px; opacity: 1; margin-top: 4px; }
 
   /* ---- Full depth: same content, expanded into the near-fullscreen
      Scriptorium layout (specimen large on the left, text column right,
@@ -1042,6 +1074,12 @@
     lore: '<ellipse cx="12" cy="18" rx="7.5" ry="3.2" fill="currentColor"/><path d="M6,11 C8,9 10,13 12,11 C14,9 16,13 18,11" stroke="currentColor" stroke-width="1.6" fill="none"/>',
     legend: '<path d="M12,12 C12,10.3 13.3,9 15,9 C17.2,9 19,10.8 19,13 C19,15.8 16.8,18 14,18 C10.7,18 8,15.3 8,12 C8,8.1 11.1,5 15,5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
     town: '<path d="M12,4 L20,11 L20,20 L4,20 L4,11 Z" fill="currentColor"/><rect x="10" y="14" width="4" height="6" fill="#121212"/>',
+    // Phoenix rising within a tombstone arch — the wing/flame strokes are
+    // cut in as dark detail over the filled stone shape, same drawing
+    // language as every icon above (currentColor fill, #121212 detail).
+    grave: '<path d="M7,21 L7,12.5 C7,7.8 9.2,4.5 12,4.5 C14.8,4.5 17,7.8 17,12.5 L17,21 Z" fill="currentColor"/>' +
+      '<path d="M12,17.5 L9.6,14.2 L11,14.9 L11,10.2 L12,12.3 L13,10.2 L13,14.9 L14.4,14.2 Z" fill="#121212"/>' +
+      '<path d="M12,10.2 C10.2,8.1 8.6,8.6 7.4,7 C9,7.3 10.2,7.9 11.1,9 M12,10.2 C13.8,8.1 15.4,8.6 16.6,7 C15,7.3 13.8,7.9 12.9,9" stroke="#121212" stroke-width="1" fill="none" stroke-linecap="round"/>',
     // ---- Cluster emblems — one shared cultural motif per discipline mix,
     // replacing the plain number bubble. Same drawing language as the
     // five above (currentColor fill/stroke, a dark #121212 detail line,
@@ -1127,7 +1165,8 @@
     geology: 'rgba(140,155,163,.75)',
     flora: 'rgba(122,153,130,.75)',
     lore: 'rgba(96,140,168,.75)',
-    town: 'rgba(154,147,132,.75)'
+    town: 'rgba(154,147,132,.75)',
+    grave: 'rgba(179,58,58,.75)'
   };
 
   // Short field-vocabulary phrase banks, one per discipline plus a neutral
@@ -1139,6 +1178,7 @@
     archaeology: ['ringfort embankment', 'portal tomb capstone', 'souterrain passage', 'cross-inscribed slab', 'tower house battlement', 'monastic enclosure', 'cashel wall', 'quern stone'],
     lore: ['Lughnasadh gathering', 'holy well rag tree', "hermit's cell", 'votive offering', 'pattern day procession', 'hearth tale', 'fairy fort', "pilgrim's path"],
     legend: ['told at the hearth', 'handed-down tale', 'oral memory', 'local motif', 'the good people', 'changeling', 'second sight', 'a tale still told'],
+    grave: ['graven stone', 'burial ground', 'lichened headstone', 'a name half-worn away', 'consecrated ground', 'the long sleep', 'epitaph', 'ashes to ashes'],
     town: ['market day', 'harbour tide', 'fiddle tune at the crossroads', 'turf smoke over the roofs', 'postcard bay', 'pier and currach', 'village green', 'crossroads inn'],
     route: ['waymarked trail', 'stone stile', 'trailhead cairn', 'boreen', "drover's path", 'signal cairn', 'townland boundary', 'the next stop']
   };
@@ -1794,6 +1834,78 @@
     "The Schools' Folklore Collection of Doolin": { lng: -9.3789, lat: 53.0176, near: "Doolin", linkedTo: { kind: "town", name: "Doolin" },
       confidence: "Documented",
       note: "Long before its fame as a traditional-music village, Doolin's oral heritage was recorded for the National Folklore Collection: folklorist Séamus Ó Duilearga (Delargy) gathered stories here around 1929–1930, and the Irish Folklore Commission's Schools' Collection later preserved local children's own accounts of fairy forts and encounters with the Good People across the surrounding karst." }
+  };
+
+  // ---- Notable Grave Sites — a distinct thematic layer, same pattern as
+  // legendData above: its own marker kind, sitting a short, deliberate
+  // offset from whatever site/town it's attached to (never the identical
+  // coordinate) rather than replacing that entry's own marker. linkedTo
+  // drives the same "About this place" cross-link chip legends already
+  // use. Coordinates for the seven sites that already have a site/town
+  // marker are a small offset from that marker's own real coordinate;
+  // the rest (Craggagh, Killilagh, Oughtmama, Noughaval, Feakle) aren't
+  // on the map elsewhere, so those are real-world coordinates researched
+  // separately — marked provisional where no precise source was found.
+  var graveData = {
+    "Craggagh Cemetery": { lng: -9.28, lat: 53.12, location: "Fanore", linkedTo: { kind: "site", name: "Fanore" }, confidence: "Documented",
+      notableBurials: "Poet, priest and philosopher John O'Donohue (author of Anam Cara, d. 2008); novelist Francis Stuart (1902–2000), one of Ireland's seven Saoi.",
+      associations: "O'Donohue's grave, marked only by a large unworked fieldstone, has become an informal pilgrimage stop for readers of his work.",
+      fieldNotes: "Small roadside graveyard on the coast road between Doolin and Ballyvaughan, just past O'Donohue's pub." },
+    "Killilagh Church & Graveyard": { lng: -9.388, lat: 53.021, location: "Doolin", linkedTo: { kind: "town", name: "Doolin" }, confidence: "Documented",
+      provisional: "Coordinate is an approximate placement on the ridge north of Doolin village, not a verified survey point.",
+      notableBurials: "Graveyard in use from the 1860s to 1985; MacNamara family vault (built but never used for burial).",
+      associations: "The 'Shoemaker's Grave', where a carved stone head was found; the MacNamara vault was used as a temporary jail during the Irish War of Independence; the church roof was reportedly burned by Cromwellian troops during Mass in 1645.",
+      fieldNotes: "Ruins of a 1470 parish church on a ridge above Doolin; graveyard survey and restoration led by local volunteer group Save Killilagh Church." },
+    "Kilfenora Cathedral (Grave)": { lng: -9.2181, lat: 52.9896, location: "Kilfenora", linkedTo: { kind: "site", name: "Kilfenora Cathedral" }, confidence: "Documented",
+      notableBurials: "Tomb of Neptune Blood, uncle of Thomas Blood (who attempted to steal the English Crown Jewels in 1671); the Doorty family grave slab.",
+      associations: "The Doorty Cross, one of Kilfenora's famous 12th-century high crosses, was long used as the Doorty family's grave marker before being restored and re-erected nearby.",
+      fieldNotes: "Smallest medieval diocese in Ireland; several of its original 'seven crosses' are now housed under a glass roof in the cathedral's Lady Chapel." },
+    "Corcomroe Abbey (Grave)": { lng: -9.056, lat: 53.1277, location: "Near Bellharbour", linkedTo: { kind: "site", name: "Corcomroe Abbey" }, confidence: "Documented",
+      notableBurials: "Tomb niche and effigy of King Conor na Siudáine Ua Briain, King of Thomond, killed in battle in 1268.",
+      associations: "Traditionally said to be haunted by eloping lovers Cearbhall Ó Dálaigh and Eibhlín, who reappear at midnight each Christmas Eve; the abbey's five master masons are said to have been executed after completing the building.",
+      fieldNotes: "Early 13th-century Cistercian ruin, 'St Mary of the Fertile Rock'; setting for Yeats's play The Dreaming of the Bones." },
+    "Kilmacduagh Monastery (Grave)": { lng: -8.8898, lat: 53.047, location: "Near Gort, Co. Galway (Burren's eastern edge)", linkedTo: { kind: "site", name: "Kilmacduagh Monastery" }, confidence: "Documented",
+      notableBurials: "Associated with St Colman MacDuagh, 7th-century founder of the diocese.",
+      associations: "Colman is said to have died at nearby Oughtmama but chosen Kilmacduagh as his burial place; his crozier is held by the National Museum of Ireland, his jewelled girdle since lost.",
+      fieldNotes: "Famous for its round tower, which leans more steeply than the tower of Pisa; multiple ruined churches on the enclosed site." },
+    "Oughtmama": { lng: -9.044, lat: 53.12, location: "Near Corcomroe Abbey", confidence: "Documented",
+      provisional: "Coordinate is an approximate placement roughly a kilometre south-east of Corcomroe Abbey, not a verified survey point.",
+      notableBurials: "Traditional death-place (though not burial place) of St Colman MacDuagh; site referenced in the Litany of Aengus as home to seven bishops.",
+      associations: "Local tradition holds Colman died here after retiring from the bishopric of Kilmacduagh, before his body was carried to Kilmacduagh for burial.",
+      fieldNotes: "Three ruined 12th-century churches stand in a line in a quiet valley; a now-dry holy well, Tobar Colmain, once marked the site." },
+    "Kilnaboy (Killinaboy) Church": { lng: -9.0864, lat: 52.9687, location: "Kilnaboy", linkedTo: { kind: "town", name: "Kilnaboy" }, confidence: "Documented",
+      notableBurials: "Ancient monastic graveyard associated with St Baoith.",
+      associations: "Carved Sheela-na-gig above the entrance; a rare double-armed Cross of Lorraine reputed to have held a relic of the True Cross; round tower base nearby.",
+      fieldNotes: "One of the most-visited historic church sites in the Burren, at a crossroads on the way to Corofin." },
+    "Rathborney Church": { lng: -9.1816, lat: 53.0865, location: "Rathborney, north of Carron", linkedTo: { kind: "site", name: "Rathborney" }, confidence: "Traditional motif",
+      notableBurials: "Isolated medieval parish graveyard.",
+      associations: "Local tradition holds the site as a quiet, little-disturbed corner of the Burren, set apart from the region's busier heritage trail.",
+      fieldNotes: "Ruined church in a secluded valley; modest in scale compared to the Burren's larger monastic sites." },
+    "Noughaval Church & Holy Well": { lng: -9.1826, lat: 53.0166, location: "Noughaval", confidence: "Documented",
+      notableBurials: "Medieval monastic graveyard beside the holy well Tobar Mogua.",
+      associations: "The well's rag tree (a blessed ash) was recorded as felled by a storm; the site historically hosted an assembly or 'fair green' gathering.",
+      fieldNotes: "Small church ruin and burial ground beside one of the Burren's lesser-visited holy wells." },
+    "Dysert O'Dea Castle & Church": { lng: -9.0674, lat: 52.9104, location: "Dysert O'Dea", linkedTo: { kind: "site", name: "Dysert O'Dea Castle" }, confidence: "Documented",
+      notableBurials: "Ecclesiastical site with the high cross of St Tola; nearby battlefield of 1318.",
+      associations: "Associated with the Battle of Dysert O'Dea (1318), in which Clan O'Dea and allies defeated Anglo-Norman forces under Richard de Clare.",
+      fieldNotes: "15th-century tower house with an archaeology park; one of Clare's most complete high crosses stands on the grounds." },
+    "Poulnabrone Dolmen (Grave)": { lng: -9.142, lat: 53.0477, location: "Poulnabrone", linkedTo: { kind: "site", name: "Poulnabrone Dolmen" }, confidence: "Documented",
+      notableBurials: "Collective Neolithic burial of over 30 individuals, interred across roughly five centuries in the 4th millennium BC.",
+      associations: "Long known in folklore as a 'Diarmuid and Gráinne's bed' and fairy portal; excavation finds included a stone axe, bone pins, and a quartz crystal.",
+      fieldNotes: "Ireland's most-photographed portal tomb; predates Christian burial practice in the region by millennia." },
+    "Termon (Grave)": { lng: -9.059, lat: 53.0472, location: "Termon, near Rathborney", linkedTo: { kind: "site", name: "Termon" }, confidence: "Traditional motif",
+      notableBurials: "Monastic sanctuary boundary markers, not a burial ground itself.",
+      associations: "Associated in local tradition with a 'sanctuary stone' said to grant protection to a fugitive who touched it.",
+      fieldNotes: "Cross-slab markers historically defined the limits of church sanctuary land in this area." },
+    "Kilmoon Graveyard": { lng: -9.2668, lat: 53.0437, location: "Kilmoon, near Lisdoonvarna", linkedTo: { kind: "site", name: "Kilmoon" }, confidence: "Documented",
+      notableBurials: "John Joe Conway (1935–2019), remembered locally as a quiet guardian of the old ways and pastoral soul of the limestone uplands.",
+      associations: "Carried the unwritten oral history of the area through a lifetime of daily labour and enduring friendship; his life and the Kilmoon area feature in the documentary The Silver Branch.",
+      fieldNotes: "Ruins of the medieval Kilmoon convent, church and cemetery are recorded here from at least the early 19th century; the surrounding parish also holds several ringforts (cahers) and earthworks traditionally called 'Danish encampments.'" },
+    "Feakle": { lng: -8.65, lat: 52.93, location: "Feakle, East Clare", confidence: "Documented",
+      provisional: "Sits outside the core Burren area this map otherwise covers — included because it's one of Clare's most-searched-for graves, not because it's geographically part of the Burren.",
+      notableBurials: "Biddy Early (c. 1798–1874), the celebrated Clare 'wise woman' and folk healer.",
+      associations: "Famous throughout Munster for her cures and her 'blue bottle' of second sight; her cottage ruins near Feakle are still a visited site.",
+      fieldNotes: "Included as a notable near-miss: Feakle sits in East Clare rather than the Burren proper, but Biddy Early is one of the county's most searched-for graves and often assumed to be a Burren figure." }
   };
 
   // Route system — first test run. A route is an ordered sequence of
@@ -2757,6 +2869,15 @@
         provisional: !!g.provisional, contested: !!g.warning
       });
     });
+    Object.keys(graveData).forEach(function (name) {
+      var gv = graveData[name];
+      allPoints.push({
+        key: 'grave:' + name, kind: 'grave', name: name,
+        lng: gv.lng, lat: gv.lat,
+        disciplines: ['archaeology'],
+        provisional: !!gv.provisional, contested: !!gv.warning
+      });
+    });
 
     function styleForPoint(p) {
       if (p.kind === 'town') {
@@ -2764,6 +2885,13 @@
       }
       if (p.kind === 'legend') {
         return { iconKey: 'legend', primary: disciplineColor.lore, secondary: null, town: false, provisional: p.provisional, contested: p.contested };
+      }
+      if (p.kind === 'grave') {
+        // Fixed red rather than the archaeology accent it's filtered
+        // alongside — deliberately its own visual layer, not a shade of
+        // an existing discipline (the icon itself was a specific request:
+        // a phoenix rising within a tombstone, in red).
+        return { iconKey: 'grave', primary: '#B33A3A', secondary: null, town: false, provisional: p.provisional, contested: p.contested };
       }
       var d = siteData[p.name];
       var parts = d.discipline.split(' / ');
@@ -2819,6 +2947,49 @@
       entry.querySelectorAll('.route-chip').forEach(function (btn) {
         btn.addEventListener('click', function () { navigateToRoute(btn.getAttribute('data-route')); });
       });
+    }
+
+    // Every real site, straight-line distance from a given town, nearest
+    // first — used by both the compact pill row below and the full
+    // distance table shown once the drawer is deepened. siteData only
+    // (not towns/legends/graves) — "closest sites" was asked for
+    // specifically, and mixing kinds into one distance list would blur
+    // what's actually being compared.
+    function nearestSitesTo(townName) {
+      return Object.keys(siteData)
+        .map(function (n) { return { name: n, km: stopDistanceKm(townName, n) }; })
+        .sort(function (a, b) { return a.km - b.km; });
+    }
+    // Compact view — a handful of pill buttons, name only (no distance;
+    // that's what the full table below is for), same route-chip look as
+    // every other cross-reference chip, coloured by each site's own
+    // discipline rather than the town's own grey so it's clear at a
+    // glance what kind of place each one is before you click through.
+    function nearestSitesChipsHtml(townName) {
+      var nearest = nearestSitesTo(townName).slice(0, 5);
+      if (!nearest.length) return '';
+      return '<div class="site-routes">' + nearest.map(function (s) {
+        var accent = accentFor(siteData[s.name].discipline);
+        return '<button class="route-chip link-chip" data-link-kind="site" data-link-name="' + s.name + '" style="--route-accent:' + accent + '">' + s.name + '</button>';
+      }).join('') + '</div>';
+    }
+    // Deep-dive only (see .town-sites-panel / .drawer.full in the CSS) —
+    // every site, nearest first, each row's own short note revealed on
+    // hover/focus rather than a native title tooltip, matching how every
+    // other hover reveal on this map already works. Reuses the
+    // .link-chip click wiring already run for every town drawer, since
+    // these rows carry the same data-link-kind/data-link-name pair.
+    function nearestSitesTableHtml(townName) {
+      var nearest = nearestSitesTo(townName);
+      if (!nearest.length) return '';
+      var rows = nearest.map(function (s) {
+        var note = siteData[s.name].note;
+        return '<button type="button" class="site-distance-row link-chip" data-link-kind="site" data-link-name="' + s.name + '">' +
+          '<span class="site-row-head"><span class="site-row-name">' + s.name + '</span><span class="site-row-dist">' + s.km.toFixed(1) + ' km</span></span>' +
+          (note ? '<span class="site-row-desc">' + note + '</span>' : '') +
+          '</button>';
+      }).join('');
+      return '<div class="town-sites-panel"><h3 class="town-sites-heading">All sites near ' + townName + '</h3>' + rows + '</div>';
     }
 
     // External map handoff for a single point — the same idea as the
@@ -2893,6 +3064,7 @@
       Object.keys(siteData).forEach(function (n) { if (n !== excludeName) candidates.push({ name: n, kind: 'site' }); });
       Object.keys(townData).forEach(function (n) { if (n !== excludeName) candidates.push({ name: n, kind: 'town' }); });
       Object.keys(legendData).forEach(function (n) { if (n !== excludeName) candidates.push({ name: n, kind: 'legend' }); });
+      Object.keys(graveData).forEach(function (n) { if (n !== excludeName) candidates.push({ name: n, kind: 'grave' }); });
       candidates.sort(function (a, b) { return b.name.length - a.name.length; });
 
       function isWordChar(ch) { return !!ch && /[A-Za-z]/.test(ch); }
@@ -3001,6 +3173,7 @@
       if (kind === 'site') openSiteDrawer(id);
       else if (kind === 'town') openTownDrawer(id);
       else if (kind === 'legend') openLegendDrawer(id);
+      else if (kind === 'grave') openGraveDrawer(id);
       else openScriptoriumDrawer(id); // flora, story, or any other Scriptorium category
     }
     function navigateToRoute(routeId) {
@@ -3017,6 +3190,7 @@
       if (prev.kind === 'site') { flyToEntry(prev.id); openSiteDrawer(prev.id); }
       else if (prev.kind === 'town') { flyToEntry(prev.id); openTownDrawer(prev.id); }
       else if (prev.kind === 'legend') { flyToEntry(prev.id); openLegendDrawer(prev.id); }
+      else if (prev.kind === 'grave') { flyToEntry(prev.id); openGraveDrawer(prev.id); }
       else if (prev.kind === 'route') showRoute(prev.id);
       else openScriptoriumDrawer(prev.id);
     }
@@ -3077,9 +3251,11 @@
         (t.warning ? '<div class="warning">' + t.warning + '</div>' : '') +
         (t.provisional ? '<div class="provisional-note">' + t.provisional + '</div>' : '') +
         deepDiveBtnHtml() +
+        nearestSitesChipsHtml(name) +
         linkedLegendsChipsHtml('town', name) +
         routeChipsHtml(name) +
-        externalMapLinksHtml(t.lat, t.lng, name);
+        externalMapLinksHtml(t.lat, t.lng, name) +
+        nearestSitesTableHtml(name);
       drawerBody.appendChild(entry);
       wireDeepDiveBtn(entry);
       wireRouteChips(entry);
@@ -3217,6 +3393,43 @@
       drawerEl.setAttribute('aria-hidden', 'false');
     }
 
+    // Notable Grave Sites — same drawer shape as a legend entry, but built
+    // from graveData's more structured fields (location, notable burials,
+    // associations, field notes) rather than one prose note. Red accent
+    // throughout, matching the marker's own colour rather than borrowing
+    // the archaeology gold it's filtered alongside.
+    function openGraveDrawer(name) {
+      var gv = graveData[name];
+      var accent = '#B33A3A';
+      var drawerEl = document.getElementById('drawer');
+      drawerEl.style.setProperty('--accent', accent);
+      drawerEl.style.setProperty('--accent-soft', accentSoftColor.grave);
+      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('grave');
+      renderAmbientRows('grave', 'grave', name);
+      var drawerBody = document.getElementById('drawerBody');
+      drawerBody.innerHTML = '';
+      var entry = document.createElement('div');
+      entry.className = 'site-entry';
+      entry.style.setProperty('--accent-tag', accent);
+      entry.innerHTML = '<div class="entry-header-row"><h2>' + name + '</h2>' + bookmarkBtnHtml('grave', name) + '</div>' +
+        '<span class="tag">Notable Grave Site — ' + gv.location + ' (' + gv.confidence + ')</span>' +
+        (gv.notableBurials ? '<p><strong>Notable Burials:</strong> ' + gv.notableBurials + '</p>' : '') +
+        (gv.associations ? '<p><strong>Legends / Associations:</strong> ' + gv.associations + '</p>' : '') +
+        (gv.fieldNotes ? '<p><strong>Field Notes:</strong> ' + gv.fieldNotes + '</p>' : '') +
+        (gv.warning ? '<div class="warning">' + gv.warning + '</div>' : '') +
+        (gv.provisional ? '<div class="provisional-note">' + gv.provisional + '</div>' : '') +
+        deepDiveBtnHtml() +
+        siteOrTownLinkChipHtml(gv) +
+        externalMapLinksHtml(gv.lat, gv.lng, name);
+      drawerBody.appendChild(entry);
+      wireDeepDiveBtn(entry);
+      wireLinkChips(entry);
+      var graveBookmarkBtn = entry.querySelector('.bookmark-btn');
+      if (graveBookmarkBtn) wireBookmarkBtn(graveBookmarkBtn);
+      drawerEl.classList.add('open');
+      drawerEl.setAttribute('aria-hidden', 'false');
+    }
+
     // ---- Clustering: recomputed on zoom/rotate (pan alone doesn't change
     // the pixel distance between two fixed coordinates at a given zoom, so
     // there's no need to recompute on plain moveend) ----
@@ -3241,13 +3454,17 @@
 
     // A curated route's `stops` list was originally always siteData keys —
     // the Field Notes journey below (see generateFieldNotesRoute) can mix
-    // in towns and legends too, since a bookmark can be any of the three.
-    // No name collides across the three objects (checked against the
-    // current data set), so a plain name lookup across all three is safe.
+    // in towns, legends, and graves too, since a bookmark can be any of
+    // the four. No name collides across the four objects — five grave
+    // entries originally shared an exact name with the site they're
+    // attached to (e.g. "Kilfenora Cathedral") and were suffixed "(Grave)"
+    // specifically to preserve that — so a plain name lookup across all
+    // four stays safe. Keep it that way when adding new entries.
     function coordsForStop(name) {
       if (siteData[name]) return siteData[name];
       if (townData[name]) return townData[name];
       if (legendData[name]) return legendData[name];
+      if (graveData[name]) return graveData[name];
       return null;
     }
 
@@ -4194,6 +4411,14 @@
           note: g.note, lat: g.lat, lng: g.lng, habitatTags: []
         });
       });
+      Object.keys(graveData).forEach(function (name) {
+        var gv = graveData[name];
+        searchIndex.push({
+          kind: 'grave', name: name, category: 'Notable Grave Site', discipline: 'archaeology',
+          note: [gv.notableBurials, gv.associations, gv.fieldNotes].filter(Boolean).join(' '),
+          lat: gv.lat, lng: gv.lng, habitatTags: []
+        });
+      });
 
       // Scriptorium entries (flora, story, and any future category) are no
       // longer inlined here — they're fetched at runtime from the same
@@ -4276,7 +4501,7 @@
       function searchIsOpen() { return overlay.classList.contains('open'); }
 
       function kindLabel(k) {
-        return { site: 'Sites', town: 'Towns', legend: 'Lore', flora: 'Flora' }[k] || k;
+        return { site: 'Sites', town: 'Towns', legend: 'Lore', flora: 'Flora', grave: 'Graves' }[k] || k;
       }
       function facetHabitats() {
         var set = {};
@@ -4353,7 +4578,7 @@
       }
 
       function renderFacets() {
-        var kinds = ['site', 'town', 'legend', 'flora'];
+        var kinds = ['site', 'town', 'legend', 'grave', 'flora'];
         var html = kinds.map(function (k) {
           return '<button class="facet-chip" data-kind="' + k + '" data-active="' + (activeKind === k) + '">' + kindLabel(k) + '</button>';
         }).join('');

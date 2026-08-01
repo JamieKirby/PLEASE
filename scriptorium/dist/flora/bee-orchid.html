@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bee Orchid — The Burren Scriptorium</title>
+<meta name="description" content="Mimicry orchid featuring a lip designed to resemble a female bee to attract pollinators.">
+<!-- Hook for later styling — theme-flora on <body> below is what
+     lets a stylesheet target "story" pages differently from "flora"
+     pages, etc., without any per-page CSS. Relative, not root-relative —
+     every entry page lives exactly one folder level under the
+     scriptorium root (dist/<category>/<id>.html), so ../ consistently
+     reaches it regardless of whether the site's served from a domain
+     root or a GitHub Pages project subpath like /SCPRIT_TEST/. A
+     root-relative "/styles.css" would resolve against the domain root
+     and miss that subpath entirely — same failure mode as the old
+     hardcoded BASE_URL bug, just one path type over. -->
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body class="theme-flora">
+
+  <!-- Home and the two category links point at hub pages that don't
+       exist yet (see the earlier note on dropped features) — the paths
+       themselves are correct now for whenever those get built, so nav
+       won't need a second round of path-fixing later. -->
+  <nav>
+    <a href="../index.html" class="nav-home">The Burren Scriptorium</a>
+    <a href="../index.html">Home</a>
+    <a href="../flora/">Flora</a>
+    <a href="../story/">Stories &amp; Sites</a>
+  </nav>
+
+  <main>
+    <header class="entry-header">
+      <p class="entry-category">flora</p>
+      <h1 class="entry-title">Bee Orchid</h1>
+      
+    </header>
+
+    <article class="entry-content">
+      <div class="specimen-illustration"><svg viewBox="0 0 400 420" role="img" aria-label="Field-guide illustration of Bee Orchid"><path class="specimen-line" d="M200,392 C172,392 150,372 140,342 C158,358 180,368 198,368 Z"/>
+<path class="specimen-line" d="M200,392 C228,392 250,372 260,342 C242,358 220,368 202,368 Z"/>
+<path class="specimen-line" d="M200,392 L200,110"/>
+<g transform="translate(154,150)">
+  <ellipse class="specimen-line" cx="46" cy="18" rx="16" ry="9" transform="rotate(-14 46 18)"/>
+  <ellipse class="specimen-line" cx="46" cy="18" rx="7" ry="4" opacity=".7"/>
+  <path class="specimen-line" d="M46,26 C34,34 26,50 30,66 C24,76 30,90 44,92 C58,94 68,82 66,68 C78,76 90,68 90,54 C90,40 76,30 62,32 C50,34 46,26 46,26 Z"/>
+  <path class="specimen-line" d="M40,44 L58,60 M58,44 L40,60 M42,66 L60,78 M60,66 L42,78"/>
+</g>
+<path class="specimen-leader" d="M200,168 C220,148 235,132 258,110"/>
+<path class="specimen-line" d="M172,240 L156,262 M172,240 L184,266"/>
+<path class="specimen-line" d="M172,240 C165,246 162,256 166,264 C160,270 162,280 172,282 C182,284 188,276 186,268 C194,272 202,266 202,258 C202,250 194,244 186,246 C179,248 172,240 172,240 Z"/>
+<path class="specimen-line" d="M228,300 L214,320 M228,300 L238,324"/>
+<path class="specimen-line" d="M228,300 C221,306 218,316 222,324 C216,330 218,340 228,342 C238,344 244,336 242,328 C250,332 258,326 258,318 C258,310 250,304 242,306 C235,308 228,300 228,300 Z"/>
+<g transform="translate(80,60)">
+  <path class="specimen-leader" d="M0,0 L0,60"/>
+  <path class="specimen-leader" d="M0,0 L60,0"/>
+  <ellipse class="specimen-line" cx="30" cy="34" rx="27" ry="15" transform="rotate(-10 30 34)"/>
+  <ellipse class="specimen-line" cx="30" cy="34" rx="12" ry="7" opacity=".7"/>
+  <text class="specimen-label" x="0" y="-6" font-size="10">3 pink sepals ("wings")</text>
+</g>
+<path class="specimen-leader" d="M172,264 C130,258 100,258 60,262"/>
+<text class="specimen-label" x="8" y="255" font-size="10">velvety brown lip,</text>
+<text class="specimen-label" x="8" y="268" font-size="10">yellow H-marking</text>
+<ellipse class="specimen-line" cx="152" cy="358" rx="4" ry="9" transform="rotate(-8 152 358)"/>
+<path class="specimen-line" d="M148,352 L148,364 M152,350 L152,366 M156,352 L156,364"/>
+<path class="specimen-leader" d="M152,358 C120,368 96,376 66,382"/>
+<text class="specimen-label" x="8" y="392" font-size="10">seed capsule, spent flower</text>
+<path class="specimen-leader" d="M200,110 C182,86 168,70 142,46"/>
+<text class="specimen-label" x="8" y="38">BEE ORCHID</text>
+<text class="specimen-label" x="8" y="54" font-style="italic">(Ophrys apifera)</text></svg></div><p><em>Ophrys apifera</em>. Mimicry orchid featuring a lip designed to resemble a female bee to attract pollinators.</p>
+    </article>
+
+    <p class="explore-on-map">
+      <a href="../../index.html?entry=flora:Bee%20Orchid">Explore Bee Orchid on the interactive map &rarr;</a>
+    </p>
+  </main>
+
+</body>
+</html>
