@@ -135,10 +135,22 @@ function fillTemplate(template, entry, allEntries) {
   const irishBlock = entry.irishTitle
     ? `<p class="entry-irish">${escapeHtml(entry.irishTitle)}</p>`
     : '';
+  // Same reasoning as irishBlock above — most entries don't have both of
+  // these (story entries have neither at all), so the dot-separator only
+  // appears between two values that both actually exist, not baked into
+  // the template as a fixed "X · Y" shape that would leave a dangling
+  // separator when one side is empty.
+  const metaParts = [];
+  if (entry.subCategory) metaParts.push(`<span class="entry-subcategory">${escapeHtml(entry.subCategory)}</span>`);
+  if (entry.scientificName) metaParts.push(`<span class="entry-scientific-name">${escapeHtml(entry.scientificName)}</span>`);
+  const metaRow = metaParts.length
+    ? `<p class="entry-meta-row">${metaParts.join('<span class="entry-meta-dot">&middot;</span>')}</p>`
+    : '';
   return template
     .split('{{TITLE}}').join(escapeHtml(entry.title))
     .split('{{IRISH_BLOCK}}').join(irishBlock)
     .split('{{IRISH}}').join(escapeHtml(entry.irishTitle))
+    .split('{{META_ROW}}').join(metaRow)
     .split('{{CATEGORY}}').join(escapeHtml(entry.category))
     .split('{{SUMMARY}}').join(escapeHtml(deriveSummary(entry)))
     .split('{{CONTENT}}').join(linkedContent)
@@ -249,9 +261,24 @@ function build() {
     // manifest objects stay lean rather than carrying empty keys around.
     if (entry.oghamName) item.oghamName = entry.oghamName;
     if (entry.oghamGloss) item.oghamGloss = entry.oghamGloss;
+    if (entry.subCategory) item.subCategory = entry.subCategory;
+    if (entry.scientificName) item.scientificName = entry.scientificName;
     return item;
   });
   fs.writeFileSync(path.join(OUTPUT_DIR, 'manifest.json'), JSON.stringify(manifest), 'utf8');
+
+  // styles.css and home.html both live in scriptorium/ (source), not
+  // scriptorium/dist/ (build output) — same reason template.html and
+  // hub-template.html do: they're inputs to the build, not per-entry
+  // generated pages. The actual root cause of "no CSS on any static
+  // page": every template has linked ../styles.css since the very first
+  // build, but nothing ever copied that file into dist/, so it 404'd
+  // silently on every single page regardless of what was ever written
+  // in it. Same gap would apply to home.html — a bespoke, hand-written
+  // page rather than a data-driven templated one, so a straight copy
+  // rather than fillTemplate().
+  fs.copyFileSync(path.join(ROOT, 'styles.css'), path.join(OUTPUT_DIR, 'styles.css'));
+  fs.copyFileSync(path.join(ROOT, 'home.html'), path.join(OUTPUT_DIR, 'index.html'));
 
   const total = entries.length;
   const hubCount = buildHubPages(entries, hubTemplate);
@@ -261,6 +288,7 @@ function build() {
   });
   console.log(`Built ${hubCount} hub/index page(s) (dist/<category>/index.html).`);
   console.log(`Wrote manifest.json (${total} entries) for the map's runtime search + drawer content.`);
+  console.log(`Copied styles.css and home.html (as dist/index.html) into the build output.`);
 }
 
 build();

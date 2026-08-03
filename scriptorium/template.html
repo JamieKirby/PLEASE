@@ -19,21 +19,21 @@
 </head>
 <body class="theme-{{CATEGORY}}">
 
-  <!-- Home and the two category links point at hub pages that don't
-       exist yet (see the earlier note on dropped features) — the paths
-       themselves are correct now for whenever those get built, so nav
-       won't need a second round of path-fixing later. -->
   <nav>
     <a href="../index.html" class="nav-home">The Burren Scriptorium</a>
-    <a href="../index.html">Home</a>
     <a href="../flora/">Flora</a>
     <a href="../story/">Stories &amp; Sites</a>
+    <a href="../../index.html" class="nav-back-to-map">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 6 L9 12 L15 18"/></svg>
+      Back to the Map
+    </a>
   </nav>
 
   <main>
     <header class="entry-header">
       <p class="entry-category">{{CATEGORY}}</p>
       <h1 class="entry-title">{{TITLE}}</h1>
+      {{META_ROW}}
       {{IRISH_BLOCK}}
     </header>
 
@@ -42,9 +42,30 @@
     </article>
 
     <p class="explore-on-map">
-      <a href="{{MAP_LINK}}">Explore {{TITLE}} on the interactive map &rarr;</a>
+      <a href="{{MAP_LINK}}" class="explore-on-map-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21 C12 21 5 15 5 9 C5 5 8 3 12 3 C16 3 19 5 19 9 C19 15 12 21 12 21 Z"/><circle cx="12" cy="9.5" r="2.6"/></svg>
+        Explore {{TITLE}} on the interactive map
+      </a>
     </p>
   </main>
+
+  <script>
+    // A short fade-out before any internal navigation (nav links, the
+    // "explore on map" button, auto-linked cross-references inside the
+    // article) — see styles.css's body.leaving rule for why this is the
+    // honest limit of "animating" a real full-page <a href> navigation:
+    // there's nothing on the other side to animate until it's loaded, so
+    // this fades what's already visible rather than attempting anything
+    // fancier. External links (target="_blank") are left alone entirely.
+    document.querySelectorAll('a[href]').forEach(function (a) {
+      if (a.target === '_blank' || a.getAttribute('href').charAt(0) === '#') return;
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        document.body.classList.add('leaving');
+        setTimeout(function () { window.location.href = a.href; }, 160);
+      });
+    });
+  </script>
 
 </body>
 </html>
