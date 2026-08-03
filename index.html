@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>The Burren — Field Map (Real Basemap)</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js" crossorigin="anonymous"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css" rel="stylesheet" crossorigin="anonymous" />
 <!-- Renders contour lines from a raster-dem elevation source at runtime —
@@ -508,6 +511,24 @@
   @keyframes ambientFadeIn { 0% { opacity: 0; transform: translateX(-36px); } 100% { opacity: var(--peak, .12); transform: translateX(0); } }
   @keyframes ambientPulse { 0%, 100% { opacity: var(--peak, .12); } 50% { opacity: calc(var(--peak, .12) - 0.06); } }
   @keyframes ambientSway { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(var(--sway, 60px)); } 75% { transform: translateX(calc(var(--sway, 60px) * -1)); } }
+  /* The ambient backdrop is 50-65 SVG text-on-path elements, each
+     carrying three concurrent animations (fade-in, sway, pulse),
+     rebuilt from scratch on every single drawer navigation (see
+     renderAmbientRows) — by a wide margin the heaviest thing this
+     drawer ever renders, and text-on-path is itself an expensive
+     layout operation on top of that. This is the most credible single
+     lever on the reported "lag on the deeper-dive view" complaint, and
+     respecting prefers-reduced-motion is both the honest accessibility
+     fix (nobody who has asked their OS for less motion should get 65
+     swaying/pulsing lines of text) and a direct, safe way to cut that
+     cost for anyone with the setting on, without touching the tuned
+     default animation at all for everyone else. Held at each row's own
+     --peak opacity with no transform and no running animation, rather
+     than hidden outright — the backdrop still reads as the same field
+     of unevenly-lit lines, just still. */
+  @media (prefers-reduced-motion: reduce) {
+    .ambient-row-text { animation: none !important; opacity: var(--peak, .12) !important; transform: none !important; }
+  }
 
   /* Floating chrome — the left slot is dual-purpose: it's a plain history
      "back" when there's a navigation stack, or "collapse to compact" while
@@ -2409,7 +2430,7 @@
   // Drawer navigation history — shared between the load-scoped render
   // functions below and closeDrawer (defined at the bottom of this script),
   // so both can read/reset it.
-  var drawerStack = []; // {kind:'site'|'town'|'route', id}
+  var drawerStack = []; // {kind:'site'|'town'|'route', id, scrollTop}
   var drawerCurrent = null;
 
   // ==========================================================================
@@ -3169,6 +3190,24 @@
   }, 12000);
 
   map.on('load', function () {
+    // ---- Initial framing: Galway and Limerick as the top/bottom limits ----
+    // The constructor's center/zoom above (kept as a same-projection
+    // fallback for the very first paint) was a fixed zoom chosen by eye —
+    // right on one screen's aspect ratio and cramped or too loose on any
+    // other. fitBounds is the adaptive version of the same request:
+    // Galway city anchors the north edge, Limerick city anchors the
+    // south edge, and the padding is what supplies the "breathing room
+    // for readable labels" rather than baking a guessed extra fraction
+    // of a degree onto the bounds themselves. duration:0 and doing this
+    // right at the top of 'load' — before mountAllPointMarkers/renderAll
+    // even run — means it settles while loadOverlay is still covering
+    // the map, so nothing visibly jumps.
+    var GALWAY_LIMERICK_FRAME = [
+      [-9.95, 52.58], // SW — west enough to clear the Burren's own Atlantic coast (Fanore/Black Head), just south of Limerick
+      [-8.55, 53.35]  // NE — just north/east of Galway city
+    ];
+    map.fitBounds(GALWAY_LIMERICK_FRAME, { padding: 36, duration: 0 });
+
     // ---- Recolor the base style toward the Scriptorium's dark palette ----
     var layers = map.getStyle().layers;
     layers.forEach(function (l) {
@@ -3650,9 +3689,20 @@
       var label = (g.linkedTo.kind === 'town' ? 'About this town: ' : 'About this place: ') + g.linkedTo.name;
       return '<div class="site-routes"><button class="route-chip link-chip" data-link-kind="' + g.linkedTo.kind + '" data-link-name="' + g.linkedTo.name + '" style="--route-accent:' + disciplineColor.lore + '">' + label + '</button></div>';
     }
+    // Reuses attachTapHandler (see its own comment further up) rather
+    // than a plain click listener — the concrete case this fixes is
+    // .site-distance-row, whose CSS reveals its description on :hover
+    // (see .site-distance-row:hover .site-row-desc). An element that
+    // pairs a :hover-gated style with a click handler needs two taps on
+    // iOS Safari's first touch: the first tap only satisfies :hover,
+    // the second fires the actual click — which is what the reported
+    // "drawer modal appears directly under the trigger, needs an empty
+    // second tap" traced back to. Acting on touchend directly, the way
+    // attachTapHandler does, sidesteps the synthetic click (and the
+    // hover state it's gated behind) entirely.
     function wireLinkChips(entry) {
       entry.querySelectorAll('.link-chip').forEach(function (btn) {
-        btn.addEventListener('click', function () {
+        attachTapHandler(btn, function () {
           navigateTo(btn.getAttribute('data-link-kind'), btn.getAttribute('data-link-name'));
         });
       });
@@ -3807,42 +3857,136 @@
       var floorZoom = tierMinZoom(tierForNamedEntry(kind, coords));
       var targetZoom = Math.min(map.getMaxZoom(), Math.max(map.getZoom(), floorZoom));
       map.flyTo({ center: [coords.lng, coords.lat], zoom: targetZoom, offset: drawerOffsetForFlyTo(), duration: 500 });
+      ensureEntryDeclustered(kind, id);
+    }
+
+    // ---- "Pans to it, but no marker appears" fix ----
+    // flyToEntry above only ever guaranteed clearing the target's OWN
+    // tier floor (see tierMinZoom/isBelowTierFloor) — it never checked
+    // whether the target had actually escaped being visually absorbed
+    // into a nearby cluster bubble or town badge at that same zoom.
+    // Clustering and tier floor are two independent systems (see
+    // computeGroups vs isBelowTierFloor), so clearing one has never
+    // guaranteed clearing the other: a point can be well above its own
+    // reveal threshold and still be a 'grouped' (fully invisible, see
+    // setPointVisualState) member of a cluster standing in for it.
+    // This nudges the camera in a little further, once, if that's
+    // still true once the fly settles — bounded to a handful of
+    // attempts and the map's own maxZoom so a point with a genuine
+    // same-spot duplicate doesn't spin forever trying to separate from
+    // something it can never actually separate from.
+    var ENTRY_DECLUSTER_MAX_ATTEMPTS = 4;
+    function ensureEntryDeclustered(kind, id, attempt) {
+      attempt = attempt || 0;
+      map.once('moveend', function () {
+        var entry = pointMarkers[kind + ':' + id];
+        if (!entry) return; // not a real point marker (e.g. a route) — nothing to check
+        var stillGrouped = entry.el.classList.contains('grouped');
+        if (!stillGrouped) return;
+        if (attempt >= ENTRY_DECLUSTER_MAX_ATTEMPTS) return;
+        if (map.getZoom() >= map.getMaxZoom()) return; // genuinely can't zoom in any further
+        var coords = coordsForStop(id);
+        if (!coords) return;
+        var nextZoom = Math.min(map.getMaxZoom(), map.getZoom() + 1.5);
+        map.flyTo({ center: [coords.lng, coords.lat], zoom: nextZoom, offset: drawerOffsetForFlyTo(), duration: 350 });
+        ensureEntryDeclustered(kind, id, attempt + 1);
+      });
+    }
+
+    // ---- Browser back button <-> drawer stack sync ----
+    // Every navigateTo/navigateToRoute call already maintains drawerStack/
+    // drawerCurrent as its own in-app history; this layer mirrors that
+    // same state into the real browser History API (pushState/popstate)
+    // so the hardware/gesture back button steps backward through drawers
+    // one at a time instead of leaving the page entirely.
+    // suppressHistoryPush guards the one case that would otherwise loop
+    // forever: restoring state FROM a popstate event must never itself
+    // push a new entry.
+    var suppressHistoryPush = false;
+    function pushDrawerHistory() {
+      if (suppressHistoryPush) return;
+      history.pushState({ drawerStack: drawerStack, drawerCurrent: drawerCurrent }, '', location.href);
+    }
+    // The single place that knows how to actually put a given stack entry
+    // on screen — used by forward navigation, by drawerBack's own pop,
+    // and by the popstate handler alike, so there's exactly one dispatch
+    // list to keep in sync with the open*Drawer functions below, instead
+    // of the three near-duplicates this used to be split across.
+    function openDrawerEntry(entry) {
+      if (!entry) return;
+      if (entry.kind === 'site') { flyToEntry(entry.kind, entry.id); openSiteDrawer(entry.id); }
+      else if (entry.kind === 'town') { flyToEntry(entry.kind, entry.id); openTownDrawer(entry.id); }
+      else if (entry.kind === 'legend') { flyToEntry(entry.kind, entry.id); openLegendDrawer(entry.id); }
+      else if (entry.kind === 'grave') { flyToEntry(entry.kind, entry.id); openGraveDrawer(entry.id); }
+      else if (entry.kind === 'person') { flyToEntry(entry.kind, entry.id); openPersonDrawer(entry.id); }
+      else if (entry.kind === 'pub') { flyToEntry(entry.kind, entry.id); openPubDrawer(entry.id); }
+      else if (entry.kind === 'well') { flyToEntry(entry.kind, entry.id); openWellDrawer(entry.id); }
+      else if (entry.kind === 'route') { showRoute(entry.id); }
+      else { openScriptoriumDrawer(entry.id); } // flora, story, or any other Scriptorium category
+      // Scroll restoration — lands back at the exact scroll position a
+      // level had when it was left, not just the exact drawer/tab. One
+      // frame later, since the open*Drawer call just replaced
+      // #drawerBody's content and the browser needs a paint before a
+      // scrollTop assignment sticks.
+      if (typeof entry.scrollTop === 'number') {
+        requestAnimationFrame(function () {
+          var db = document.getElementById('drawerBody');
+          if (db) db.scrollTop = entry.scrollTop;
+        });
+      }
+    }
+    window.addEventListener('popstate', function (e) {
+      suppressHistoryPush = true;
+      if (e.state && e.state.drawerCurrent) {
+        drawerStack = e.state.drawerStack || [];
+        drawerCurrent = e.state.drawerCurrent;
+        updateDrawerBackVisibility();
+        openDrawerEntry(drawerCurrent);
+      } else {
+        // Back past the very first drawer open — baseline: everything closed.
+        drawerStack = [];
+        drawerCurrent = null;
+        closeDrawer();
+      }
+      suppressHistoryPush = false;
+    });
+    // Baseline "everything closed" state as the CURRENT history entry
+    // (replaceState, not pushState — no new entry) so the very first
+    // back press after opening a drawer has something correct to land
+    // on, regardless of whatever this page's history entry looked like
+    // before the map's own JS ran.
+    history.replaceState(null, '', location.href);
+
+    // Records where the drawer being left off was actually scrolled to,
+    // onto the stack entry it's about to become — see openDrawerEntry's
+    // own scroll restoration above.
+    function currentDrawerScrollTop() {
+      var db = document.getElementById('drawerBody');
+      return db ? db.scrollTop : 0;
     }
 
     function navigateTo(kind, id) {
-      if (drawerCurrent) drawerStack.push(drawerCurrent);
+      if (drawerCurrent) { drawerCurrent.scrollTop = currentDrawerScrollTop(); drawerStack.push(drawerCurrent); }
       drawerCurrent = { kind: kind, id: id };
       updateDrawerBackVisibility();
-      flyToEntry(kind, id);
-      if (kind === 'site') openSiteDrawer(id);
-      else if (kind === 'town') openTownDrawer(id);
-      else if (kind === 'legend') openLegendDrawer(id);
-      else if (kind === 'grave') openGraveDrawer(id);
-      else if (kind === 'person') openPersonDrawer(id);
-      else if (kind === 'pub') openPubDrawer(id);
-      else if (kind === 'well') openWellDrawer(id);
-      else openScriptoriumDrawer(id); // flora, story, or any other Scriptorium category
+      openDrawerEntry(drawerCurrent);
+      pushDrawerHistory();
     }
     function navigateToRoute(routeId) {
-      if (drawerCurrent) drawerStack.push(drawerCurrent);
+      if (drawerCurrent) { drawerCurrent.scrollTop = currentDrawerScrollTop(); drawerStack.push(drawerCurrent); }
       drawerCurrent = { kind: 'route', id: routeId };
       updateDrawerBackVisibility();
-      showRoute(routeId);
+      openDrawerEntry(drawerCurrent);
+      pushDrawerHistory();
     }
     function drawerBack() {
       if (!drawerStack.length) return;
-      var prev = drawerStack.pop();
-      drawerCurrent = prev;
-      updateDrawerBackVisibility();
-      if (prev.kind === 'site') { flyToEntry(prev.kind, prev.id); openSiteDrawer(prev.id); }
-      else if (prev.kind === 'town') { flyToEntry(prev.kind, prev.id); openTownDrawer(prev.id); }
-      else if (prev.kind === 'legend') { flyToEntry(prev.kind, prev.id); openLegendDrawer(prev.id); }
-      else if (prev.kind === 'grave') { flyToEntry(prev.kind, prev.id); openGraveDrawer(prev.id); }
-      else if (prev.kind === 'person') { flyToEntry(prev.kind, prev.id); openPersonDrawer(prev.id); }
-      else if (prev.kind === 'pub') { flyToEntry(prev.kind, prev.id); openPubDrawer(prev.id); }
-      else if (prev.kind === 'well') { flyToEntry(prev.kind, prev.id); openWellDrawer(prev.id); }
-      else if (prev.kind === 'route') showRoute(prev.id);
-      else openScriptoriumDrawer(prev.id);
+      // The actual pop + reopen happens in the popstate handler above —
+      // routing the in-app back arrow through the same real
+      // history.back() call as the hardware/gesture back button means
+      // there's exactly one code path that ever performs a "go back",
+      // instead of two that have to be kept in sync by hand.
+      history.back();
     }
     function drawerBackOrCollapse() {
       if (isDrawerFull()) collapseDrawer(); else drawerBack();
@@ -4395,6 +4539,60 @@
       return groups;
     }
 
+    // ---- Tap dead-zone ----
+    // Markers sit on the same layer MapLibre's own drag-pan handler
+    // listens on. A plain 'click' listener gets tap-vs-drag right on
+    // desktop and on most touch browsers (a mouseup/touchend after real
+    // movement normally doesn't produce a click at all) — but not
+    // reliably on every mobile browser/WebView. When it doesn't, a touch
+    // that starts on a marker and then moves (intending to pan the map)
+    // still lands as a full tap on release: the marker's drawer pops
+    // open, or a cluster bubble flyTo's, in the middle of an unrelated
+    // pan/zoom gesture. That spurious navigateTo/flyTo racing an
+    // in-progress renderAll() is the most likely source of the reported
+    // "points go into ghost mode while panning" glitch, since nothing
+    // in the ghost/grouped state machine itself is touch-aware — see
+    // setPointVisualState above. This makes the threshold explicit and
+    // consistent everywhere instead of depending on browser-specific
+    // click-suppression behaviour.
+    var TAP_DEAD_ZONE_PX = 10;
+    var TAP_MAX_DURATION_MS = 600;
+    function attachTapHandler(el, handler) {
+      var touchState = null;
+      var suppressNextClick = false;
+      el.addEventListener('touchstart', function (e) {
+        var t = e.touches[0];
+        touchState = { x: t.clientX, y: t.clientY, t: Date.now(), moved: false };
+      }, { passive: true });
+      el.addEventListener('touchmove', function (e) {
+        if (!touchState) return;
+        var t = e.touches[0];
+        var dx = t.clientX - touchState.x, dy = t.clientY - touchState.y;
+        if (Math.sqrt(dx * dx + dy * dy) > TAP_DEAD_ZONE_PX) touchState.moved = true;
+      }, { passive: true });
+      el.addEventListener('touchend', function (e) {
+        if (!touchState) return;
+        var wasTap = !touchState.moved && (Date.now() - touchState.t) < TAP_MAX_DURATION_MS;
+        touchState = null;
+        if (wasTap) {
+          // Stop this exact gesture from also producing a synthetic
+          // click a moment later (which would otherwise double-fire
+          // the handler on browsers that do send one after a tap).
+          suppressNextClick = true;
+          e.preventDefault();
+          handler(e);
+          requestAnimationFrame(function () { suppressNextClick = false; });
+        }
+        // else: real movement (or too slow to be a tap) happened here —
+        // treat it as the start of a drag. No handler call, and no
+        // synthetic click should follow a moved touch anyway.
+      });
+      el.addEventListener('click', function (e) {
+        if (suppressNextClick) { suppressNextClick = false; return; }
+        handler(e);
+      });
+    }
+
     // Quick "got it" feedback on marker tap — removes then re-adds the
     // class (forcing a reflow in between) so the animation replays on
     // every click, not just the first one.
@@ -4498,7 +4696,7 @@
       // being treated as "the map" underneath it. A ghosted marker opens
       // its drawer exactly the same as any other — see setGhost — so
       // there's no ghost-specific branching here at all any more.
-      el.addEventListener('click', function (domEvent) {
+      attachTapHandler(el, function (domEvent) {
         domEvent.stopPropagation();
         playClickPop(el); openFn();
       });
@@ -4645,7 +4843,7 @@
       var expand = function () {
         map.flyTo({ center: [lng, lat], zoom: Math.min(map.getMaxZoom(), map.getZoom() + 2.2), offset: drawerOffsetForFlyTo(), duration: 500 });
       };
-      el.addEventListener('click', function (domEvent) { domEvent.stopPropagation(); playClickPop(el); expand(); });
+      attachTapHandler(el, function (domEvent) { domEvent.stopPropagation(); playClickPop(el); expand(); });
       el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playClickPop(el); expand(); } });
       el.querySelectorAll('.cluster-hover-item').forEach(function (btn) {
         btn.addEventListener('click', function (domEvent) {
@@ -4840,6 +5038,18 @@
     map.on('zoomend', renderAll);
     map.on('rotateend', renderAll);
     map.on('pitchend', renderAll);
+    // Belt-and-braces for the 3D-toggle-specific report ("points go into
+    // ghost mode entering 3D view... and fail to return to visibility
+    // upon returning to 2D"): the 3D control drives pitch AND bearing in
+    // one combined easeTo() — see Tilt3DControl above — and a combined
+    // transition like that doesn't reliably fire the specific
+    // pitchend/rotateend events on every MapLibre GL build; 'moveend' is
+    // the one universal "a camera transition just finished" event that
+    // fires regardless of which property actually drove it. renderAll()
+    // is a pure, non-destructive function of current zoom/pitch/bearing
+    // (see its own comment above), so calling it an extra time here
+    // costs nothing when the more specific listeners already caught it.
+    map.on('moveend', renderAll);
     map.on('zoomend', function () { applyMapTheme(currentMapTheme); });
     map.on('rotateend', function () { applyMapTheme(currentMapTheme); });
     map.on('pitchend', function () { applyMapTheme(currentMapTheme); });
@@ -5305,7 +5515,8 @@
             kind: entry.category, name: entry.title, category: entry.category,
             discipline: entry.category, note: entry.summary || '',
             irish: entry.irishTitle, habitatTags: [], slug: entry.id,
-            oghamName: entry.oghamName, oghamGloss: entry.oghamGloss
+            oghamName: entry.oghamName, oghamGloss: entry.oghamGloss,
+            subCategory: entry.subCategory
           });
         });
         renderFacets();
@@ -5344,14 +5555,45 @@
         });
         return best;
       }
+      // ---- Category-term singularisation ----
+      // A broad plural term ("trees", "flowers", "grasses"...) was
+      // returning zero results even with real matching entries in the
+      // database — it never literally appears in any one entry's name,
+      // and fieldScore only ever compared the query against name/
+      // category/note. What DOES already exist, singular, per entry is
+      // the Scriptorium data's own subCategory field (Tree, Flower,
+      // Grass, Shrub, Herb, Moss, Lichen — and now Butterfly, Mammal,
+      // Amphibian for the new fauna entries below) — it just wasn't
+      // being read into the search index at all until now (see
+      // scriptoriumSearchCallback above). Rather than hand-maintaining
+      // a big plural->category dictionary, a small general singulariser
+      // plus the existing typo-tolerant fieldScore against subCategory
+      // covers the same ground for any future category too.
+      var IRREGULAR_SINGULARS = { butterflies: 'butterfly', leaves: 'leaf' };
+      function singularize(word) {
+        var w = word.toLowerCase();
+        if (IRREGULAR_SINGULARS[w]) return IRREGULAR_SINGULARS[w];
+        if (/[a-z]sses$/.test(w)) return w.slice(0, -2); // grasses -> grass, mosses -> moss
+        if (/[a-z]ies$/.test(w) && w.length > 4) return w.slice(0, -3) + 'y'; // butterflies -> butterfly
+        if (/[a-z]s$/.test(w) && !/ss$/.test(w)) return w.slice(0, -1); // trees/flowers/shrubs/herbs/lichens/birds -> singular
+        return w;
+      }
       function scoreEntry(query, e) {
         if (!query) return 1;
-        var s = fieldScore(query, e.name) * 3 + fieldScore(query, e.category) * 1 + fieldScore(query, e.note) * 0.4;
-        if (e.scientificName) s += fieldScore(query, e.scientificName) * 2;
-        if (e.oghamGloss) s += fieldScore(query, e.oghamGloss) * 1.5;
-        if (e.irish) s += fieldScore(query, e.irish) * 2;
-        (e.habitatTags || []).forEach(function (h) { s += fieldScore(query, h) * 0.8; });
-        return s;
+        var variants = [query];
+        var sing = singularize(query);
+        if (sing !== query.toLowerCase()) variants.push(sing);
+        var best = 0;
+        variants.forEach(function (q) {
+          var s = fieldScore(q, e.name) * 3 + fieldScore(q, e.category) * 1 + fieldScore(q, e.note) * 0.4;
+          if (e.subCategory) s += fieldScore(q, e.subCategory) * 1.5;
+          if (e.scientificName) s += fieldScore(q, e.scientificName) * 2;
+          if (e.oghamGloss) s += fieldScore(q, e.oghamGloss) * 1.5;
+          if (e.irish) s += fieldScore(q, e.irish) * 2;
+          (e.habitatTags || []).forEach(function (h) { s += fieldScore(q, h) * 0.8; });
+          best = Math.max(best, s);
+        });
+        return best;
       }
 
       var activeKind = null, activeHabitat = null, showSavedOnly = false;
@@ -5635,7 +5877,16 @@
       }
 
       renderFacets();
-      input.addEventListener('input', renderResults);
+      // Debounced rather than firing on every keystroke — this corpus is
+      // small enough that a synchronous render was never actually slow,
+      // but a person typing fast still had every intermediate partial
+      // query (re)score and repaint the whole result list, map dimming
+      // included, which is wasted work on every keystroke but the last.
+      var searchInputDebounce = null;
+      input.addEventListener('input', function () {
+        clearTimeout(searchInputDebounce);
+        searchInputDebounce = setTimeout(renderResults, 120);
+      });
       overlay.addEventListener('click', function (e) { if (e.target === overlay) closeSearch(); });
       document.getElementById('searchTrigger').addEventListener('click', function () {
         if (searchIsOpen()) closeSearch(); else openSearch();
@@ -5827,6 +6078,50 @@
       }
     }
 
+    // Category icon/label lookup for the burger menu's Scriptorium
+    // section — CATEGORY_LABELS mirrors build.js's own CATEGORY_TITLES
+    // (kept as two small maps rather than one shared file since one
+    // lives in build-time Node and the other in the browser), with the
+    // same capitalize-the-raw-key fallback for anything added later
+    // that isn't listed here yet.
+    var CATEGORY_LABELS = { flora: 'Flora', fauna: 'Fauna', story: 'Stories & Sites' };
+    var CATEGORY_ICONS = {
+      flora: '<path d="M12 21 C12 21 5 15 5 9 C5 5 8 3 12 3 C16 3 19 5 19 9 C19 15 12 21 12 21 Z"/><path d="M12 3 L12 21 M12 9 L7 6 M12 12 L17 9 M12 15 L7 13"/>',
+      fauna: '<path d="M12 3 C8 3 5 6 5 10 C5 14 8 15 8 18 C8 20 10 21 12 21 C14 21 16 20 16 18 C16 15 19 14 19 10 C19 6 16 3 12 3 Z"/><path d="M9 10 L9 10.01 M15 10 L15 10.01"/>',
+      story: '<path d="M5 4 H15 A2 2 0 0 1 17 6 V20 H7 A2 2 0 0 1 5 18 Z"/><path d="M5 18 A2 2 0 0 1 7 16 H17"/>'
+    };
+    var GENERIC_CATEGORY_ICON = '<circle cx="12" cy="12" r="8"/>';
+    function scriptoriumCategoryLabel(cat) { return CATEGORY_LABELS[cat] || (cat.charAt(0).toUpperCase() + cat.slice(1)); }
+    // Same preferred reading order as build.js's PREFERRED_CATEGORY_ORDER,
+    // for the same reason: a fixed, sensible order for the categories
+    // already known about, alphabetical for anything added after.
+    var PREFERRED_CATEGORY_ORDER = ['flora', 'fauna', 'story'];
+    function scriptoriumCategoriesPresent() {
+      var set = {};
+      Object.keys(scriptoriumEntries).forEach(function (title) { set[scriptoriumEntries[title].category] = true; });
+      return Object.keys(set).sort(function (a, b) {
+        var ai = PREFERRED_CATEGORY_ORDER.indexOf(a), bi = PREFERRED_CATEGORY_ORDER.indexOf(b);
+        if (ai !== -1 && bi !== -1) return ai - bi;
+        if (ai !== -1) return -1;
+        if (bi !== -1) return 1;
+        return a.localeCompare(b);
+      });
+    }
+    function scriptoriumMenuLinksHtml() {
+      // Whatever categories the manifest has actually resolved by the
+      // moment the menu is opened — flora/fauna/story today, and
+      // anything else added later to data/ automatically, with no
+      // change needed here (see build.js's own NAV_LINKS reasoning).
+      // If the manifest hasn't finished loading yet, this quietly
+      // renders as just the Scriptorium Home link — never a dead end,
+      // since that page's own nav has the categories once they exist.
+      return scriptoriumCategoriesPresent().map(function (cat) {
+        return '<a class="burger-menu-item" href="scriptorium/' + cat + '/index.html" target="_blank" rel="noopener noreferrer">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">' + (CATEGORY_ICONS[cat] || GENERIC_CATEGORY_ICON) + '</svg>' +
+          scriptoriumCategoryLabel(cat) +
+          '</a>';
+      }).join('');
+    }
     function renderBurgerMenu() {
       var savedCount = fieldNotesList().length;
       burgerMenuPanel.innerHTML =
@@ -5839,14 +6134,11 @@
         'Plan a Route' +
         '</button>' +
         '<div class="burger-menu-divider"><span>Browse the Scriptorium</span></div>' +
-        '<a class="burger-menu-item" href="scriptorium/flora/index.html" target="_blank" rel="noopener noreferrer">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21 C12 21 5 15 5 9 C5 5 8 3 12 3 C16 3 19 5 19 9 C19 15 12 21 12 21 Z"/><path d="M12 3 L12 21 M12 9 L7 6 M12 12 L17 9 M12 15 L7 13"/></svg>' +
-        'Flora' +
+        '<a class="burger-menu-item" href="scriptorium/index.html" target="_blank" rel="noopener noreferrer">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21 C12 21 5 15 5 9 C5 5 8 3 12 3 C16 3 19 5 19 9 C19 15 12 21 12 21 Z"/><circle cx="12" cy="9.5" r="2.6"/></svg>' +
+        'Scriptorium Home' +
         '</a>' +
-        '<a class="burger-menu-item" href="scriptorium/story/index.html" target="_blank" rel="noopener noreferrer">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4 H15 A2 2 0 0 1 17 6 V20 H7 A2 2 0 0 1 5 18 Z"/><path d="M5 18 A2 2 0 0 1 7 16 H17"/></svg>' +
-        'Stories & Sites' +
-        '</a>' +
+        scriptoriumMenuLinksHtml() +
         '<div class="burger-menu-divider"><span>Field Tools</span></div>' +
         '<button type="button" class="burger-menu-item" id="menuIdentifyBtn">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8 A2 2 0 0 1 6 6 H8 L9.5 4 H14.5 L16 6 H18 A2 2 0 0 1 20 8 V18 A2 2 0 0 1 18 20 H6 A2 2 0 0 1 4 18 Z"/><circle cx="12" cy="13" r="3.6"/></svg>' +

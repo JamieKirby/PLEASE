@@ -35,6 +35,7 @@ jobs:
           mkdir -p _site
           cp index.html _site/
           cp sw.js _site/
+          cp favicon.svg favicon.ico apple-touch-icon.png _site/
           mkdir -p _site/scriptorium
           cp -r scriptorium/dist/. _site/scriptorium/
           touch _site/.nojekyll

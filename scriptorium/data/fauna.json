@@ -1,0 +1,627 @@
+[
+  {
+    "id": "pearl-bordered-fritillary",
+    "category": "fauna",
+    "title": "Pearl-bordered Fritillary",
+    "irishTitle": "",
+    "summary": "Early spring woodland and scrub butterfly featuring rich tawny-orange wings with distinctive dark patterning.",
+    "content": "<p><em>Boloria euphrosyne</em>. Early spring woodland and scrub butterfly featuring rich tawny-orange wings with distinctive dark patterning. Conservation status: Endangered / Vulnerable.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Boloria euphrosyne"
+  },
+  {
+    "id": "marsh-fritillary",
+    "category": "fauna",
+    "title": "Marsh Fritillary",
+    "irishTitle": "",
+    "summary": "Striking checker-patterned butterfly dependent on damp pastures where its larval foodplant, devil's-bit scabious, grows.",
+    "content": "<p><em>Euphydryas aurinia</em>. Striking checker-patterned butterfly dependent on damp pastures where its larval foodplant, devil's-bit scabious, grows. Conservation status: Vulnerable / EU Protected.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Euphydryas aurinia",
+    "featured": true
+  },
+  {
+    "id": "brown-argus",
+    "category": "fauna",
+    "title": "Brown Argus",
+    "irishTitle": "",
+    "summary": "Small, agile brown butterfly highlighted by distinct orange marginal spots along the wing borders.",
+    "content": "<p><em>Aricia agestis</em>. Small, agile brown butterfly highlighted by distinct orange marginal spots along the wing borders. Conservation status: Least Concern / Stable.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Aricia agestis"
+  },
+  {
+    "id": "common-blue",
+    "category": "fauna",
+    "title": "Common Blue",
+    "irishTitle": "",
+    "summary": "Brilliant iridescent blue male wings contrasting with spotted grey-brown females across limestone grasslands.",
+    "content": "<p><em>Polyommatus icarus</em>. Brilliant iridescent blue male wings contrasting with spotted grey-brown females across limestone grasslands. Conservation status: Least Concern / Stable.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Polyommatus icarus"
+  },
+  {
+    "id": "chalk-hill-blue",
+    "category": "fauna",
+    "title": "Chalk Hill Blue",
+    "irishTitle": "",
+    "summary": "Pale silvery-blue butterfly species heavily associated with calcareous grassland and horseshoe vetch.",
+    "content": "<p><em>Lysandra coridon</em>. Pale silvery-blue butterfly species heavily associated with calcareous grassland and horseshoe vetch. Conservation status: Near Threatened.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Lysandra coridon"
+  },
+  {
+    "id": "small-blue",
+    "category": "fauna",
+    "title": "Small Blue",
+    "irishTitle": "",
+    "summary": "Britain and Ireland's smallest butterfly, featuring dark brownish-grey upper wings and a delicate silvery-blue dusting at the base.",
+    "content": "<p><em>Cupido minimus</em>. Britain and Ireland's smallest butterfly, featuring dark brownish-grey upper wings and a delicate silvery-blue dusting at the base. Conservation status: Vulnerable / Localized.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Cupido minimus"
+  },
+  {
+    "id": "green-hairstreak",
+    "category": "fauna",
+    "title": "Green Hairstreak",
+    "irishTitle": "",
+    "summary": "Distinctive emerald-green undersides that provide perfect camouflage among scrub leaves and flower buds.",
+    "content": "<p><em>Callophrys rubi</em>. Distinctive emerald-green undersides that provide perfect camouflage among scrub leaves and flower buds. Conservation status: Least Concern / Stable.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Callophrys rubi"
+  },
+  {
+    "id": "wall-brown",
+    "category": "fauna",
+    "title": "Wall Brown",
+    "irishTitle": "",
+    "summary": "Warm orange-brown butterfly frequently seen basking flat on warm limestone rocks and exposed stone walls.",
+    "content": "<p><em>Lasiommata megera</em>. Warm orange-brown butterfly frequently seen basking flat on warm limestone rocks and exposed stone walls. Conservation status: Near Threatened / Declining.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Lasiommata megera"
+  },
+  {
+    "id": "grayling",
+    "category": "fauna",
+    "title": "Grayling",
+    "irishTitle": "",
+    "summary": "Expertly camouflaged grey-brown butterfly that rests sideways on limestone pavement to blend into the stone.",
+    "content": "<p><em>Hipparchia semele</em>. Expertly camouflaged grey-brown butterfly that rests sideways on limestone pavement to blend into the stone. Conservation status: Near Threatened.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Hipparchia semele"
+  },
+  {
+    "id": "dark-green-fritillary",
+    "category": "fauna",
+    "title": "Dark Green Fritillary",
+    "irishTitle": "",
+    "summary": "Large, powerful flyer with silvery spots on the underside of its bright orange-and-black checkered wings.",
+    "content": "<p><em>Argynnis aglaja</em>. Large, powerful flyer with silvery spots on the underside of its bright orange-and-black checkered wings. Conservation status: Least Concern / Stable.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Argynnis aglaja"
+  },
+  {
+    "id": "silver-washed-fritillary",
+    "category": "fauna",
+    "title": "Silver-washed Fritillary",
+    "irishTitle": "",
+    "summary": "Large, elegant woodland butterfly showing brilliant greenish-silver streaks across the undersides of its wings.",
+    "content": "<p><em>Argynnis paphia</em>. Large, elegant woodland butterfly showing brilliant greenish-silver streaks across the undersides of its wings. Conservation status: Least Concern.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Argynnis paphia"
+  },
+  {
+    "id": "red-admiral",
+    "category": "fauna",
+    "title": "Red Admiral",
+    "irishTitle": "",
+    "summary": "Striking migratory butterfly marked by deep black wings slashed with vibrant scarlet bands and white spots.",
+    "content": "<p><em>Vanessa atalanta</em>. Striking migratory butterfly marked by deep black wings slashed with vibrant scarlet bands and white spots. Conservation status: Least Concern (Migrant).</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Vanessa atalanta"
+  },
+  {
+    "id": "painted-lady",
+    "category": "fauna",
+    "title": "Painted Lady",
+    "irishTitle": "",
+    "summary": "Highly mobile migrant butterfly displaying mottled orange, black, and white wing patterns.",
+    "content": "<p><em>Vanessa cardui</em>. Highly mobile migrant butterfly displaying mottled orange, black, and white wing patterns. Conservation status: Least Concern (Migrant).</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Vanessa cardui"
+  },
+  {
+    "id": "peacock",
+    "category": "fauna",
+    "title": "Peacock",
+    "irishTitle": "",
+    "summary": "Unmistakable deep red-brown wings featuring large, eye-catching iridescent eyespots designed to deter predators.",
+    "content": "<p><em>Aglais io</em>. Unmistakable deep red-brown wings featuring large, eye-catching iridescent eyespots designed to deter predators. Conservation status: Least Concern / Stable.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Aglais io"
+  },
+  {
+    "id": "small-tortoiseshell",
+    "category": "fauna",
+    "title": "Small Tortoiseshell",
+    "irishTitle": "",
+    "summary": "Vivid orange, black, and yellow-marked butterfly overwintering locally in sheltered rock crevices and ruins.",
+    "content": "<p><em>Aglais urticae</em>. Vivid orange, black, and yellow-marked butterfly overwintering locally in sheltered rock crevices and ruins. Conservation status: Near Threatened / Declining.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Aglais urticae"
+  },
+  {
+    "id": "comma",
+    "category": "fauna",
+    "title": "Comma",
+    "irishTitle": "",
+    "summary": "Ragged-edged wing profile featuring a distinct white comma-shaped mark on the underside.",
+    "content": "<p><em>Polygonia c-album</em>. Ragged-edged wing profile featuring a distinct white comma-shaped mark on the underside. Conservation status: Least Concern / Expanding.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Polygonia c-album"
+  },
+  {
+    "id": "meadow-brown",
+    "category": "fauna",
+    "title": "Meadow Brown",
+    "irishTitle": "",
+    "summary": "Tough, adaptable brown grassland butterfly carrying a single black, white-pupilled eyespot on the forewing.",
+    "content": "<p><em>Maniola jurtina</em>. Tough, adaptable brown grassland butterfly carrying a single black, white-pupilled eyespot on the forewing. Conservation status: Least Concern / Stable.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Maniola jurtina"
+  },
+  {
+    "id": "ringlet",
+    "category": "fauna",
+    "title": "Ringlet",
+    "irishTitle": "",
+    "summary": "Dark velvety-brown butterfly decorated with delicate yellow-ringed black eyespots along the wing margins.",
+    "content": "<p><em>Aphantopus hyperantus</em>. Dark velvety-brown butterfly decorated with delicate yellow-ringed black eyespots along the wing margins. Conservation status: Least Concern / Stable.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Aphantopus hyperantus"
+  },
+  {
+    "id": "gatekeeper",
+    "category": "fauna",
+    "title": "Gatekeeper",
+    "irishTitle": "",
+    "summary": "Bright orange-brown butterfly with double-pupilled apical eyespots, favoring warm hedgerows and scrub edges.",
+    "content": "<p><em>Pyronia tithonus</em>. Bright orange-brown butterfly with double-pupilled apical eyespots, favoring warm hedgerows and scrub edges. Conservation status: Least Concern / Stable.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Pyronia tithonus"
+  },
+  {
+    "id": "speckled-wood",
+    "category": "fauna",
+    "title": "Speckled Wood",
+    "irishTitle": "",
+    "summary": "Woodland butterfly patterned with pale cream spots against a rich brown background, dancing in dappled light.",
+    "content": "<p><em>Pararge aegeria</em>. Woodland butterfly patterned with pale cream spots against a rich brown background, dancing in dappled light. Conservation status: Least Concern / Stable.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Pararge aegeria"
+  },
+  {
+    "id": "burren-green",
+    "category": "fauna",
+    "title": "Burren Green",
+    "irishTitle": "",
+    "summary": "Striking pale green noctuid moth closely tied to the specialized limestone pavements and open Burren scrub.",
+    "content": "<p><em>Calamia tridens</em>. Striking pale green noctuid moth closely tied to the specialized limestone pavements and open Burren scrub. Conservation status: Rare / Protected Indicator.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Calamia tridens",
+    "featured": true
+  },
+  {
+    "id": "transparent-burnet",
+    "category": "fauna",
+    "title": "Transparent Burnet",
+    "irishTitle": "",
+    "summary": "Day-flying burnet moth with distinct clear-windowed wings, found strictly on western limestone grasslands.",
+    "content": "<p><em>Zygaena purpurescens</em>. Day-flying burnet moth with distinct clear-windowed wings, found strictly on western limestone grasslands. Conservation status: Localized / Vulnerable.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Zygaena purpurescens"
+  },
+  {
+    "id": "narrow-bordered-five-spot-burnet",
+    "category": "fauna",
+    "title": "Narrow-bordered Five-spot Burnet",
+    "irishTitle": "",
+    "summary": "Metallic blue-black day-flying moth featuring vivid red spots, feeding heavily on wild vetches.",
+    "content": "<p><em>Zygaena lonicerae</em>. Metallic blue-black day-flying moth featuring vivid red spots, feeding heavily on wild vetches. Conservation status: Least Concern / Local.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Zygaena lonicerae"
+  },
+  {
+    "id": "hummingbird-hawk-moth",
+    "category": "fauna",
+    "title": "Hummingbird Hawk-moth",
+    "irishTitle": "",
+    "summary": "Strong-flying day-active migrant moth with rapid wingbeats and a long feeding proboscis.",
+    "content": "<p><em>Macroglossum stellatarum</em>. Strong-flying day-active migrant moth with rapid wingbeats and a long feeding proboscis. Conservation status: Least Concern (Migrant).</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Macroglossum stellatarum"
+  },
+  {
+    "id": "six-spot-burnet",
+    "category": "fauna",
+    "title": "Six-spot Burnet",
+    "irishTitle": "",
+    "summary": "Robust day-flying moth marked by six bright crimson spots against a dark metallic blue wing base.",
+    "content": "<p><em>Zygaena filipendulae</em>. Robust day-flying moth marked by six bright crimson spots against a dark metallic blue wing base. Conservation status: Least Concern / Stable.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Zygaena filipendulae"
+  },
+  {
+    "id": "garden-tiger",
+    "category": "fauna",
+    "title": "Garden Tiger",
+    "irishTitle": "",
+    "summary": "Large, striking moth with cream-and-brown forewings and brilliant orange-red hindwings spotted with blue-black.",
+    "content": "<p><em>Arctia caja</em>. Large, striking moth with cream-and-brown forewings and brilliant orange-red hindwings spotted with blue-black. Conservation status: Declining / Vulnerable.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Arctia caja"
+  },
+  {
+    "id": "cinnabar-moth",
+    "category": "fauna",
+    "title": "Cinnabar Moth",
+    "irishTitle": "",
+    "summary": "Distinctive day-flying moth featuring deep black forewings slashed with bright crimson stripes and solid red hindwings.",
+    "content": "<p><em>Tyria jacobaeae</em>. Distinctive day-flying moth featuring deep black forewings slashed with bright crimson stripes and solid red hindwings. Conservation status: Least Concern / Stable.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Tyria jacobaeae"
+  },
+  {
+    "id": "silver-y",
+    "category": "fauna",
+    "title": "Silver Y",
+    "irishTitle": "",
+    "summary": "Common migratory moth marked by a distinct silvery 'Y' or gamma shape on each forewing.",
+    "content": "<p><em>Autographa gamma</em>. Common migratory moth marked by a distinct silvery 'Y' or gamma shape on each forewing. Conservation status: Least Concern (Migrant).</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Autographa gamma"
+  },
+  {
+    "id": "emperor-moth",
+    "category": "fauna",
+    "title": "Emperor Moth",
+    "irishTitle": "",
+    "summary": "Large, handsome moth featuring large eye-spots on all four wings, inhabiting upland heaths and scrub margins.",
+    "content": "<p><em>Saturnia pavonia</em>. Large, handsome moth featuring large eye-spots on all four wings, inhabiting upland heaths and scrub margins. Conservation status: Least Concern / Local.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Saturnia pavonia"
+  },
+  {
+    "id": "northern-eggar",
+    "category": "fauna",
+    "title": "Northern Eggar",
+    "irishTitle": "",
+    "summary": "Large, rich chestnut-brown moorland moth whose caterpillars overwinter twice in cold heather and scrub terrain.",
+    "content": "<p><em>Lasiocampa quercus callunae</em>. Large, rich chestnut-brown moorland moth whose caterpillars overwinter twice in cold heather and scrub terrain. Conservation status: Least Concern / Local.</p>",
+    "subCategory": "Butterfly / Moth",
+    "scientificName": "Lasiocampa quercus callunae"
+  },
+  {
+    "id": "peregrine-falcon",
+    "category": "fauna",
+    "title": "Peregrine Falcon",
+    "irishTitle": "",
+    "summary": "Fast-diving raptor nesting on the sheer faces of the Cliffs of Moher and inland crags.",
+    "content": "<p><em>Falco peregrinus</em>. Fast-diving raptor nesting on the sheer faces of the Cliffs of Moher and inland crags. Conservation status: Least Concern.</p>",
+    "subCategory": "Bird of Prey",
+    "scientificName": "Falco peregrinus"
+  },
+  {
+    "id": "chough",
+    "category": "fauna",
+    "title": "Chough",
+    "irishTitle": "",
+    "summary": "Red-billed, red-legged corvid performing acrobatic tumbling flight over coastal cliffs and pasture.",
+    "content": "<p><em>Pyrrhocorax pyrrhocorax</em>. Red-billed, red-legged corvid performing acrobatic tumbling flight over coastal cliffs and pasture. Conservation status: Amber-listed.</p>",
+    "subCategory": "Bird",
+    "scientificName": "Pyrrhocorax pyrrhocorax",
+    "featured": true
+  },
+  {
+    "id": "barn-owl",
+    "category": "fauna",
+    "title": "Barn Owl",
+    "irishTitle": "",
+    "summary": "Pale, silent hunter quartering turloughs and rough grassland at dusk for small mammals.",
+    "content": "<p><em>Tyto alba</em>. Pale, silent hunter quartering turloughs and rough grassland at dusk for small mammals. Conservation status: Vulnerable / Declining.</p>",
+    "subCategory": "Bird of Prey",
+    "scientificName": "Tyto alba"
+  },
+  {
+    "id": "kestrel",
+    "category": "fauna",
+    "title": "Kestrel",
+    "irishTitle": "",
+    "summary": "Small falcon known for hovering motionless over open pasture while hunting.",
+    "content": "<p><em>Falco tinnunculus</em>. Small falcon known for hovering motionless over open pasture while hunting. Conservation status: Least Concern.</p>",
+    "subCategory": "Bird of Prey",
+    "scientificName": "Falco tinnunculus"
+  },
+  {
+    "id": "raven",
+    "category": "fauna",
+    "title": "Raven",
+    "irishTitle": "",
+    "summary": "Large, deep-voiced corvid nesting on cliff ledges, castle ruins, and remote crags.",
+    "content": "<p><em>Corvus corax</em>. Large, deep-voiced corvid nesting on cliff ledges, castle ruins, and remote crags. Conservation status: Least Concern.</p>",
+    "subCategory": "Bird",
+    "scientificName": "Corvus corax"
+  },
+  {
+    "id": "skylark",
+    "category": "fauna",
+    "title": "Skylark",
+    "irishTitle": "",
+    "summary": "Ground-nesting songbird known for its prolonged, high, hovering song over open turf.",
+    "content": "<p><em>Alauda arvensis</em>. Ground-nesting songbird known for its prolonged, high, hovering song over open turf. Conservation status: Amber-listed / Declining.</p>",
+    "subCategory": "Bird",
+    "scientificName": "Alauda arvensis"
+  },
+  {
+    "id": "northern-wheatear",
+    "category": "fauna",
+    "title": "Northern Wheatear",
+    "irishTitle": "",
+    "summary": "Migrant perching bird of stony pasture, flashing a white rump in flight.",
+    "content": "<p><em>Oenanthe oenanthe</em>. Migrant perching bird of stony pasture, flashing a white rump in flight. Conservation status: Least Concern.</p>",
+    "subCategory": "Bird",
+    "scientificName": "Oenanthe oenanthe"
+  },
+  {
+    "id": "stonechat",
+    "category": "fauna",
+    "title": "Stonechat",
+    "irishTitle": "",
+    "summary": "Small perching bird favouring gorse and scrub, named for its call like two stones knocked together.",
+    "content": "<p><em>Saxicola rubicola</em>. Small perching bird favouring gorse and scrub, named for its call like two stones knocked together. Conservation status: Least Concern.</p>",
+    "subCategory": "Bird",
+    "scientificName": "Saxicola rubicola"
+  },
+  {
+    "id": "cuckoo",
+    "category": "fauna",
+    "title": "Cuckoo",
+    "irishTitle": "",
+    "summary": "Migrant brood parasite whose two-note call is an early-summer sound of the Burren uplands.",
+    "content": "<p><em>Cuculus canorus</em>. Migrant brood parasite whose two-note call is an early-summer sound of the Burren uplands. Conservation status: Amber-listed / Declining.</p>",
+    "subCategory": "Bird",
+    "scientificName": "Cuculus canorus"
+  },
+  {
+    "id": "corncrake",
+    "category": "fauna",
+    "title": "Corncrake",
+    "irishTitle": "",
+    "summary": "Secretive, rasping-voiced bird of hay meadows and turlough margins, now rare across Ireland.",
+    "content": "<p><em>Crex crex</em>. Secretive, rasping-voiced bird of hay meadows and turlough margins, now rare across Ireland. Conservation status: Endangered / Rare.</p>",
+    "subCategory": "Bird",
+    "scientificName": "Crex crex"
+  },
+  {
+    "id": "fulmar",
+    "category": "fauna",
+    "title": "Fulmar",
+    "irishTitle": "",
+    "summary": "Gull-like tube-nosed seabird gliding stiff-winged along the Cliffs of Moher.",
+    "content": "<p><em>Fulmarus glacialis</em>. Gull-like tube-nosed seabird gliding stiff-winged along the Cliffs of Moher. Conservation status: Least Concern.</p>",
+    "subCategory": "Seabird",
+    "scientificName": "Fulmarus glacialis"
+  },
+  {
+    "id": "common-guillemot",
+    "category": "fauna",
+    "title": "Common Guillemot",
+    "irishTitle": "",
+    "summary": "Densely packed cliff-ledge nester forming noisy colonies on the Cliffs of Moher.",
+    "content": "<p><em>Uria aalge</em>. Densely packed cliff-ledge nester forming noisy colonies on the Cliffs of Moher. Conservation status: Amber-listed.</p>",
+    "subCategory": "Seabird",
+    "scientificName": "Uria aalge"
+  },
+  {
+    "id": "razorbill",
+    "category": "fauna",
+    "title": "Razorbill",
+    "irishTitle": "",
+    "summary": "Black-and-white auk with a distinctive blade-like bill, nesting alongside guillemots on sea cliffs.",
+    "content": "<p><em>Alca torda</em>. Black-and-white auk with a distinctive blade-like bill, nesting alongside guillemots on sea cliffs. Conservation status: Amber-listed.</p>",
+    "subCategory": "Seabird",
+    "scientificName": "Alca torda"
+  },
+  {
+    "id": "atlantic-puffin",
+    "category": "fauna",
+    "title": "Atlantic Puffin",
+    "irishTitle": "",
+    "summary": "Small colourful-billed auk with a modest breeding colony on the Cliffs of Moher.",
+    "content": "<p><em>Fratercula arctica</em>. Small colourful-billed auk with a modest breeding colony on the Cliffs of Moher. Conservation status: Vulnerable.</p>",
+    "subCategory": "Seabird",
+    "scientificName": "Fratercula arctica"
+  },
+  {
+    "id": "hen-harrier",
+    "category": "fauna",
+    "title": "Hen Harrier",
+    "irishTitle": "",
+    "summary": "Low-flying upland raptor, the grey male and brown female hunting over rough pasture and scrub.",
+    "content": "<p><em>Circus cyaneus</em>. Low-flying upland raptor, the grey male and brown female hunting over rough pasture and scrub. Conservation status: Endangered / Rare.</p>",
+    "subCategory": "Bird of Prey",
+    "scientificName": "Circus cyaneus"
+  },
+  {
+    "id": "irish-stoat",
+    "category": "fauna",
+    "title": "Irish Stoat",
+    "irishTitle": "",
+    "summary": "Small, agile predator found across the Burren's scrub and stone walls, an Ireland-only subspecies.",
+    "content": "<p><em>Mustela erminea hibernica</em>. Small, agile predator found across the Burren's scrub and stone walls, an Ireland-only subspecies. Conservation status: Least Concern (endemic subspecies).</p>",
+    "subCategory": "Mammal",
+    "scientificName": "Mustela erminea hibernica"
+  },
+  {
+    "id": "irish-hare",
+    "category": "fauna",
+    "title": "Irish Hare",
+    "irishTitle": "",
+    "summary": "Robust, russet-brown hare adapted to open limestone grassland, a distinct Irish subspecies of mountain hare.",
+    "content": "<p><em>Lepus timidus hibernicus</em>. Robust, russet-brown hare adapted to open limestone grassland, a distinct Irish subspecies of mountain hare. Conservation status: Near Threatened (endemic subspecies).</p>",
+    "subCategory": "Mammal",
+    "scientificName": "Lepus timidus hibernicus"
+  },
+  {
+    "id": "pine-marten",
+    "category": "fauna",
+    "title": "Pine Marten",
+    "irishTitle": "",
+    "summary": "Elusive, tree-climbing mustelid recovering strongly in scrub and hazel woodland across the region.",
+    "content": "<p><em>Martes martes</em>. Elusive, tree-climbing mustelid recovering strongly in scrub and hazel woodland across the region. Conservation status: Least Concern / Recovering.</p>",
+    "subCategory": "Mammal",
+    "scientificName": "Martes martes",
+    "featured": true
+  },
+  {
+    "id": "badger",
+    "category": "fauna",
+    "title": "Badger",
+    "irishTitle": "",
+    "summary": "Nocturnal, black-and-white striped mammal denning in setts dug into scrub banks and old walls.",
+    "content": "<p><em>Meles meles</em>. Nocturnal, black-and-white striped mammal denning in setts dug into scrub banks and old walls. Conservation status: Least Concern.</p>",
+    "subCategory": "Mammal",
+    "scientificName": "Meles meles"
+  },
+  {
+    "id": "otter",
+    "category": "fauna",
+    "title": "Otter",
+    "irishTitle": "",
+    "summary": "Semi-aquatic predator ranging along turloughs, streams, and the coast in search of fish.",
+    "content": "<p><em>Lutra lutra</em>. Semi-aquatic predator ranging along turloughs, streams, and the coast in search of fish. Conservation status: Near Threatened.</p>",
+    "subCategory": "Mammal",
+    "scientificName": "Lutra lutra"
+  },
+  {
+    "id": "feral-goat",
+    "category": "fauna",
+    "title": "Feral Goat",
+    "irishTitle": "",
+    "summary": "Long-established herds of hardy goats grazing the steep limestone slopes, descended from old domestic stock.",
+    "content": "<p><em>Capra hircus</em>. Long-established herds of hardy goats grazing the steep limestone slopes, descended from old domestic stock. Conservation status: Feral / Not Evaluated.</p>",
+    "subCategory": "Mammal",
+    "scientificName": "Capra hircus"
+  },
+  {
+    "id": "pygmy-shrew",
+    "category": "fauna",
+    "title": "Pygmy Shrew",
+    "irishTitle": "",
+    "summary": "Ireland's smallest mammal, an insectivore active day and night in grassland and scrub.",
+    "content": "<p><em>Sorex minutus</em>. Ireland's smallest mammal, an insectivore active day and night in grassland and scrub. Conservation status: Least Concern.</p>",
+    "subCategory": "Mammal",
+    "scientificName": "Sorex minutus"
+  },
+  {
+    "id": "red-fox",
+    "category": "fauna",
+    "title": "Red Fox",
+    "irishTitle": "",
+    "summary": "Adaptable predator common across the pavement, scrub, and farmland of the Burren.",
+    "content": "<p><em>Vulpes vulpes</em>. Adaptable predator common across the pavement, scrub, and farmland of the Burren. Conservation status: Least Concern.</p>",
+    "subCategory": "Mammal",
+    "scientificName": "Vulpes vulpes"
+  },
+  {
+    "id": "common-lizard",
+    "category": "fauna",
+    "title": "Common Lizard",
+    "irishTitle": "",
+    "summary": "Ireland's only native reptile, basking on sun-warmed limestone clints and stone walls.",
+    "content": "<p><em>Zootoca vivipara</em>. Ireland's only native reptile, basking on sun-warmed limestone clints and stone walls. Conservation status: Least Concern.</p>",
+    "subCategory": "Reptile",
+    "scientificName": "Zootoca vivipara"
+  },
+  {
+    "id": "common-frog",
+    "category": "fauna",
+    "title": "Common Frog",
+    "irishTitle": "",
+    "summary": "Breeds in turloughs and temporary pools, its spawn appearing with the winter floodwaters.",
+    "content": "<p><em>Rana temporaria</em>. Breeds in turloughs and temporary pools, its spawn appearing with the winter floodwaters. Conservation status: Least Concern.</p>",
+    "subCategory": "Amphibian",
+    "scientificName": "Rana temporaria"
+  },
+  {
+    "id": "smooth-newt",
+    "category": "fauna",
+    "title": "Smooth Newt",
+    "irishTitle": "",
+    "summary": "Ireland's only newt species, found in still pools and turlough margins in spring.",
+    "content": "<p><em>Lissotriton vulgaris</em>. Ireland's only newt species, found in still pools and turlough margins in spring. Conservation status: Least Concern.</p>",
+    "subCategory": "Amphibian",
+    "scientificName": "Lissotriton vulgaris"
+  },
+  {
+    "id": "roman-edible-snail",
+    "category": "fauna",
+    "title": "Roman / Edible Snail",
+    "irishTitle": "",
+    "summary": "Large snail with an unusually strong Burren population, thriving in the mineral-rich limestone soil.",
+    "content": "<p><em>Helix pomatia</em>. Large snail with an unusually strong Burren population, thriving in the mineral-rich limestone soil. Conservation status: Not Evaluated / Notable Population.</p>",
+    "subCategory": "Mollusc",
+    "scientificName": "Helix pomatia"
+  },
+  {
+    "id": "narrow-mouthed-whorl-snail",
+    "category": "fauna",
+    "title": "Narrow-mouthed Whorl Snail",
+    "irishTitle": "",
+    "summary": "Minute whorl snail of damp turlough-edge vegetation, protected under the EU Habitats Directive.",
+    "content": "<p><em>Vertigo angustior</em>. Minute whorl snail of damp turlough-edge vegetation, protected under the EU Habitats Directive. Conservation status: Vulnerable / EU Protected.</p>",
+    "subCategory": "Mollusc",
+    "scientificName": "Vertigo angustior"
+  },
+  {
+    "id": "white-lipped-snail",
+    "category": "fauna",
+    "title": "White-lipped Snail",
+    "irishTitle": "",
+    "summary": "Common banded snail with variable shell colour and banding across limestone grassland.",
+    "content": "<p><em>Cepaea hortensis</em>. Common banded snail with variable shell colour and banding across limestone grassland. Conservation status: Least Concern.</p>",
+    "subCategory": "Mollusc",
+    "scientificName": "Cepaea hortensis"
+  },
+  {
+    "id": "grey-seal",
+    "category": "fauna",
+    "title": "Grey Seal",
+    "irishTitle": "",
+    "summary": "Hauls out on rocky shores near Fanore and Black Head, often seen watching walkers from the water.",
+    "content": "<p><em>Halichoerus grypus</em>. Hauls out on rocky shores near Fanore and Black Head, often seen watching walkers from the water. Conservation status: Least Concern.</p>",
+    "subCategory": "Marine Mammal",
+    "scientificName": "Halichoerus grypus",
+    "featured": true
+  },
+  {
+    "id": "bottlenose-dolphin",
+    "category": "fauna",
+    "title": "Bottlenose Dolphin",
+    "irishTitle": "",
+    "summary": "Resident Shannon Estuary population sometimes ranges along the Burren's coastline.",
+    "content": "<p><em>Tursiops truncatus</em>. Resident Shannon Estuary population sometimes ranges along the Burren's coastline. Conservation status: Protected.</p>",
+    "subCategory": "Marine Mammal",
+    "scientificName": "Tursiops truncatus"
+  },
+  {
+    "id": "basking-shark",
+    "category": "fauna",
+    "title": "Basking Shark",
+    "irishTitle": "",
+    "summary": "Enormous filter-feeding shark seen seasonally offshore, harmless despite its size.",
+    "content": "<p><em>Cetorhinus maximus</em>. Enormous filter-feeding shark seen seasonally offshore, harmless despite its size. Conservation status: Endangered.</p>",
+    "subCategory": "Marine Fish",
+    "scientificName": "Cetorhinus maximus"
+  }
+]

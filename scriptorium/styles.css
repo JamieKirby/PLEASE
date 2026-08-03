@@ -152,6 +152,12 @@ h1 { font-family: Georgia, serif; font-weight: 400; font-size: var(--fs-xl); col
 .hub-list a:hover, .hub-list a:focus-visible { background: rgba(255,255,255,.04); }
 .hub-entry-title { font-family: Georgia, serif; font-size: var(--fs-md); }
 .hub-entry-irish { font-style: italic; color: var(--parchment); opacity: .85; font-size: var(--fs-base); flex: 0 0 auto; }
+.hub-featured-heading, .hub-all-heading {
+  font-family: Georgia, serif; font-weight: 400; font-size: var(--fs-lg); color: var(--parchment);
+  margin: 28px 0 6px;
+}
+.hub-list-featured { margin-bottom: 12px; }
+.hub-list-featured .hub-entry-title::before { content: "\2605  "; color: var(--parchment); opacity: .8; }
 
 @media (max-width: 700px) {
   main { padding: 28px 18px 70px; }

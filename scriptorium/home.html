@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Burren Scriptorium</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="../favicon.ico">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <meta name="description" content="A digital field guide and research hub for the natural history, antiquities, and Gaelic lore of the Burren, North Clare.">
 <link rel="stylesheet" href="styles.css">
 <style>
@@ -84,8 +87,7 @@
 
   <nav>
     <a href="index.html" class="nav-home">The Burren Scriptorium</a>
-    <a href="flora/">Flora</a>
-    <a href="story/">Stories &amp; Sites</a>
+    {{NAV_LINKS}}
     <a href="../index.html" class="nav-back-to-map">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 6 L9 12 L15 18"/></svg>
       Back to the Map
@@ -145,6 +147,13 @@
       <div>
         <p class="home-card-title">Flora</p>
         <p class="home-card-desc">Flowers, grasses, trees, shrubs, lichen, and moss of the Burren karst.</p>
+      </div>
+    </a>
+    <a class="home-card" href="fauna/">
+      <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3 C8 3 5 6 5 10 C5 14 8 15 8 18 C8 20 10 21 12 21 C14 21 16 20 16 18 C16 15 19 14 19 10 C19 6 16 3 12 3 Z"/><path d="M9 10 L9 10.01 M15 10 L15 10.01"/></svg>
+      <div>
+        <p class="home-card-title">Fauna</p>
+        <p class="home-card-desc">The Burren's creatures, from pine marten to marsh fritillary.</p>
       </div>
     </a>
     <a class="home-card" href="story/">

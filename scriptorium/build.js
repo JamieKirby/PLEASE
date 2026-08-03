@@ -28,10 +28,39 @@ const OUTPUT_DIR = path.join(ROOT, 'dist');
 // rather than silently reading as a lowercase, unbuilt-looking gap.
 const CATEGORY_TITLES = {
   flora: 'Flora',
+  fauna: 'Fauna',
   story: 'Stories & Sites'
 };
 function capitalizeWord(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 function categoryTitle(cat) { return CATEGORY_TITLES[cat] || capitalizeWord(cat); }
+
+// A fixed reading order for the categories the site nav already knows
+// about; anything added later that isn't in this list falls in
+// afterwards, alphabetically, rather than being silently dropped from
+// the nav the way a purely hardcoded link list would have done. This is
+// the actual fix for "the nav only ever mentions Flora and Stories" —
+// a third data/fauna.json file now produces its own Fauna link
+// everywhere the nav appears, with no template edited by hand.
+const PREFERRED_CATEGORY_ORDER = ['flora', 'fauna', 'story'];
+function sortCategories(cats) {
+  return cats.slice().sort((a, b) => {
+    const ai = PREFERRED_CATEGORY_ORDER.indexOf(a);
+    const bi = PREFERRED_CATEGORY_ORDER.indexOf(b);
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return a.localeCompare(b);
+  });
+}
+// prefix is '' from the Scriptorium home page itself (dist/index.html,
+// category dirs are direct children) and '../' from anywhere one folder
+// deeper (an entry page or a hub page) — same relative-path reasoning
+// as MAP_RELATIVE_PATH below, just one level shallower.
+function navLinksHtml(categories, prefix) {
+  return categories
+    .map((cat) => `<a href="${prefix}${cat}/">${escapeHtml(categoryTitle(cat))}</a>`)
+    .join('\n    ');
+}
 
 // ---- The one thing you need to check/edit for your actual deployment ----
 // Every entry page needs a way back into the interactive map's own
@@ -117,7 +146,7 @@ function autoLinkContent(content, entries, selfId) {
 // String.split(literal).join(replacement) replaces every occurrence,
 // not just the first — same effect as a global regex replace, but with
 // no need to escape regex special characters in the placeholder text.
-function fillTemplate(template, entry, allEntries) {
+function fillTemplate(template, entry, allEntries, categories) {
   const linkedContent = autoLinkContent(entry.content, allEntries, entry.id);
   // The map's own drawer system (siteData/townData/legendData, and now
   // scriptoriumEntries) looks everything up by its display title, not a
@@ -154,7 +183,8 @@ function fillTemplate(template, entry, allEntries) {
     .split('{{CATEGORY}}').join(escapeHtml(entry.category))
     .split('{{SUMMARY}}').join(escapeHtml(deriveSummary(entry)))
     .split('{{CONTENT}}').join(linkedContent)
-    .split('{{MAP_LINK}}').join(mapLink);
+    .split('{{MAP_LINK}}').join(mapLink)
+    .split('{{NAV_LINKS}}').join(navLinksHtml(categories, '../'));
 }
 
 // Reads every *.json file in data/ and concatenates their arrays into
@@ -184,22 +214,38 @@ function loadAllEntries() {
 // mostly empty. Real <a href> list items throughout, same rule as the
 // entry pages themselves — a crawler or screen reader needs a real
 // destination, not a JS-driven click handler.
-function buildHubPages(entries, hubTemplate) {
+// Shared by both the Featured section and the full alphabetical list
+// below it — same markup either way, so a featured entry never drifts
+// out of sync with how its own category's full listing renders it.
+function hubListItem(entry) {
+  const irish = entry.irishTitle ? `<span class="hub-entry-irish">${escapeHtml(entry.irishTitle)}</span>` : '';
+  return `      <li><a href="./${entry.id}.html"><span class="hub-entry-title">${escapeHtml(entry.title)}</span>${irish}</a></li>`;
+}
+
+function buildHubPages(entries, hubTemplate, categories) {
   const byCategory = {};
   entries.forEach((entry) => {
     (byCategory[entry.category] = byCategory[entry.category] || []).push(entry);
   });
   Object.keys(byCategory).forEach((cat) => {
     const list = byCategory[cat].slice().sort((a, b) => a.title.localeCompare(b.title));
-    const items = list.map((entry) => {
-      const irish = entry.irishTitle ? `<span class="hub-entry-irish">${escapeHtml(entry.irishTitle)}</span>` : '';
-      return `      <li><a href="./${entry.id}.html"><span class="hub-entry-title">${escapeHtml(entry.title)}</span>${irish}</a></li>`;
-    }).join('\n');
+    const items = list.map(hubListItem).join('\n');
+    // Featured is opt-in per entry (`"featured": true` in that entry's
+    // data/*.json record) rather than a fixed count or a separate file
+    // to maintain — a category with nothing marked featured just gets
+    // no Featured section at all, same "honest interim default" as the
+    // alphabetical-only sort above until real location data exists.
+    const featured = list.filter((entry) => entry.featured);
+    const featuredSection = featured.length
+      ? `<h2 class="hub-featured-heading">Featured</h2>\n    <ul class="hub-list hub-list-featured">\n${featured.map(hubListItem).join('\n')}\n    </ul>`
+      : '';
     const html = hubTemplate
       .split('{{CATEGORY}}').join(escapeHtml(cat))
       .split('{{CATEGORY_TITLE}}').join(escapeHtml(categoryTitle(cat)))
       .split('{{ENTRY_COUNT}}').join(String(list.length))
-      .split('{{ENTRY_LIST}}').join(items);
+      .split('{{ENTRY_LIST}}').join(items)
+      .split('{{FEATURED_SECTION}}').join(featuredSection)
+      .split('{{NAV_LINKS}}').join(navLinksHtml(categories, '../'));
     const outDir = path.join(OUTPUT_DIR, cat);
     fs.mkdirSync(outDir, { recursive: true });
     fs.writeFileSync(path.join(outDir, 'index.html'), html, 'utf8');
@@ -211,6 +257,10 @@ function build() {
   const entries = loadAllEntries();
   const template = fs.readFileSync(TEMPLATE_FILE, 'utf8');
   const hubTemplate = fs.readFileSync(HUB_TEMPLATE_FILE, 'utf8');
+  // Computed once from whatever data/*.json files actually exist, not
+  // hardcoded — this is what makes adding data/fauna.json alone (no
+  // template edits) enough to put a Fauna link in the nav everywhere.
+  const categories = sortCategories(Array.from(new Set(entries.map((e) => e.category))));
 
   const seenIds = new Set();
   const perCategoryCount = {};
@@ -229,7 +279,7 @@ function build() {
     const outDir = path.join(OUTPUT_DIR, entry.category);
     fs.mkdirSync(outDir, { recursive: true });
 
-    const html = fillTemplate(template, entry, entries);
+    const html = fillTemplate(template, entry, entries, categories);
     fs.writeFileSync(path.join(outDir, `${entry.id}.html`), html, 'utf8');
     perCategoryCount[entry.category] = (perCategoryCount[entry.category] || 0) + 1;
   });
@@ -278,10 +328,17 @@ function build() {
   // page rather than a data-driven templated one, so a straight copy
   // rather than fillTemplate().
   fs.copyFileSync(path.join(ROOT, 'styles.css'), path.join(OUTPUT_DIR, 'styles.css'));
-  fs.copyFileSync(path.join(ROOT, 'home.html'), path.join(OUTPUT_DIR, 'index.html'));
+  // home.html is still hand-written (its hero cards carry per-category
+  // icons/descriptions a generic loop can't derive from data alone) —
+  // but its top nav bar is the same data-driven list as every other
+  // page's, via {{NAV_LINKS}}, so it no longer needs a manual edit just
+  // to keep pace with which category links exist elsewhere.
+  const homeHtml = fs.readFileSync(path.join(ROOT, 'home.html'), 'utf8')
+    .split('{{NAV_LINKS}}').join(navLinksHtml(categories, ''));
+  fs.writeFileSync(path.join(OUTPUT_DIR, 'index.html'), homeHtml, 'utf8');
 
   const total = entries.length;
-  const hubCount = buildHubPages(entries, hubTemplate);
+  const hubCount = buildHubPages(entries, hubTemplate, categories);
   console.log(`Built ${total} page(s) into ${path.relative(ROOT, OUTPUT_DIR)}/, by category:`);
   Object.keys(perCategoryCount).sort().forEach((cat) => {
     console.log(`  ${cat}/  — ${perCategoryCount[cat]} page(s)`);
