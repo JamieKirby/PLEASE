@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Burren Scriptorium</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="../favicon.ico">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<meta name="description" content="A digital field guide and research hub for the natural history, antiquities, and Gaelic lore of the Burren, North Clare.">
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* Home-page-only styling — everything shared (nav, palette, type
+     scale) still comes from styles.css; this is just the wave scene and
+     the landing layout wrapped around it. */
+  body { overflow-x: hidden; }
+  .home-hero {
+    position: relative; height: min(70vh, 560px); min-height: 340px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .wave-scene { position: absolute; inset: 0; }
+  .wave-scene svg { position: absolute; bottom: 0; left: 0; width: 200%; height: 100%; }
+
+  /* Four layers, back to front: dimmer/slower/bluer at the back, bolder/
+     faster/warmer at the front — the "depth" idea from the reference
+     site's own description, done with plain layered opacity rather than
+     anything WebGL/canvas-based, so it stays cheap to render on any
+     device. Each layer's own fill drifts slowly through the brand
+     palette (flora green → lore blue → archaeology gold → parchment)
+     rather than sitting on one fixed color, offset so no two layers
+     are ever the same hue at once — that's the "overlapping colour
+     changes" from the brief. cubic-bezier(.4,0,.2,1) throughout for a
+     slow, weighted, "viscous" ease rather than any spring/bounce — the
+     wrong kind of motion for a calm background scene, and not what was
+     asked for here anyway (spring/bounce stays reserved for the map's
+     own interactive presses). */
+  .wave-layer {
+    transition: none;
+    animation: wave-drift linear infinite, wave-color-shift ease-in-out infinite;
+  }
+  .wave-layer-1 { opacity: .28; animation-duration: 42s, 26s; }
+  .wave-layer-2 { opacity: .4; animation-duration: 34s, 22s; animation-delay: 0s, -7s; }
+  .wave-layer-3 { opacity: .55; animation-duration: 26s, 19s; animation-delay: 0s, -13s; }
+  .wave-layer-4 { opacity: .8; animation-duration: 19s, 16s; animation-delay: 0s, -4s; }
+
+  @keyframes wave-drift {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes wave-color-shift {
+    0%   { fill: var(--flora); }
+    30%  { fill: var(--lore); }
+    60%  { fill: var(--archaeology); }
+    100% { fill: var(--flora); }
+  }
+
+  .home-hero-content {
+    position: relative; z-index: 2; text-align: center; padding: 0 24px;
+    text-shadow: 0 2px 24px rgba(18,18,18,.9), 0 0 60px rgba(18,18,18,.7);
+  }
+  .home-hero-content h1 {
+    font-family: Georgia, serif; font-weight: 400; font-style: italic;
+    font-size: clamp(2rem, 6vw, var(--fs-2xl)); color: var(--parchment); margin: 0 0 10px;
+  }
+  .home-hero-content p { font-size: var(--fs-md); color: var(--ink-prose); max-width: 46ch; margin: 0 auto; }
+
+  .home-sections { max-width: 720px; margin: 0 auto; padding: 48px 24px 90px; display: grid; gap: 18px; }
+  .home-card {
+    display: flex; align-items: center; gap: 16px;
+    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.1); border-radius: var(--radius-md);
+    padding: 20px; text-decoration: none; color: var(--ink);
+    transition: background .2s ease, border-color .2s ease, transform .15s var(--spring);
+  }
+  .home-card:hover { background: rgba(255,255,255,.06); border-color: var(--parchment); }
+  .home-card:active { transform: scale(.98); }
+  .home-card-icon { flex: 0 0 auto; width: 40px; height: 40px; color: var(--parchment); opacity: .9; }
+  .home-card-title { font-family: Georgia, serif; font-size: var(--fs-lg); color: var(--parchment); margin: 0 0 4px; }
+  .home-card-desc { font-size: var(--fs-sm); color: var(--ink-dim); margin: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wave-layer { animation: none; }
+  }
+</style>
+</head>
+<body class="theme-home">
+
+  <nav>
+    <a href="index.html" class="nav-home">The Burren Scriptorium</a>
+    {{NAV_LINKS}}
+    <a href="../index.html" class="nav-back-to-map">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 6 L9 12 L15 18"/></svg>
+      Back to the Map
+    </a>
+  </nav>
+
+  <div class="home-hero">
+    <div class="wave-scene" aria-hidden="true">
+      <svg viewBox="0 0 800 400" preserveAspectRatio="none">
+        <path class="wave-layer wave-layer-1" d="
+          M0,230 C60,190 90,270 150,240 C210,210 240,280 300,245
+          C360,210 390,275 450,235 C510,195 540,270 600,240
+          C660,210 690,270 750,235 C775,220 790,230 800,230
+          L800,400 L0,400 Z
+          M800,230 C860,190 890,270 950,240 C1010,210 1040,280 1100,245
+          C1160,210 1190,275 1250,235 C1310,195 1340,270 1400,240
+          C1460,210 1490,270 1550,235 C1575,220 1590,230 1600,230
+          L1600,400 L800,400 Z"/>
+        <path class="wave-layer wave-layer-2" d="
+          M0,270 C70,320 110,250 170,290 C230,330 270,255 330,285
+          C390,315 430,250 490,280 C550,310 590,250 650,280
+          C710,310 750,255 800,270
+          L800,400 L0,400 Z
+          M800,270 C870,320 910,250 970,290 C1030,330 1070,255 1130,285
+          C1190,315 1230,250 1290,280 C1350,310 1390,250 1450,280
+          C1510,310 1550,255 1600,270
+          L1600,400 L800,400 Z"/>
+        <path class="wave-layer wave-layer-3" d="
+          M0,320 C50,280 100,350 160,315 C220,280 260,340 320,310
+          C380,280 420,335 480,308 C540,280 580,330 640,308
+          C700,286 740,325 800,320
+          L800,400 L0,400 Z
+          M800,320 C850,280 900,350 960,315 C1020,280 1060,340 1120,310
+          C1180,280 1220,335 1280,308 C1340,280 1380,330 1440,308
+          C1500,286 1540,325 1600,320
+          L1600,400 L800,400 Z"/>
+        <path class="wave-layer wave-layer-4" d="
+          M0,360 C55,340 95,375 155,358 C215,340 245,378 305,357
+          C365,335 400,372 460,355 C520,338 555,374 615,356
+          C675,338 715,370 800,362
+          L800,400 L0,400 Z
+          M800,362 C855,340 895,375 955,358 C1015,340 1045,378 1105,357
+          C1165,335 1200,372 1260,355 C1320,338 1355,374 1415,356
+          C1475,338 1515,370 1600,362
+          L1600,400 L800,400 Z"/>
+      </svg>
+    </div>
+    <div class="home-hero-content">
+      <h1>The Burren Scriptorium</h1>
+      <p>A field guide to the natural history, antiquities, and Gaelic lore of North Clare — read the landscape like a manuscript, one entry at a time.</p>
+    </div>
+  </div>
+
+  <div class="home-sections">
+    <a class="home-card" href="flora/">
+      <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 21 C12 21 5 15 5 9 C5 5 8 3 12 3 C16 3 19 5 19 9 C19 15 12 21 12 21 Z"/><path d="M12 3 L12 21 M12 9 L7 6 M12 12 L17 9 M12 15 L7 13"/></svg>
+      <div>
+        <p class="home-card-title">Flora</p>
+        <p class="home-card-desc">Flowers, grasses, trees, shrubs, lichen, and moss of the Burren karst.</p>
+      </div>
+    </a>
+    <a class="home-card" href="fauna/">
+      <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3 C8 3 5 6 5 10 C5 14 8 15 8 18 C8 20 10 21 12 21 C14 21 16 20 16 18 C16 15 19 14 19 10 C19 6 16 3 12 3 Z"/><path d="M9 10 L9 10.01 M15 10 L15 10.01"/></svg>
+      <div>
+        <p class="home-card-title">Fauna</p>
+        <p class="home-card-desc">The Burren's creatures, from pine marten to marsh fritillary.</p>
+      </div>
+    </a>
+    <a class="home-card" href="story/">
+      <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M5 4 H15 A2 2 0 0 1 17 6 V20 H7 A2 2 0 0 1 5 18 Z"/><path d="M5 18 A2 2 0 0 1 7 16 H17"/></svg>
+      <div>
+        <p class="home-card-title">Stories &amp; Sites</p>
+        <p class="home-card-desc">Longer-form field notes on the region's landscape and history.</p>
+      </div>
+    </a>
+    <a class="home-card" href="../index.html">
+      <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="11" cy="11" r="7"/><path d="M21 21 L16.65 16.65"/></svg>
+      <div>
+        <p class="home-card-title">The Interactive Map</p>
+        <p class="home-card-desc">Every entry, placed — sites, towns, legends, graves, pubs, holy wells, and notable figures.</p>
+      </div>
+    </a>
+  </div>
+
+  <script>
+    document.querySelectorAll('a[href]').forEach(function (a) {
+      if (a.target === '_blank' || a.getAttribute('href').charAt(0) === '#') return;
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        document.body.classList.add('leaving');
+        setTimeout(function () { window.location.href = a.href; }, 160);
+      });
+    });
+  </script>
+
+</body>
+</html>

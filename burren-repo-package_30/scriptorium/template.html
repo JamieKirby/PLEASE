@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}} — The Burren Scriptorium</title>
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="../../favicon.ico">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<meta name="description" content="{{SUMMARY}}">
+<!-- Hook for later styling — theme-{{CATEGORY}} on <body> below is what
+     lets a stylesheet target "story" pages differently from "flora"
+     pages, etc., without any per-page CSS. Relative, not root-relative —
+     every entry page lives exactly one folder level under the
+     scriptorium root (dist/<category>/<id>.html), so ../ consistently
+     reaches it regardless of whether the site's served from a domain
+     root or a GitHub Pages project subpath like /SCPRIT_TEST/. A
+     root-relative "/styles.css" would resolve against the domain root
+     and miss that subpath entirely — same failure mode as the old
+     hardcoded BASE_URL bug, just one path type over. -->
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body class="theme-{{CATEGORY}}">
+
+  <nav>
+    <a href="../index.html" class="nav-home">The Burren Scriptorium</a>
+    {{NAV_LINKS}}
+    <a href="../../index.html" class="nav-back-to-map">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 6 L9 12 L15 18"/></svg>
+      Back to the Map
+    </a>
+  </nav>
+
+  <main>
+    <header class="entry-header">
+      <p class="entry-category">{{CATEGORY}}</p>
+      <h1 class="entry-title">{{TITLE}}</h1>
+      {{META_ROW}}
+      {{IRISH_BLOCK}}
+    </header>
+
+    <article class="entry-content">
+      {{CONTENT}}
+    </article>
+
+    <p class="explore-on-map">
+      <a href="{{MAP_LINK}}" class="explore-on-map-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21 C12 21 5 15 5 9 C5 5 8 3 12 3 C16 3 19 5 19 9 C19 15 12 21 12 21 Z"/><circle cx="12" cy="9.5" r="2.6"/></svg>
+        Explore {{TITLE}} on the interactive map
+      </a>
+    </p>
+  </main>
+
+  <script>
+    // A short fade-out before any internal navigation (nav links, the
+    // "explore on map" button, auto-linked cross-references inside the
+    // article) — see styles.css's body.leaving rule for why this is the
+    // honest limit of "animating" a real full-page <a href> navigation:
+    // there's nothing on the other side to animate until it's loaded, so
+    // this fades what's already visible rather than attempting anything
+    // fancier. External links (target="_blank") are left alone entirely.
+    document.querySelectorAll('a[href]').forEach(function (a) {
+      if (a.target === '_blank' || a.getAttribute('href').charAt(0) === '#') return;
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        document.body.classList.add('leaving');
+        setTimeout(function () { window.location.href = a.href; }, 160);
+      });
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{CATEGORY_TITLE}} — The Burren Scriptorium</title>
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="../../favicon.ico">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<meta name="description" content="Browse every {{CATEGORY_TITLE}} entry in the Burren Scriptorium.">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body class="theme-{{CATEGORY}}">
+
+  <nav>
+    <a href="../index.html" class="nav-home">The Burren Scriptorium</a>
+    {{NAV_LINKS}}
+    <a href="../../index.html" class="nav-back-to-map">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 6 L9 12 L15 18"/></svg>
+      Back to the Map
+    </a>
+  </nav>
+
+  <main>
+    <h1>{{CATEGORY_TITLE}}</h1>
+    <p class="hub-count">{{ENTRY_COUNT}} entries</p>
+    {{FEATURED_SECTION}}
+    <h2 class="hub-all-heading">All {{CATEGORY_TITLE}}</h2>
+    <ul class="hub-list">
+{{ENTRY_LIST}}
+    </ul>
+  </main>
+
+  <script>
+    document.querySelectorAll('a[href]').forEach(function (a) {
+      if (a.target === '_blank' || a.getAttribute('href').charAt(0) === '#') return;
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        document.body.classList.add('leaving');
+        setTimeout(function () { window.location.href = a.href; }, 160);
+      });
+    });
+  </script>
+
+</body>
+</html>
