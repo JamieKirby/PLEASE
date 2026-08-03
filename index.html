@@ -959,19 +959,20 @@
   .bookmark-btn.saved svg { fill: var(--parchment); }
   .entry-header-row { display: flex; align-items: center; gap: 8px; }
 
-  /* ---- Ambient soundscape control — small persistent corner widget.
-     Moved here (was bottom-right) to sit directly above the legend —
-     "About this map" used to occupy this exact spot (bottom:172px, a
-     height already proven to clear the legend below it) before moving
-     to a small icon button alongside the camera controls at top-left,
-     which freed this spot up for something more logical to live here
-     instead. ---- */
+  /* ---- Ambient soundscape control ----
+     Used to be a small persistent corner widget, fixed-position over
+     the map — on desktop that was permanent visual clutter for a
+     secondary feature, and on mobile it had to be hidden outright
+     (display:none below, since a fixed corner widget has nowhere safe
+     to sit once the drawer can cover the whole viewport at that
+     width), which meant mobile had no way to reach it at all. Living
+     as its own row inside the burger menu instead (see renderBurgerMenu)
+     fixes both: no floating chrome on desktop, and an actual way to
+     reach it on mobile for the first time. */
   .soundscape-widget {
-    position: fixed; left: 16px; bottom: 172px; z-index: 150;
     display: flex; align-items: center; gap: 8px;
-    background: rgba(18,18,18,.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255,255,255,.14);
-    border-radius: var(--radius-full); padding: 6px 12px; font-family: -apple-system, sans-serif;
+    padding: 9px 10px; margin-top: 4px; border-top: 1px solid rgba(255,255,255,.1);
+    font-family: -apple-system, sans-serif;
   }
   .soundscape-toggle {
     width: 26px; height: 26px; border-radius: 50%; flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
@@ -983,17 +984,6 @@
   .soundscape-toggle.playing { background: rgba(222,210,179,.18); }
   .soundscape-volume { width: 70px; accent-color: var(--parchment); }
   .soundscape-mode { font-size: var(--fs-xs); color: var(--ink-dim); font-style: italic; min-width: 46px; }
-  /* Fixed positioning means this widget ignores the drawer's own layout
-     entirely, so on the narrow/mobile layout (same 899px break the
-     drawer itself switches on) it was floating on top of the open
-     drawer rather than sitting beside it as it does on a wide screen.
-     display:none removes it from layout, hit-testing, and screen
-     readers alike — a full disable, not just a visual fade — rather
-     than trying to reposition a fixed corner widget around a drawer
-     that can cover the whole viewport on this size screen. */
-  @media (max-width: 899px) {
-    .soundscape-widget { display: none; }
-  }
 
   /* ---- Search drawer (Cmd+K) — a second, independent overlay from the
      site/route drawer above. Opening/closing it never touches drawerCurrent,
@@ -1077,6 +1067,15 @@
   .result-badges .rbadge { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .4px; border: 1px solid var(--ink-dim); color: var(--ink-dim); border-radius: var(--radius-lg); padding: 1px 7px; }
   .result-badges .rbadge.habitat { border-style: dashed; }
   .result-actions { display: flex; flex-direction: column; gap: 6px; flex: 0 0 auto; }
+  @media (min-width: 900px) {
+    /* Desktop-only: the whole result card is the click target now (see
+       wireResultCard) — opening the drawer already re-centres the map,
+       so these explicit buttons are redundant chrome on a screen where
+       the drawer sits beside the map rather than covering it. Mobile
+       keeps both, where the narrower "just relocate the pin" case
+       still earns its own button. */
+    .result-actions { display: none; }
+  }
   .result-action-btn {
     font-family: -apple-system, sans-serif; font-size: var(--fs-2xs); white-space: nowrap;
     background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.16); color: var(--ink-dim);
@@ -2699,9 +2698,13 @@
 
     // Builds the small persistent control widget (play/pause, volume,
     // current-mode label) once per page. Call Soundscape.mount() after
-    // the page's own DOM is ready; safe to call more than once.
+    // the page's own DOM is ready; safe to call more than once. No
+    // longer appends itself anywhere — it now lives inside the burger
+    // menu (see renderBurgerMenu, which re-attaches this same node,
+    // listeners intact, every time the menu panel is rebuilt) rather
+    // than as a standalone floating widget.
     Soundscape.mount = function () {
-      if (document.getElementById('soundscapeWidget')) return;
+      if (Soundscape.widgetEl) return;
       var el = document.createElement('div');
       el.id = 'soundscapeWidget';
       el.className = 'soundscape-widget';
@@ -2710,8 +2713,7 @@
         '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>' +
         '<input class="soundscape-volume" id="soundscapeVolume" type="range" min="0" max="100" value="15" aria-label="Soundscape volume">' +
         '<span class="soundscape-mode" id="soundscapeModeLabel">' + (currentMode ? currentMode.charAt(0).toUpperCase() + currentMode.slice(1) : 'Wind') + '</span>';
-      document.body.appendChild(el);
-      var toggleBtn = document.getElementById('soundscapeToggle');
+      var toggleBtn = el.querySelector('#soundscapeToggle');
       toggleBtn.addEventListener('click', function () {
         var playing = Soundscape.toggle();
         toggleBtn.classList.toggle('playing', playing);
@@ -2719,9 +2721,10 @@
           ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>'
           : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
       });
-      document.getElementById('soundscapeVolume').addEventListener('input', function (e) {
+      el.querySelector('#soundscapeVolume').addEventListener('input', function (e) {
         Soundscape.setVolume(e.target.value / 100);
       });
+      Soundscape.widgetEl = el;
     };
 
     return Soundscape;
@@ -2822,6 +2825,13 @@
     this._map = mapInstance;
     this._container = document.createElement('div');
     this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    // id used below so the satellite and contour toggles can join this
+    // same container instead of each opening their own separate
+    // .maplibregl-ctrl-group box — three redundant little boxes for
+    // three closely-related "how the map looks" toggles read as visual
+    // clutter stacked at top-left; one box with three buttons is the
+    // same functionality with a third of the chrome.
+    this._container.id = 'mapModeCtrlGroup';
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.title = 'Toggle 3D / isometric view';
@@ -2961,56 +2971,62 @@
     SATELLITE_HIDE_LAYERS.forEach(function (id) {
       try { map.setLayoutProperty(id, 'visibility', on ? 'none' : 'visible'); } catch (e) {}
     });
+    // Satellite and contours were already mutually exclusive at the
+    // LAYER level (updateContourVisibility's own `contoursEnabled &&
+    // !satelliteOn`) — real aerial imagery already shows the terrain,
+    // so a parchment contour overlay on top just reads as noise. What
+    // was missing is this half: turning satellite ON here never told
+    // the CTR button its own toggle had, in effect, just been
+    // overridden, so it kept showing as "on" even while the contour
+    // layer it controls was invisible — confusing on its own even
+    // before mutual exclusivity was ever a stated requirement. Setting
+    // contoursEnabled to false outright (not just hiding the layer)
+    // means turning contours back on afterwards is a genuine fresh
+    // choice rather than silently restoring a stale "on" from before
+    // satellite ever got involved.
+    if (on) {
+      contoursEnabled = false;
+      if (ctrBtnEl) ctrBtnEl.classList.remove('tilt-toggle-active');
+    }
+    if (satBtnEl) satBtnEl.classList.toggle('tilt-toggle-active', on);
     updateContourVisibility();
   }
-  function SatelliteToggleControl() {}
-  SatelliteToggleControl.prototype.onAdd = function (mapInstance) {
-    this._map = mapInstance;
-    this._container = document.createElement('div');
-    this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.title = 'Toggle satellite imagery';
-    btn.innerHTML = '<span style="font:700 9px -apple-system,sans-serif;">SAT</span>';
-    btn.addEventListener('click', function () {
-      var on = !btn.classList.contains('tilt-toggle-active');
-      btn.classList.toggle('tilt-toggle-active', on);
-      setSatellite(on);
-    });
-    this._container.appendChild(btn);
-    return this._container;
-  };
-  SatelliteToggleControl.prototype.onRemove = function () {
-    this._container.parentNode.removeChild(this._container);
-    this._map = undefined;
-  };
-  map.addControl(new SatelliteToggleControl(), 'top-left');
+  var satBtnEl = null, ctrBtnEl = null;
+  // SAT and CTR join the 3D toggle's own container (#mapModeCtrlGroup,
+  // set up above) rather than each opening a separate
+  // maplibregl-ctrl-group box — see that container's own comment for
+  // why. Neither needs the full IControl onAdd/onRemove lifecycle since
+  // there's nothing here that ever removes them once added, so these
+  // are plain DOM setup rather than another pair of control classes.
+  var mapModeCtrlGroup = document.getElementById('mapModeCtrlGroup');
+  var satBtn = document.createElement('button');
+  satBtn.type = 'button';
+  satBtn.title = 'Toggle satellite imagery';
+  satBtn.innerHTML = '<span style="font:700 9px -apple-system,sans-serif;">SAT</span>';
+  satBtn.addEventListener('click', function () { setSatellite(!satelliteOn); });
+  satBtnEl = satBtn;
+  if (mapModeCtrlGroup) mapModeCtrlGroup.appendChild(satBtn);
 
   // ---- Contour lines toggle — grouped with 3D/SAT, on by default ----
-  function ContourToggleControl() {}
-  ContourToggleControl.prototype.onAdd = function (mapInstance) {
-    this._map = mapInstance;
-    this._container = document.createElement('div');
-    this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.title = 'Toggle contour lines';
-    // Starts unchecked — contoursEnabled is false by default above.
-    btn.innerHTML = '<span style="font:700 8px -apple-system,sans-serif;">CTR</span>';
-    btn.addEventListener('click', function () {
-      contoursEnabled = !contoursEnabled;
-      btn.classList.toggle('tilt-toggle-active', contoursEnabled);
-      if (contoursEnabled) enableContours(); // lazy — first genuine activation only
-      updateContourVisibility();
-    });
-    this._container.appendChild(btn);
-    return this._container;
-  };
-  ContourToggleControl.prototype.onRemove = function () {
-    this._container.parentNode.removeChild(this._container);
-    this._map = undefined;
-  };
-  map.addControl(new ContourToggleControl(), 'top-left');
+  var ctrBtn = document.createElement('button');
+  ctrBtn.type = 'button';
+  ctrBtn.title = 'Toggle contour lines';
+  // Starts unchecked — contoursEnabled is false by default above.
+  ctrBtn.innerHTML = '<span style="font:700 8px -apple-system,sans-serif;">CTR</span>';
+  ctrBtn.addEventListener('click', function () {
+    contoursEnabled = !contoursEnabled;
+    ctrBtn.classList.toggle('tilt-toggle-active', contoursEnabled);
+    // The other half of mutual exclusivity: turning contours ON
+    // while satellite is active turns satellite back off (through
+    // the same setSatellite used everywhere else), rather than
+    // leaving contours flip on with no visible effect because
+    // updateContourVisibility would still be masking them.
+    if (contoursEnabled && satelliteOn) setSatellite(false);
+    if (contoursEnabled) enableContours(); // lazy — first genuine activation only
+    updateContourVisibility();
+  });
+  ctrBtnEl = ctrBtn;
+  if (mapModeCtrlGroup) mapModeCtrlGroup.appendChild(ctrBtn);
 
   // ---- Alternate accessible colour scheme ("Mars"), toggled independently
   // of satellite/contours ----
@@ -3720,7 +3736,10 @@
     }
     function wireDeepDiveBtn(entry) {
       var btn = entry.querySelector('.deep-dive-btn');
-      if (btn) btn.addEventListener('click', deepenDrawer);
+      if (btn) btn.addEventListener('click', function () {
+        deepenDrawer();
+        pushFullHistory();
+      });
     }
 
     // A town that swallows nearby markers into its own badge count at low
@@ -3907,6 +3926,23 @@
       if (suppressHistoryPush) return;
       history.pushState({ drawerStack: drawerStack, drawerCurrent: drawerCurrent }, '', location.href);
     }
+    // A dedicated history entry for the explicit "Deeper dive" button —
+    // separate from pushDrawerHistory above because entering full view
+    // is its own undo-able step (see drawerBackOrCollapse below), not a
+    // new drawer. Scriptorium entries auto-deepen as part of simply
+    // opening (see openScriptoriumDrawer) rather than through this
+    // button, so their own navigateTo push never gets a `full: true`
+    // marker — isScriptoriumKind is what lets the popstate handler and
+    // drawerBackOrCollapse tell those two "arrived at full view" paths
+    // apart without a redundant marker on every single push.
+    function pushFullHistory() {
+      if (suppressHistoryPush) return;
+      history.pushState({ drawerStack: drawerStack, drawerCurrent: drawerCurrent, full: true }, '', location.href);
+    }
+    function isScriptoriumKind(kind) {
+      return kind !== 'site' && kind !== 'town' && kind !== 'legend' && kind !== 'grave' &&
+        kind !== 'person' && kind !== 'pub' && kind !== 'well' && kind !== 'route';
+    }
     // The single place that knows how to actually put a given stack entry
     // on screen — used by forward navigation, by drawerBack's own pop,
     // and by the popstate handler alike, so there's exactly one dispatch
@@ -3942,6 +3978,13 @@
         drawerCurrent = e.state.drawerCurrent;
         updateDrawerBackVisibility();
         openDrawerEntry(drawerCurrent);
+        // Deepen/collapse sync — a Scriptorium entry auto-deepens as
+        // part of openDrawerEntry above regardless of history (see
+        // openScriptoriumDrawer), so it's deliberately left alone here
+        // unless the state explicitly says full; a site/town/etc. never
+        // auto-deepens, so its full-ness is entirely up to this state.
+        if (e.state.full) deepenDrawer();
+        else if (!isScriptoriumKind(drawerCurrent.kind)) collapseDrawer();
       } else {
         // Back past the very first drawer open — baseline: everything closed.
         drawerStack = [];
@@ -3989,7 +4032,20 @@
       history.back();
     }
     function drawerBackOrCollapse() {
-      if (isDrawerFull()) collapseDrawer(); else drawerBack();
+      if (isDrawerFull()) {
+        // If Deeper Dive was reached via its own pushed history entry
+        // (see pushFullHistory), collapsing IS going back one step —
+        // routing it through the real history.back() keeps this in
+        // lockstep with the browser/gesture back button, the same
+        // reasoning as drawerBack below. A Scriptorium entry's full
+        // view was never pushed as its own step (it auto-deepens on
+        // open), so there's nothing to "go back" out of via history —
+        // collapsing directly is the correct, and only, option there.
+        if (history.state && history.state.full) history.back();
+        else collapseDrawer();
+      } else {
+        drawerBack();
+      }
     }
 
     function openSiteDrawer(name) {
@@ -5748,8 +5804,6 @@
           actions = '<button class="result-action-btn" data-jump="1">Jump on Map</button>' + actions;
         }
         return '<div class="result-card" data-name="' + e.name.replace(/"/g, '&quot;') + '" data-kind="' + e.kind + '">' +
-          '<button class="result-play" data-say="' + e.name.replace(/"/g, '&quot;') + '" title="Hear pronunciation" aria-label="Hear pronunciation">' +
-          '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 5V4L8 9H4Z"/></svg></button>' +
           '<div class="result-main"><h4>' + e.name + '</h4><div class="result-meta">' + meta + '</div>' +
           '<div class="result-badges">' + badges + '</div></div>' +
           bookmarkBtnHtml(e.kind, e.name) +
@@ -5757,8 +5811,6 @@
       }
 
       function wireResultCard(cardEl, e) {
-        var playBtn = cardEl.querySelector('.result-play');
-        if (playBtn) playBtn.addEventListener('click', function (ev) { ev.stopPropagation(); speak(e.name, playBtn); });
         var bookmarkBtn = cardEl.querySelector('.bookmark-btn');
         if (bookmarkBtn) wireBookmarkBtn(bookmarkBtn, function () {
           renderSavedJourneyBar(); renderSearchConstraintBar();
@@ -5773,6 +5825,21 @@
         var drawerBtn = cardEl.querySelector('[data-open-drawer]');
         if (drawerBtn) drawerBtn.addEventListener('click', function (ev) {
           ev.stopPropagation();
+          navigateTo(e.kind, e.name);
+          closeSearch();
+        });
+        // The explicit Jump/Open Drawer buttons are hidden on desktop
+        // (see .result-actions in the desktop media query) — there,
+        // opening the drawer already re-centres the map via navigateTo
+        // ->flyToEntry, so a separate "just pan, don't open" button has
+        // little value on a screen where the drawer is a sidebar, not
+        // something covering the map. The whole card becomes the
+        // click target instead, same as tapping a marker. Left active
+        // on mobile too, not just desktop — a bigger tap target is a
+        // plain improvement there, and the two explicit buttons still
+        // cover the narrower "just relocate the pin" case mobile
+        // specifically benefits from.
+        cardEl.addEventListener('click', function () {
           navigateTo(e.kind, e.name);
           closeSearch();
         });
@@ -6143,7 +6210,15 @@
         '<button type="button" class="burger-menu-item" id="menuIdentifyBtn">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8 A2 2 0 0 1 6 6 H8 L9.5 4 H14.5 L16 6 H18 A2 2 0 0 1 20 8 V18 A2 2 0 0 1 18 20 H6 A2 2 0 0 1 4 18 Z"/><circle cx="12" cy="13" r="3.6"/></svg>' +
         'Identify a Species' +
-        '</button>';
+        '</button>' +
+        '<div class="burger-menu-divider"><span>Ambient Sound</span></div>';
+      // Re-attaches the SAME persistent widget node built once by
+      // Soundscape.mount() — appendChild on a node that already exists
+      // elsewhere in the document moves it (listeners intact) rather
+      // than cloning it, so this survives the innerHTML rebuild above
+      // (which only ever destroys what it just wrote, not a node
+      // living outside that string) every time the menu reopens.
+      if (Soundscape.widgetEl) burgerMenuPanel.appendChild(Soundscape.widgetEl);
       document.getElementById('menuBookmarksBtn').addEventListener('click', function () {
         closeBurgerMenu();
         openSavedItemsView();
