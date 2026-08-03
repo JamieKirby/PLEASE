@@ -170,6 +170,15 @@
   .mk { transition: opacity .45s ease; will-change: opacity; }
   .mk.ghost { opacity: .3; }
   .mk.grouped { opacity: 0; pointer-events: none; }
+  /* .dot — below its own tier floor, but NOT standing in for by a
+     cluster/town/link parent (nothing else on screen represents it) —
+     shrunk and dimmed rather than fully invisible, so it still reads as
+     "something's here" at a glance, and reveals itself into a full
+     marker once zoom clears its floor. Deliberately stable (no timer,
+     no animation-in) rather than the flash the old binary hide/show
+     produced as a side effect of the opacity transition above. */
+  .mk.dot { opacity: .55; }
+  .mk.dot .mk-inner { transform: scale(.4); }
   /* position:absolute + inset:0 here is the fix, not decoration — ANY
      transform (even the identity scale(1) below) makes an element the
      containing block for its own position:absolute descendants. Every
@@ -3387,21 +3396,24 @@
       });
     });
     // Every registered joinable kind (legend, grave, and whatever gets
-    // added later) goes through the exact same logic: if it validly
-    // links to a real site/town, it's excluded here entirely and
-    // rendered as a badge instead (see buildPointMarkerEl); otherwise it
-    // becomes its own independent point at its tier (its own `tier`
-    // field if set, else the registry's defaultTier for that kind).
+    // added later) goes through the exact same logic. If it validly
+    // links to a real site/town, it still gets a real allPoints entry
+    // (carrying that linkedTo forward) rather than being skipped — while
+    // below its own tier floor it renders fused into its parent's badge
+    // (see renderAll), same as before; once zoom clears that floor it
+    // pops out and behaves like any other independent point (clusterable,
+    // absorbable by a nearby town, fully clickable on its own).
     JOINABLE_KINDS.forEach(function (reg) {
       Object.keys(reg.data).forEach(function (name) {
         var e = reg.data[name];
-        if (isJoinable(e.linkedTo)) return;
+        var linked = isJoinable(e.linkedTo) ? e.linkedTo : null;
         allPoints.push({
           key: reg.kind + ':' + name, kind: reg.kind, name: name,
           lng: e.lng, lat: e.lat,
           disciplines: reg.disciplines,
           provisional: !!e.provisional, contested: !!e.warning,
-          tier: (typeof e.tier === 'number') ? e.tier : reg.defaultTier
+          tier: (typeof e.tier === 'number') ? e.tier : reg.defaultTier,
+          linkedTo: linked
         });
       });
     });
@@ -3773,18 +3785,35 @@
       return [-(w / 2), 0];
     }
     // Shared by navigateTo/drawerBack — coordsForStop already resolves a
-    // name across site/town/legend, so this works for whichever kind is
-    // being opened without needing to branch on it here too.
-    function flyToEntry(id) {
+    // name across site/town/legend/grave/person/pub/well, so this works
+    // for whichever kind is being opened without needing to branch on it
+    // here too. Takes `kind` now (not just id) so it can look up the
+    // target's own tier and guarantee the zoom it lands on actually
+    // clears that tier's floor — flying to a coordinate below its own
+    // reveal threshold used to leave the drawer open with nothing
+    // visible at that spot on the map, since panning alone never checked
+    // whether the marker would even exist at the zoom it arrived at.
+    function tierForNamedEntry(kind, coords) {
+      if (kind === 'town') return 0;
+      if (typeof coords.tier === 'number') return coords.tier;
+      for (var i = 0; i < JOINABLE_KINDS.length; i++) {
+        if (JOINABLE_KINDS[i].kind === kind) return JOINABLE_KINDS[i].defaultTier;
+      }
+      return 1; // site default
+    }
+    function flyToEntry(kind, id) {
       var coords = coordsForStop(id);
-      if (coords) map.flyTo({ center: [coords.lng, coords.lat], offset: drawerOffsetForFlyTo(), duration: 500 });
+      if (!coords) return;
+      var floorZoom = tierMinZoom(tierForNamedEntry(kind, coords));
+      var targetZoom = Math.min(map.getMaxZoom(), Math.max(map.getZoom(), floorZoom));
+      map.flyTo({ center: [coords.lng, coords.lat], zoom: targetZoom, offset: drawerOffsetForFlyTo(), duration: 500 });
     }
 
     function navigateTo(kind, id) {
       if (drawerCurrent) drawerStack.push(drawerCurrent);
       drawerCurrent = { kind: kind, id: id };
       updateDrawerBackVisibility();
-      flyToEntry(id);
+      flyToEntry(kind, id);
       if (kind === 'site') openSiteDrawer(id);
       else if (kind === 'town') openTownDrawer(id);
       else if (kind === 'legend') openLegendDrawer(id);
@@ -3805,13 +3834,13 @@
       var prev = drawerStack.pop();
       drawerCurrent = prev;
       updateDrawerBackVisibility();
-      if (prev.kind === 'site') { flyToEntry(prev.id); openSiteDrawer(prev.id); }
-      else if (prev.kind === 'town') { flyToEntry(prev.id); openTownDrawer(prev.id); }
-      else if (prev.kind === 'legend') { flyToEntry(prev.id); openLegendDrawer(prev.id); }
-      else if (prev.kind === 'grave') { flyToEntry(prev.id); openGraveDrawer(prev.id); }
-      else if (prev.kind === 'person') { flyToEntry(prev.id); openPersonDrawer(prev.id); }
-      else if (prev.kind === 'pub') { flyToEntry(prev.id); openPubDrawer(prev.id); }
-      else if (prev.kind === 'well') { flyToEntry(prev.id); openWellDrawer(prev.id); }
+      if (prev.kind === 'site') { flyToEntry(prev.kind, prev.id); openSiteDrawer(prev.id); }
+      else if (prev.kind === 'town') { flyToEntry(prev.kind, prev.id); openTownDrawer(prev.id); }
+      else if (prev.kind === 'legend') { flyToEntry(prev.kind, prev.id); openLegendDrawer(prev.id); }
+      else if (prev.kind === 'grave') { flyToEntry(prev.kind, prev.id); openGraveDrawer(prev.id); }
+      else if (prev.kind === 'person') { flyToEntry(prev.kind, prev.id); openPersonDrawer(prev.id); }
+      else if (prev.kind === 'pub') { flyToEntry(prev.kind, prev.id); openPubDrawer(prev.id); }
+      else if (prev.kind === 'well') { flyToEntry(prev.kind, prev.id); openWellDrawer(prev.id); }
       else if (prev.kind === 'route') showRoute(prev.id);
       else openScriptoriumDrawer(prev.id);
     }
@@ -4427,9 +4456,10 @@
     function setPointVisualState(el, state) {
       el.classList.toggle('ghost', state === 'ghost');
       el.classList.toggle('grouped', state === 'grouped');
-      var opacity = state === 'ghost' ? '0.3' : (state === 'grouped' ? '0' : '1');
+      el.classList.toggle('dot', state === 'dot');
+      var opacity = state === 'ghost' ? '0.3' : (state === 'grouped' ? '0' : (state === 'dot' ? '0.55' : '1'));
       el.style.setProperty('opacity', opacity, 'important');
-      el.tabIndex = state === 'visible' ? 0 : -1;
+      el.tabIndex = (state === 'visible' || state === 'dot') ? 0 : -1;
     }
 
     // Badge colors/icons per joinable kind — kept as one small lookup
@@ -4522,6 +4552,49 @@
           domEvent.stopPropagation();
           var m = items[parseInt(btn.getAttribute('data-idx'), 10)];
           navigateTo(m.kind, m.name);
+        });
+      });
+    }
+
+    // Rebuilds a site/town's consolidated badge + linked-item hover
+    // breakdown every render pass from whichever linked items are
+    // CURRENTLY still fused (below their own tier floor) — a linked pub
+    // or well that's popped out into its own marker this pass stops
+    // counting here the same pass it starts rendering independently,
+    // rather than the badge staying stuck at its original total forever.
+    function syncConsolidatedBadge(el, fusedItems) {
+      var inner = el.querySelector('.mk-inner');
+      var existingBadge = el.querySelector('.mk-consolidated-badge');
+      if (existingBadge) existingBadge.remove();
+      if (fusedItems.length && inner) {
+        var badgeEl = document.createElement('div');
+        badgeEl.className = 'mk-consolidated-badge';
+        badgeEl.setAttribute('aria-hidden', 'true');
+        badgeEl.textContent = String(fusedItems.length);
+        inner.appendChild(badgeEl);
+      }
+      var popup = el.querySelector('.cluster-hover-popup');
+      var listEl = el.querySelector('.cluster-hover-linked-list');
+      if (!fusedItems.length) {
+        if (listEl) listEl.remove();
+        return;
+      }
+      if (!listEl && popup) {
+        listEl = document.createElement('div');
+        listEl.className = 'cluster-hover-linked-list';
+        popup.insertBefore(listEl, popup.firstChild);
+      }
+      if (!listEl) return;
+      listEl.innerHTML = fusedItems.map(function (p) {
+        var st = LINKED_KIND_STYLE[p.kind] || { color: 'var(--parchment)', label: p.kind };
+        return '<button type="button" class="cluster-hover-item" data-link-kind="' + p.kind + '" data-link-name="' + p.name + '">' +
+          '<span class="cluster-hover-dot" style="background:' + st.color + '"></span>' +
+          '<span class="cluster-hover-name">' + p.name + '</span></button>';
+      }).join('');
+      listEl.querySelectorAll('.cluster-hover-item').forEach(function (btn) {
+        btn.addEventListener('click', function (domEvent) {
+          domEvent.stopPropagation();
+          navigateTo(btn.getAttribute('data-link-kind'), btn.getAttribute('data-link-name'));
         });
       });
     }
@@ -4656,6 +4729,20 @@
         else if (group.kind === 'single') roleByKey[group.items[0].p.key] = { role: 'single' };
       });
 
+      // Linked items (legend/grave/person/pub/well with a resolved
+      // linkedTo) that are STILL below their own tier floor this pass —
+      // these are the ones genuinely fused into their parent's badge
+      // right now. A linked item that's cleared its floor is excluded
+      // here (it'll have its own role from groups above instead, having
+      // already passed through visiblePoints()/isBelowTierFloor), so the
+      // parent's badge count shrinks the same pass an item pops out.
+      var fusedByParent = {};
+      allPoints.forEach(function (p) {
+        if (!p.linkedTo || !isBelowTierFloor(p)) return;
+        var pk = p.linkedTo.kind + ':' + p.linkedTo.name;
+        (fusedByParent[pk] = fusedByParent[pk] || []).push(p);
+      });
+
       allPoints.forEach(function (p) {
         var entry = pointMarkers[p.key];
         if (isDisciplineHidden(p, activeSet)) {
@@ -4666,14 +4753,32 @@
         }
         var role = roleByKey[p.key];
         if (!role) {
-          // Represented by a cluster's emblem bubble, or absorbed into a
-          // town's badge count — never shown at the same time as
-          // whichever of those stands in for it (see .mk.grouped).
+          if (p.linkedTo && isBelowTierFloor(p)) {
+            // Fused into its linked site/town's badge — no independent
+            // presence of its own yet.
+            setPointVisualState(entry.el, 'grouped');
+            syncBadge(entry.el, null);
+            return;
+          }
+          if (isBelowTierFloor(p)) {
+            // Not standing in for anything and nothing's standing in for
+            // it either — just below its own reveal threshold. A small,
+            // stable "something's here" hint rather than fully invisible.
+            setPointVisualState(entry.el, 'dot');
+            syncBadge(entry.el, null);
+            return;
+          }
+          // Otherwise: represented by a cluster's emblem bubble, or
+          // absorbed into a town's badge count — never shown at the same
+          // time as whichever of those stands in for it (see .mk.grouped).
           setPointVisualState(entry.el, 'grouped');
           syncBadge(entry.el, null);
           return;
         }
         setPointVisualState(entry.el, 'visible');
+        if (p.kind === 'site' || p.kind === 'town') {
+          syncConsolidatedBadge(entry.el, fusedByParent[p.key] || []);
+        }
         if (role.role === 'town') syncTownPopupList(entry.el, role.absorbedItems || []);
         if (role.role === 'town' && role.absorbedCount > 0) {
           syncBadge(entry.el, String(role.absorbedCount), {
