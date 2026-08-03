@@ -1,0 +1,18 @@
+[
+  {
+    "id": "corcomroe-abbey",
+    "category": "story",
+    "title": "Corcomroe Abbey",
+    "irishTitle": "Mainistir Chorca Mrua",
+    "summary": "A ruined but remarkably intact 12th-century Cistercian abbey in a sheltered Burren valley, known for its finely carved stonework.",
+    "content": "<p>A ruined Cistercian abbey set in a sheltered valley on the northern edge of the Burren, founded around 1194 by Donal M\u00f3r Ua Briain, King of Thomond. Known historically as <em>Sancta Maria de Petra Fertili</em> \u2014 St Mary of the Fertile Rock \u2014 a nod to the unusually rich soil found beneath the surrounding karst.</p><p>Unlike many ruined abbeys reduced to bare walls, Corcomroe's cruciform church still stands largely intact, its carved capitals depicting human faces and stylised foliage among the finest surviving Cistercian stonework in Ireland.</p>"
+  },
+  {
+    "id": "mullaghmore",
+    "category": "story",
+    "title": "Mullaghmore",
+    "irishTitle": "Mullach M\u00f3r",
+    "summary": "A terraced limestone hill at the heart of Burren National Park, its concentric rings fed by an underground turlough.",
+    "content": "<p>A distinctive, terraced limestone hill rising from the heart of Burren National Park, its concentric grey rings visible for miles around. The Irish name simply means \"the big summit.\"</p><p>Unlike much of the surrounding karst, Mullaghmore's slopes feed a turlough \u2014 a seasonal lake that fills and empties through underground drainage \u2014 making the hill a study in how water shapes this landscape from both above and below ground.</p>"
+  }
+]

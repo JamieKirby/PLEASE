@@ -29,6 +29,32 @@
     --geology: #5C6B73;
     --archaeology: #A9822E;
     --lore: #35617A;
+
+    /* A little overshoot rather than a flat ease — used on presses and
+       small interactive pops (badges, buttons, popovers), NOT on large
+       panel/drawer resizes, where the same bounce would read as a glitch
+       rather than a deliberate spring. */
+    --spring: cubic-bezier(.34, 1.56, .64, 1);
+
+    /* Type scale — was ~26 distinct font-size values scattered through
+       the file (several within a hair of each other, e.g. .74/.76/.78rem
+       all doing the same job); consolidated to 8 named tiers. SVG marker/
+       specimen label sizes (10-22px) are a separate, already-intentional
+       micro-system and are NOT part of this — those stay as literal px. */
+    --fs-2xs: .68rem;   /* tiny badges, uppercase meta */
+    --fs-xs: .74rem;    /* small labels, timestamps, meta */
+    --fs-sm: .8rem;     /* secondary body text */
+    --fs-base: .85rem;  /* primary body text, buttons */
+    --fs-md: 1rem;      /* sub-headings, prominent body */
+    --fs-lg: 1.3rem;    /* section headings */
+    --fs-xl: 1.7rem;    /* major headings */
+    --fs-2xl: 2.1rem;   /* page title */
+
+    /* Radius scale — was 7 distinct px values, now 4 named tiers. */
+    --radius-sm: 4px;    /* tags, tiny accents */
+    --radius-md: 8px;    /* cards, dropdown panels */
+    --radius-lg: 14px;   /* larger badges/cards */
+    --radius-full: 20px; /* pill buttons */
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
   html, body { height: 100%; overflow: hidden; }
@@ -58,7 +84,7 @@
   @keyframes loadRingSpin { to { transform: rotate(360deg); } }
   .load-caption {
     font-family: Georgia, serif; font-style: italic; color: var(--ink-dim);
-    font-size: .85rem; letter-spacing: .5px; opacity: .85;
+    font-size: var(--fs-base); letter-spacing: .5px; opacity: .85;
   }
 
   .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
@@ -69,17 +95,18 @@
     background: linear-gradient(180deg, rgba(18,18,18,.95), rgba(18,18,18,.85));
     border-bottom: 1px solid rgba(255,255,255,.08); z-index: 25; position: relative;
   }
-  .topbar h1 { font-size: 1.25rem; font-weight: 400; margin-right: 6px; white-space: nowrap; }
-  .topbar .sub { font-style: italic; color: var(--ink-dim); font-size: .8rem; margin-right: auto; white-space: nowrap; }
+  .topbar h1 { font-size: var(--fs-lg); font-weight: 400; margin-right: 6px; white-space: nowrap; }
+  .topbar .sub { font-style: italic; color: var(--ink-dim); font-size: var(--fs-sm); margin-right: auto; white-space: nowrap; }
 
   .filters { display: flex; flex-wrap: wrap; gap: 8px; }
   .filter-btn {
     display: flex; align-items: center; gap: 7px;
     background: rgba(30,34,30,.7); border: 1px solid rgba(255,255,255,.12);
-    color: var(--ink-dim); padding: 6px 13px; border-radius: 20px;
-    font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: .78rem; cursor: pointer;
-    transition: border-color .2s ease, color .2s ease, background .2s ease;
+    color: var(--ink-dim); padding: 6px 13px; border-radius: var(--radius-full);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: var(--fs-sm); cursor: pointer;
+    transition: border-color .2s ease, color .2s ease, background .2s ease, transform .15s var(--spring);
   }
+  .filter-btn:active { transform: scale(.96); }
   .filter-btn .swatch { width: 8px; height: 8px; border-radius: 50%; }
   .filter-btn[data-active="true"] { color: var(--ink); border-color: var(--dot); background: color-mix(in srgb, var(--dot) 18%, rgba(30,34,30,.7)); }
   .filter-btn:focus-visible { outline: 2px solid var(--parchment); outline-offset: 2px; }
@@ -188,13 +215,42 @@
     position: absolute; top: -6px; right: -6px; width: 15px; height: 15px; border-radius: 50%;
     background: var(--parchment); color: var(--canvas); font: 700 9px -apple-system, sans-serif;
     display: flex; align-items: center; justify-content: center;
-    transition: transform .12s ease;
+    transition: transform .15s var(--spring);
   }
   /* Badges are independently clickable (see wireBadge) — either "N more
      stacked exactly here, click to see the next" or "N more nearby, click
      to zoom in" — so they get their own hover/focus affordance distinct
      from the marker body underneath them. */
   .mk-badge:hover, .mk-badge:focus-visible { transform: scale(1.18); outline: none; }
+  .mk-badge:active { transform: scale(.92); }
+  /* BADGE CONSOLIDATION — replaces what used to be up to six separate
+     per-kind corner badges (legend/grave/person/pub/well + this one)
+     with a single count badge, always in the same spot regardless of
+     how many different kinds are actually linked. Bottom-right,
+     deliberately opposite the top-right absorbed-count badge so the two
+     concepts (things absorbed by proximity vs. things linked on
+     purpose) never compete for the same corner. Not independently
+     clickable like the old per-kind badges were — hovering/focusing the
+     whole marker reveals the breakdown in the shared popup instead (see
+     .cluster-hover-linked-list below), so there's nothing here to wire
+     a click handler to. */
+  .mk-consolidated-badge {
+    position: absolute; bottom: -6px; right: -6px; min-width: 15px; height: 15px; padding: 0 3px;
+    border-radius: 8px; background: var(--parchment); color: var(--canvas);
+    font: 700 9px -apple-system, sans-serif; display: flex; align-items: center; justify-content: center;
+    border: 1.4px solid var(--canvas); pointer-events: none;
+  }
+  .mk.town .mk-consolidated-badge { bottom: -7px; right: -7px; min-width: 17px; height: 17px; font-size: 10px; }
+  /* The linked-items breakdown itself — a second, static list inside
+     the same popup a cluster/town already shows on hover, styled
+     identically to .cluster-hover-list (reuses .cluster-hover-item/
+     -dot/-name) so it reads as "part of the same card," not a
+     different component. Static because which things are linked never
+     changes at render time, unlike the absorbed-count list just below
+     it, which does (see syncTownPopupList) — that's the whole reason
+     they're two separate elements sharing one popup rather than one. */
+  .cluster-hover-linked-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,.1); }
+  .cluster-hover-linked-list:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
   .mk-label {
     position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
     font-family: Georgia, serif; font-size: 11px; color: var(--ink); white-space: nowrap;
@@ -287,8 +343,11 @@
      got their own .cluster-hover-popup (see TOWN OVERHAUL below) — their
      popups were reported opening "underneath" neighbouring markers for
      the identical reason, so they share this same rule rather than
-     needing a parallel one. */
-  .mk.cluster:hover, .mk.cluster:focus-visible, .mk.town:hover, .mk.town:focus-visible { z-index: 500; }
+     needing a parallel one. Now that any site can carry a linked-items
+     popup too (see BADGE CONSOLIDATION), this applies to every marker
+     rather than just cluster/town specifically — same fix, same reason,
+     just no longer worth naming each kind that needs it. */
+  .mk:hover, .mk:focus-visible { z-index: 500; }
   .mk-emblem-body {
     position: absolute; inset: 0; border-radius: 50%;
     background: rgba(18,18,18,.94); border: 1.6px solid var(--parchment);
@@ -318,17 +377,16 @@
   .cluster-hover-popup {
     position: absolute; bottom: calc(100% + 10px); left: 50%;
     transform: translate(-50%, 6px); width: 220px; max-width: 62vw;
-    background: rgba(18,18,18,.97); border: 1px solid var(--parchment);
-    border-radius: 8px; padding: 10px 12px 8px;
+    background: rgba(18,18,18,.9); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--parchment);
+    border-radius: var(--radius-md); padding: 10px 12px 8px;
     box-shadow: 0 12px 28px rgba(0,0,0,.5);
     opacity: 0; pointer-events: none;
     transition: opacity .2s ease, transform .2s ease;
     z-index: 60;
   }
-  .mk.cluster:hover .cluster-hover-popup,
-  .mk.cluster:focus-visible .cluster-hover-popup,
-  .mk.town:hover .cluster-hover-popup,
-  .mk.town:focus-visible .cluster-hover-popup {
+  .mk:hover .cluster-hover-popup,
+  .mk:focus-visible .cluster-hover-popup {
     opacity: 1; transform: translate(-50%, 0); pointer-events: auto;
   }
   /* Towns already carry a permanent name caption sitting just above the
@@ -341,19 +399,19 @@
     width: 0; height: 0; border: 6px solid transparent; border-top-color: var(--parchment);
   }
   .cluster-hover-title {
-    font-family: Georgia, serif; font-style: italic; font-size: .76rem;
+    font-family: Georgia, serif; font-style: italic; font-size: var(--fs-sm);
     color: var(--parchment); margin-bottom: 6px; padding-bottom: 6px;
     border-bottom: 1px solid rgba(255,255,255,.1);
   }
   /* A town's own short preview line, shown above its absorbed-entry
      list (if it has one) inside the same popup box a cluster uses. */
-  .cluster-hover-note { font-family: -apple-system, sans-serif; font-size: .74rem; color: var(--ink-dim); line-height: 1.5; margin-bottom: 6px; }
+  .cluster-hover-note { font-family: -apple-system, sans-serif; font-size: var(--fs-xs); color: var(--ink-dim); line-height: 1.5; margin-bottom: 6px; }
   .cluster-hover-list { display: flex; flex-direction: column; gap: 5px; max-height: 170px; overflow-y: auto; }
   .cluster-hover-item {
     display: flex; align-items: center; gap: 7px; width: 100%;
     background: none; border: none; padding: 3px 2px; margin: 0; text-align: left;
-    font-family: -apple-system, sans-serif; font-size: .74rem; color: var(--ink);
-    cursor: pointer; border-radius: 4px; transition: background .12s ease;
+    font-family: -apple-system, sans-serif; font-size: var(--fs-xs); color: var(--ink);
+    cursor: pointer; border-radius: var(--radius-sm); transition: background .12s ease;
   }
   .cluster-hover-item:hover, .cluster-hover-item:focus-visible { background: rgba(255,255,255,.06); }
   .cluster-hover-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
@@ -374,7 +432,8 @@
      ========================================================================== */
   .drawer {
     position: fixed; top: 0; right: 0; bottom: 0; width: 380px; max-width: 92vw; height: 100vh; height: 100dvh;
-    background: var(--canvas-2);
+    background: rgba(26,26,26,.92);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     overflow: hidden;
     transform: translateX(100%);
     transition: transform .32s ease, width .4s cubic-bezier(.2,.8,.2,1), max-width .4s cubic-bezier(.2,.8,.2,1);
@@ -451,7 +510,7 @@
   .drawer-close, .drawer-back {
     pointer-events: auto; background: rgba(18,18,18,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
     border: 1px solid rgba(255,255,255,.16); color: var(--ink-dim); width: 34px; height: 34px; border-radius: 50%;
-    cursor: pointer; font-size: 1.05rem; line-height: 1;
+    cursor: pointer; font-size: var(--fs-md); line-height: 1;
   }
   .drawer-close:hover, .drawer-back:hover { color: var(--ink); border-color: var(--accent); }
   .drawer-close:focus-visible, .drawer-back:focus-visible { outline: 2px solid var(--parchment); outline-offset: 2px; }
@@ -504,34 +563,35 @@
     position: relative; z-index: 20; width: 100%; margin: 0; padding: 8px 26px 30px;
     transition: width .4s cubic-bezier(.2,.8,.2,1), margin .4s cubic-bezier(.2,.8,.2,1), padding .4s cubic-bezier(.2,.8,.2,1);
   }
-  .drawer-empty { padding: 60px 0; color: var(--ink-dim); font-style: italic; font-size: .9rem; }
+  .drawer-empty { padding: 60px 0; color: var(--ink-dim); font-style: italic; font-size: var(--fs-base); }
 
   .drawer-body { max-height: none; overflow: visible; padding: 0; mask-image: none; -webkit-mask-image: none; }
 
-  .site-entry h2 { font-size: 1.6rem; font-weight: 400; color: var(--ink); margin-bottom: 4px; }
+  .site-entry h2 { font-size: var(--fs-xl); font-weight: 400; color: var(--ink); margin-bottom: 4px; }
   /* Town pages: English name (with a small bracketed phonetic guide in
      the header itself), an Irish-language name underneath, and a
      smaller still scholar-poet line on the name's meaning or the story
      behind it — the "scholar-poet" voice made explicit for towns rather
      than just implied by tone. */
   .site-entry h2 .phonetic { font-size: .55em; font-weight: 400; font-style: italic; color: var(--ink-dim); letter-spacing: 0; }
-  .site-entry .irish-name { font-family: Georgia, serif; font-style: italic; font-size: 1.08rem; color: var(--accent-tag, var(--parchment)); opacity: .95; margin: -2px 0 6px; }
-  .site-entry .irish-meaning { font-size: .82rem; font-style: italic; color: var(--ink-dim); line-height: 1.6; margin-bottom: 14px; }
-  .site-entry .tag { display: inline-block; align-self: flex-start; font-size: .7rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent-tag, var(--parchment)); border: 1px solid var(--accent-tag, var(--parchment)); border-radius: 20px; padding: 2px 10px; margin-bottom: 14px; opacity: .9; }
-  .site-entry p { font-size: .95rem; line-height: 1.7; color: var(--ink-prose); margin-bottom: 14px; }
+  .site-entry .irish-name { font-family: Georgia, serif; font-style: italic; font-size: var(--fs-md); color: var(--accent-tag, var(--parchment)); opacity: .95; margin: -2px 0 6px; }
+  .site-entry .irish-meaning { font-size: var(--fs-base); font-style: italic; color: var(--ink-dim); line-height: 1.6; margin-bottom: 14px; }
+  .site-entry .tag { display: inline-block; align-self: flex-start; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .6px; color: var(--accent-tag, var(--parchment)); border: 1px solid var(--accent-tag, var(--parchment)); border-radius: var(--radius-full); padding: 2px 10px; margin-bottom: 14px; opacity: .9; }
+  .site-entry p { font-size: var(--fs-md); line-height: 1.7; color: var(--ink-prose); margin-bottom: 14px; }
   .site-entry .warning, .site-entry .provisional-note {
-    margin-top: 4px; margin-bottom: 14px; padding: 10px 12px; border-radius: 4px; font-style: italic; font-size: .82rem; line-height: 1.55;
+    margin-top: 4px; margin-bottom: 14px; padding: 10px 12px; border-radius: var(--radius-sm); font-style: italic; font-size: var(--fs-base); line-height: 1.55;
     background: rgba(255,255,255,.04); border-left: 2px solid var(--accent-tag, var(--parchment));
   }
 
   .deep-dive-btn {
     display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; margin: 6px 0 4px;
     background: rgba(30,34,30,.7); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-    color: #d8d8d8; padding: 8px 16px; border-radius: 20px; font-size: .82rem;
+    color: #d8d8d8; padding: 8px 16px; border-radius: var(--radius-full); font-size: var(--fs-base);
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif; cursor: pointer;
-    transition: background .2s ease, border-color .2s ease;
+    transition: background .2s ease, border-color .2s ease, transform .15s var(--spring);
   }
   .deep-dive-btn:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+  .deep-dive-btn:active { transform: scale(.96); }
   .deep-dive-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .drawer.full .deep-dive-btn { display: none; }
 
@@ -545,17 +605,25 @@
      a mouse hover, rather than a second, separate implementation. */
   .town-sites-panel { display: none; }
   .drawer.full .town-sites-panel { display: block; margin-top: 28px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.1); }
-  .town-sites-heading { font-family: Georgia, serif; font-weight: 400; font-size: 1rem; color: var(--parchment); margin: 0 0 10px; }
+  .town-sites-heading { font-family: Georgia, serif; font-weight: 400; font-size: var(--fs-md); color: var(--parchment); margin: 0 0 10px; }
   .site-distance-row {
     display: block; width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid rgba(255,255,255,.06);
     padding: 9px 4px; margin: 0; cursor: pointer; font-family: -apple-system, sans-serif;
+    transition: background .15s ease;
   }
   .site-distance-row:hover, .site-distance-row:focus-visible { background: rgba(255,255,255,.04); outline: none; }
+  /* A full-width row shrinking on press (transform:scale) reads as an
+     odd wobble pulling away from its own container edges — the compact
+     badges/buttons elsewhere use scale because they're small, roughly-
+     centred shapes; a row gets a plain darken instead, same idea as the
+     others (immediate visual "yes, that registered") without the shape
+     distortion. */
+  .site-distance-row:active { background: rgba(255,255,255,.08); }
   .site-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-  .site-row-name { font-size: .85rem; color: var(--ink); }
-  .site-row-dist { font-size: .74rem; color: var(--ink-dim); flex: 0 0 auto; }
+  .site-row-name { font-size: var(--fs-base); color: var(--ink); }
+  .site-row-dist { font-size: var(--fs-xs); color: var(--ink-dim); flex: 0 0 auto; }
   .site-row-desc {
-    display: block; max-height: 0; opacity: 0; overflow: hidden; font-size: .74rem; color: var(--ink-dim); font-style: italic;
+    display: block; max-height: 0; opacity: 0; overflow: hidden; font-size: var(--fs-xs); color: var(--ink-dim); font-style: italic;
     line-height: 1.5; transition: max-height .25s ease, opacity .2s ease, margin-top .25s ease;
   }
   .site-distance-row:hover .site-row-desc, .site-distance-row:focus-visible .site-row-desc { max-height: 60px; opacity: 1; margin-top: 4px; }
@@ -583,12 +651,12 @@
     scrollbar-width: thin; scrollbar-color: var(--accent-soft) transparent;
   }
   .drawer.full .drawer-body::-webkit-scrollbar { width: 4px; }
-  .drawer.full .drawer-body::-webkit-scrollbar-thumb { background: var(--accent-soft); border-radius: 4px; }
-  .drawer.full .site-entry h2 { font-size: 2.1rem; }
+  .drawer.full .drawer-body::-webkit-scrollbar-thumb { background: var(--accent-soft); border-radius: var(--radius-sm); }
+  .drawer.full .site-entry h2 { font-size: var(--fs-2xl); }
   @media (max-width: 899px) {
     .drawer.full .drawer-specimen { width: 88vw; height: 30vh; margin: 6vh auto 0; }
     .drawer.full .drawer-content { width: 88vw; margin: 4vh auto 6vh; }
-    .drawer.full .site-entry h2 { font-size: 1.7rem; }
+    .drawer.full .site-entry h2 { font-size: var(--fs-xl); }
     .drawer.full .drawer-body { max-height: none; }
   }
 
@@ -611,20 +679,22 @@
   .caveat-panel {
     position: absolute; top: calc(100% + 8px); left: 0; z-index: 20;
     width: min(440px, 86vw); max-height: min(50vh, 360px); overflow-y: auto;
-    background: rgba(18,18,18,.94); border: 1px solid rgba(255,255,255,.12); border-radius: 6px;
-    padding: 14px 18px; font-size: .76rem; color: var(--ink-dim); font-style: italic; line-height: 1.6;
+    background: rgba(18,18,18,.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,.12); border-radius: var(--radius-md);
+    padding: 14px 18px; font-size: var(--fs-sm); color: var(--ink-dim); font-style: italic; line-height: 1.6;
     display: none;
     scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent;
   }
   .caveat-panel.open { display: block; }
   .caveat-panel::-webkit-scrollbar { width: 4px; }
-  .caveat-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.25); border-radius: 4px; }
+  .caveat-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.25); border-radius: var(--radius-sm); }
 
   .legend {
     position: absolute; left: 16px; bottom: 16px; z-index: 20;
-    background: rgba(18,18,18,.85); border: 1px solid rgba(255,255,255,.1);
-    border-radius: 6px; padding: 10px 14px; display: flex; flex-direction: column; gap: 5px;
-    font-family: -apple-system, sans-serif; font-size: .72rem; color: var(--ink-dim); max-width: 220px;
+    background: rgba(18,18,18,.78); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: var(--radius-md); padding: 10px 14px; display: flex; flex-direction: column; gap: 5px;
+    font-family: -apple-system, sans-serif; font-size: var(--fs-xs); color: var(--ink-dim); max-width: 220px;
   }
   .legend-item { display: flex; align-items: center; gap: 7px; }
   .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
@@ -640,7 +710,7 @@
   .maplibregl-ctrl-attrib-button { filter: invert(1) grayscale(1); opacity: .55; }
   .maplibregl-ctrl-attrib-button:hover { opacity: .85; }
   .maplibregl-ctrl-attrib.maplibregl-compact.maplibregl-compact-show {
-    background-color: rgba(18,18,18,.94); border-radius: 6px;
+    background-color: rgba(18,18,18,.94); border-radius: var(--radius-md);
   }
   .maplibregl-ctrl-attrib a { color: var(--ink-dim); }
 
@@ -657,28 +727,31 @@
   .routes-wrap { position: relative; }
   .routes-toggle {
     background: rgba(30,34,30,.7); border: 1px solid rgba(255,255,255,.12);
-    color: var(--ink-dim); padding: 6px 13px; border-radius: 20px;
-    font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: .78rem;
+    color: var(--ink-dim); padding: 6px 13px; border-radius: var(--radius-full);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: var(--fs-sm);
     cursor: pointer; white-space: nowrap;
-    transition: border-color .2s ease, color .2s ease;
+    transition: border-color .2s ease, color .2s ease, transform .15s var(--spring);
   }
   .routes-toggle:hover, .routes-toggle[aria-expanded="true"] { color: var(--ink); border-color: var(--parchment); }
+  .routes-toggle:active { transform: scale(.96); }
   .routes-panel {
     position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; width: 260px;
-    background: rgba(18,18,18,.97); border: 1px solid rgba(255,255,255,.14); border-radius: 8px;
+    background: rgba(18,18,18,.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,.14); border-radius: var(--radius-md);
     padding: 10px; display: none; flex-direction: column; gap: 8px;
     box-shadow: 0 14px 32px rgba(0,0,0,.45);
   }
   .routes-panel.open { display: flex; }
   .route-card {
-    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); border-radius: 6px;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); border-radius: var(--radius-md);
     padding: 8px 10px; cursor: pointer; font-family: -apple-system, sans-serif;
     transition: border-color .15s ease, background .15s ease;
   }
   .route-card:hover { border-color: var(--parchment); }
+  .route-card:active { background: rgba(255,255,255,.09); }
   .route-card.active { border-color: var(--parchment); background: rgba(222,210,179,.1); }
-  .route-card h3 { font-family: Georgia, serif; font-size: .85rem; font-weight: 400; color: var(--ink); margin-bottom: 3px; }
-  .route-card .meta { font-size: .68rem; color: var(--ink-dim); }
+  .route-card h3 { font-family: Georgia, serif; font-size: var(--fs-base); font-weight: 400; color: var(--ink); margin-bottom: 3px; }
+  .route-card .meta { font-size: var(--fs-2xs); color: var(--ink-dim); }
 
   /* ---- Real-time constraint inspector — a subtle, collapsible counter
      that only exists in the DOM's visible sense when it has something to
@@ -691,24 +764,26 @@
   .constraint-badge {
     display: none; align-items: center; gap: 6px;
     background: rgba(30,34,30,.7); border: 1px solid rgba(255,255,255,.14);
-    color: var(--ink-dim); padding: 6px 13px; border-radius: 20px;
-    font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: .74rem;
-    cursor: pointer; white-space: nowrap; transition: border-color .2s ease, color .2s ease;
+    color: var(--ink-dim); padding: 6px 13px; border-radius: var(--radius-full);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: var(--fs-xs);
+    cursor: pointer; white-space: nowrap; transition: border-color .2s ease, color .2s ease, transform .15s var(--spring);
   }
   .constraint-badge.visible { display: inline-flex; }
   .constraint-badge:hover, .constraint-badge[aria-expanded="true"] { color: var(--ink); border-color: var(--parchment); }
+  .constraint-badge:active { transform: scale(.96); }
   .constraint-badge .count { font-weight: 700; color: var(--parchment); }
   .constraint-panel {
     position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: 280px;
-    background: rgba(18,18,18,.97); border: 1px solid rgba(255,255,255,.14); border-radius: 8px;
+    background: rgba(18,18,18,.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,.14); border-radius: var(--radius-md);
     padding: 12px 14px; display: none; flex-direction: column; gap: 8px;
     box-shadow: 0 14px 32px rgba(0,0,0,.45);
-    font-family: -apple-system, sans-serif; font-size: .78rem; color: var(--ink-prose);
+    font-family: -apple-system, sans-serif; font-size: var(--fs-sm); color: var(--ink-prose);
   }
   .constraint-panel.open { display: flex; }
   .constraint-panel .constraint-reason { display: flex; justify-content: space-between; gap: 10px; }
   .constraint-panel .constraint-reason .n { color: var(--parchment); font-weight: 700; flex: 0 0 auto; }
-  .constraint-panel .constraint-hint { font-style: italic; color: var(--ink-dim); font-size: .72rem; border-top: 1px solid rgba(255,255,255,.08); padding-top: 8px; margin-top: 2px; }
+  .constraint-panel .constraint-hint { font-style: italic; color: var(--ink-dim); font-size: var(--fs-xs); border-top: 1px solid rgba(255,255,255,.08); padding-top: 8px; margin-top: 2px; }
 
   /* ---- Burger menu ("personal area") — bookmarks + route planning,
      previously only reachable via the search drawer's Saved facet.
@@ -719,11 +794,12 @@
   .burger-menu-btn {
     width: 34px; height: 34px; flex: 0 0 auto; padding: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
-    background: rgba(30,34,30,.7); border: 1px solid rgba(255,255,255,.14); border-radius: 8px;
-    cursor: pointer;
+    background: rgba(30,34,30,.7); border: 1px solid rgba(255,255,255,.14); border-radius: var(--radius-md);
+    cursor: pointer; transition: transform .15s var(--spring);
   }
+  .burger-menu-btn:active { transform: scale(.94); }
   .burger-menu-btn span {
-    display: block; width: 16px; height: 2px; border-radius: 2px;
+    display: block; width: 16px; height: 2px; border-radius: var(--radius-sm);
     background: var(--ink-dim); transition: transform .25s ease, opacity .2s ease, background .2s ease;
   }
   .burger-menu-btn:hover span, .burger-menu-btn[aria-expanded="true"] span { background: var(--parchment); }
@@ -732,32 +808,42 @@
   .burger-menu-btn[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
   .burger-menu-panel {
     position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: 240px;
-    background: rgba(18,18,18,.97); border: 1px solid rgba(255,255,255,.14); border-radius: 8px;
+    background: rgba(18,18,18,.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,.14); border-radius: var(--radius-md);
     padding: 8px; display: none; flex-direction: column; gap: 4px;
     box-shadow: 0 14px 32px rgba(0,0,0,.45);
   }
   .burger-menu-panel.open { display: flex; }
   .burger-menu-item {
     display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
-    background: none; border: none; padding: 9px 10px; border-radius: 6px; margin: 0;
-    font-family: -apple-system, sans-serif; font-size: .82rem; color: var(--ink); cursor: pointer;
+    background: none; border: none; padding: 9px 10px; border-radius: var(--radius-md); margin: 0;
+    font-family: -apple-system, sans-serif; font-size: var(--fs-base); color: var(--ink); cursor: pointer;
+    text-decoration: none; box-sizing: border-box; /* the last two only matter for the <a> variants */
     transition: background .15s ease;
   }
   .burger-menu-item:hover, .burger-menu-item:focus-visible { background: rgba(255,255,255,.07); outline: none; }
+  .burger-menu-item:active { background: rgba(255,255,255,.11); }
   .burger-menu-item svg { width: 15px; height: 15px; flex: 0 0 auto; color: var(--parchment); }
   .burger-menu-item .count-pill {
     margin-left: auto; background: rgba(222,210,179,.15); color: var(--parchment);
-    font-size: .68rem; font-weight: 700; padding: 1px 7px; border-radius: 10px;
+    font-size: var(--fs-2xs); font-weight: 700; padding: 1px 7px; border-radius: var(--radius-md);
+  }
+  .burger-menu-divider {
+    display: flex; align-items: center; gap: 8px; margin: 6px 4px 2px; padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,.1);
+    font-family: -apple-system, sans-serif; font-size: var(--fs-2xs); letter-spacing: .04em; text-transform: uppercase;
+    color: var(--ink-dim); opacity: .8;
   }
 
   /* "Part of X trail" chips shown inside a site/town drawer entry */
   .site-routes { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
   .route-chip {
     background: rgba(255,255,255,.04); border: 1px solid var(--route-accent, var(--parchment));
-    color: var(--ink); border-radius: 20px; padding: 5px 12px; font-size: .78rem;
-    font-family: -apple-system, sans-serif; cursor: pointer;
+    color: var(--ink); border-radius: var(--radius-full); padding: 5px 12px; font-size: var(--fs-sm);
+    font-family: -apple-system, sans-serif; cursor: pointer; transition: background .15s ease, transform .15s var(--spring);
   }
   .route-chip:hover { background: rgba(255,255,255,.08); }
+  .route-chip:active { transform: scale(.96); }
 
   /* .site-entry as a flex column, with .site-maplinks' margin-top:auto
      below, is what pushes the map-handoff links down toward whatever
@@ -805,12 +891,13 @@
   .maplink-btn {
     display: inline-flex; align-items: center; gap: 6px;
     background: rgba(30,34,30,.7); border: 1px solid rgba(255,255,255,.22);
-    color: #d8d8d8; padding: 8px 16px; border-radius: 20px; font-size: .8rem;
+    color: #d8d8d8; padding: 8px 16px; border-radius: var(--radius-full); font-size: var(--fs-sm);
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
     text-decoration: none; cursor: pointer;
-    transition: background .2s ease, border-color .2s ease;
+    transition: background .2s ease, border-color .2s ease, transform .15s var(--spring);
   }
   .maplink-btn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.4); }
+  .maplink-btn:active { transform: scale(.96); }
   .maplink-btn svg { width: 13px; height: 13px; flex: 0 0 auto; opacity: .95; }
 
   /* Inline auto-links inside a town's description (see autoLinkNote) — a
@@ -833,10 +920,11 @@
     display: inline-flex; align-items: center; justify-content: center;
     width: 28px; height: 28px; border-radius: 50%; flex: 0 0 auto;
     background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.18);
-    color: var(--ink-dim); cursor: pointer; transition: color .15s ease, border-color .15s ease;
+    color: var(--ink-dim); cursor: pointer; transition: color .15s ease, border-color .15s ease, transform .15s var(--spring);
   }
   .bookmark-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.4; }
   .bookmark-btn:hover { color: var(--parchment); border-color: var(--parchment); }
+  .bookmark-btn:active { transform: scale(.88); }
   .bookmark-btn.saved { color: var(--parchment); border-color: var(--parchment); }
   .bookmark-btn.saved svg { fill: var(--parchment); }
   .entry-header-row { display: flex; align-items: center; gap: 8px; }
@@ -851,17 +939,20 @@
   .soundscape-widget {
     position: fixed; left: 16px; bottom: 172px; z-index: 150;
     display: flex; align-items: center; gap: 8px;
-    background: rgba(18,18,18,.9); border: 1px solid rgba(255,255,255,.14);
-    border-radius: 20px; padding: 6px 12px; font-family: -apple-system, sans-serif;
+    background: rgba(18,18,18,.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: var(--radius-full); padding: 6px 12px; font-family: -apple-system, sans-serif;
   }
   .soundscape-toggle {
     width: 26px; height: 26px; border-radius: 50%; flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
     background: rgba(255,255,255,.06); border: 1px solid var(--parchment); color: var(--parchment); cursor: pointer;
+    transition: transform .15s var(--spring), background .15s ease;
   }
+  .soundscape-toggle:active { transform: scale(.9); }
   .soundscape-toggle svg { width: 12px; height: 12px; }
   .soundscape-toggle.playing { background: rgba(222,210,179,.18); }
   .soundscape-volume { width: 70px; accent-color: var(--parchment); }
-  .soundscape-mode { font-size: .7rem; color: var(--ink-dim); font-style: italic; min-width: 46px; }
+  .soundscape-mode { font-size: var(--fs-xs); color: var(--ink-dim); font-style: italic; min-width: 46px; }
   /* Fixed positioning means this widget ignores the drawer's own layout
      entirely, so on the narrow/mobile layout (same 899px break the
      drawer itself switches on) it was floating on top of the open
@@ -878,7 +969,7 @@
      site/route drawer above. Opening/closing it never touches drawerCurrent,
      drawerStack, or calls renderAll/navigateTo — the map underneath keeps
      whatever state it was in. ---- */
-  .kbd-hint { font-size: .68rem; opacity: .7; margin-left: 4px; }
+  .kbd-hint { font-size: var(--fs-2xs); opacity: .7; margin-left: 4px; }
   .search-overlay {
     position: fixed; inset: 0; z-index: 100; background: rgba(10,10,10,.6);
     display: none; align-items: flex-start; justify-content: center; padding: 8vh 16px 0;
@@ -886,15 +977,27 @@
   .search-overlay.open { display: flex; }
   .search-drawer {
     width: min(640px, 100%); max-height: 76vh; display: flex; flex-direction: column;
-    background: rgba(18,18,18,.98); border: 1px solid rgba(255,255,255,.12); border-radius: 10px;
+    background: rgba(20,20,20,.9); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(255,255,255,.12); border-radius: var(--radius-md);
     box-shadow: 0 24px 64px rgba(0,0,0,.55); overflow: hidden;
   }
   .search-input-row { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,.08); }
   .search-input-row svg { width: 16px; height: 16px; color: var(--ink-dim); flex: 0 0 auto; }
-  .search-input { flex: 1; background: transparent; border: none; outline: none; color: var(--ink); font-family: -apple-system, sans-serif; font-size: 1rem; }
+  .search-input { flex: 1; background: transparent; border: none; outline: none; color: var(--ink); font-family: -apple-system, sans-serif; font-size: var(--fs-md); }
   .search-input::placeholder { color: var(--ink-dim); }
-  .search-esc { font-size: .68rem; color: var(--ink-dim); border: 1px solid rgba(255,255,255,.14); border-radius: 4px; padding: 2px 6px; }
+  .search-esc { font-size: var(--fs-2xs); color: var(--ink-dim); border: 1px solid rgba(255,255,255,.14); border-radius: var(--radius-sm); padding: 2px 6px; }
   .search-facets { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 18px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  /* Used only by the burger menu's "Bookmarked Items" entry point (see
+     openSavedItemsView) — the full search drawer is still exactly what
+     it was, this just strips the search-specific chrome (the input box,
+     the kind/discipline facet chips, the "excluded by filter" bar) so
+     opening it from there reads as "here are your saved cards", not as
+     "here's the search screen, pre-filtered." Any normal way of opening
+     search (the topbar button, Cmd+K — both funnel through openSearch)
+     removes this class again, so it never leaks into an actual search. */
+  .search-overlay.minimal .search-input-row,
+  .search-overlay.minimal .search-facets,
+  .search-overlay.minimal .search-constraint-bar { display: none; }
 
   /* ---- "Generate Journey Route" bar — only ever populated while the
      ★ Saved facet is active (see renderSavedJourneyBar); empty and
@@ -903,12 +1006,12 @@
   .saved-journey-bar:empty, .search-constraint-bar:empty { display: none; }
   .saved-journey-bar, .search-constraint-bar {
     padding: 10px 18px; border-bottom: 1px solid rgba(255,255,255,.06);
-    font-family: -apple-system, sans-serif; font-size: .78rem; color: var(--ink-dim);
+    font-family: -apple-system, sans-serif; font-size: var(--fs-sm); color: var(--ink-dim);
     display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
   }
   .journey-generate-btn {
     background: rgba(222,210,179,.1); border: 1px solid var(--parchment);
-    color: var(--ink); border-radius: 20px; padding: 6px 14px; font-size: .78rem;
+    color: var(--ink); border-radius: var(--radius-full); padding: 6px 14px; font-size: var(--fs-sm);
     font-family: -apple-system, sans-serif; cursor: pointer;
   }
   .journey-generate-btn:hover { background: rgba(222,210,179,.2); }
@@ -920,42 +1023,132 @@
   .search-constraint-breakdown .constraint-reason { display: flex; justify-content: space-between; gap: 10px; }
   .search-constraint-breakdown .constraint-reason .n { color: var(--parchment); font-weight: 700; }
   .facet-chip {
-    font-family: -apple-system, sans-serif; font-size: .72rem; background: rgba(255,255,255,.04);
-    border: 1px solid rgba(255,255,255,.14); color: var(--ink-dim); border-radius: 14px; padding: 4px 10px; cursor: pointer;
+    font-family: -apple-system, sans-serif; font-size: var(--fs-xs); background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.14); color: var(--ink-dim); border-radius: var(--radius-lg); padding: 4px 10px; cursor: pointer;
+    transition: transform .15s var(--spring), background .15s ease, border-color .15s ease, color .15s ease;
   }
+  .facet-chip:active { transform: scale(.94); }
   .facet-chip[data-active="true"] { color: var(--ink); border-color: var(--parchment); background: rgba(222,210,179,.1); }
   .facet-chip.wander { margin-left: auto; color: var(--parchment); border-color: var(--parchment); }
   .search-results { overflow-y: auto; padding: 8px; flex: 1; }
-  .search-empty { padding: 24px 16px; text-align: center; color: var(--ink-dim); font-size: .85rem; font-family: -apple-system, sans-serif; }
-  .result-card { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-radius: 8px; cursor: pointer; }
+  .search-empty { padding: 24px 16px; text-align: center; color: var(--ink-dim); font-size: var(--fs-base); font-family: -apple-system, sans-serif; }
+  .result-card { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-radius: var(--radius-md); cursor: pointer; transition: background .15s ease; }
   .result-card:hover { background: rgba(255,255,255,.05); }
+  .result-card:active { background: rgba(255,255,255,.09); }
   .result-play {
     width: 28px; height: 28px; border-radius: 50%; flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
     background: rgba(255,255,255,.05); border: 1px solid var(--parchment); color: var(--parchment); cursor: pointer;
   }
   .result-play svg { width: 11px; height: 11px; }
   .result-main { flex: 1; min-width: 0; }
-  .result-main h4 { margin: 0 0 2px; font-size: .95rem; font-weight: 400; color: var(--ink); font-family: Georgia, serif; }
-  .result-meta { font-size: .74rem; color: var(--ink-dim); font-style: italic; }
+  .result-main h4 { margin: 0 0 2px; font-size: var(--fs-md); font-weight: 400; color: var(--ink); font-family: Georgia, serif; }
+  .result-meta { font-size: var(--fs-xs); color: var(--ink-dim); font-style: italic; }
   .result-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
-  .result-badges .rbadge { font-size: .6rem; text-transform: uppercase; letter-spacing: .4px; border: 1px solid var(--ink-dim); color: var(--ink-dim); border-radius: 14px; padding: 1px 7px; }
+  .result-badges .rbadge { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .4px; border: 1px solid var(--ink-dim); color: var(--ink-dim); border-radius: var(--radius-lg); padding: 1px 7px; }
   .result-badges .rbadge.habitat { border-style: dashed; }
   .result-actions { display: flex; flex-direction: column; gap: 6px; flex: 0 0 auto; }
   .result-action-btn {
-    font-family: -apple-system, sans-serif; font-size: .68rem; white-space: nowrap;
+    font-family: -apple-system, sans-serif; font-size: var(--fs-2xs); white-space: nowrap;
     background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.16); color: var(--ink-dim);
-    border-radius: 14px; padding: 4px 9px; cursor: pointer;
+    border-radius: var(--radius-lg); padding: 4px 9px; cursor: pointer;
   }
   .result-action-btn:hover { color: var(--ink); border-color: var(--parchment); }
   .route-stops .route-stop { cursor: pointer; transition: color .15s ease; }
   .route-stops .route-stop:hover, .route-stops .route-stop:focus-visible { color: var(--parchment); }
   .route-stops .route-stop.is-start { color: var(--ink); font-weight: 600; }
-  .start-tag { font-size: .7rem; color: var(--parchment); font-style: italic; font-weight: 400; margin-left: 6px; }
+  .start-tag { font-size: var(--fs-xs); color: var(--parchment); font-style: italic; font-weight: 400; margin-left: 6px; }
+
+  /* ---- Identify a Species — camera capture + PlantNet-backed results.
+     Same overlay/blur/radius language as .search-overlay throughout, on
+     purpose — this should read as a sibling feature, not a bolted-on
+     one. See renderIdentifyBody for how the body's content actually
+     changes between the idle/loading/results/error states below. ---- */
+  .identify-overlay {
+    position: fixed; inset: 0; z-index: 100; background: rgba(10,10,10,.6);
+    display: none; align-items: flex-start; justify-content: center; padding: 8vh 16px 0;
+  }
+  .identify-overlay.open { display: flex; }
+  .identify-drawer {
+    width: min(480px, 100%); max-height: 82vh; display: flex; flex-direction: column;
+    background: rgba(20,20,20,.9); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(255,255,255,.12); border-radius: var(--radius-md);
+    box-shadow: 0 24px 64px rgba(0,0,0,.55); overflow: hidden;
+  }
+  .identify-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .identify-header h2 { font-family: Georgia, serif; font-weight: 400; font-size: var(--fs-lg); color: var(--parchment); }
+  .identify-close {
+    background: none; border: none; color: var(--ink-dim); font-size: 1.4rem; line-height: 1; cursor: pointer;
+    padding: 4px 8px; border-radius: var(--radius-sm); transition: color .15s ease, transform .15s var(--spring);
+  }
+  .identify-close:hover { color: var(--ink); }
+  .identify-close:active { transform: scale(.88); }
+  .identify-body { padding: 18px; overflow-y: auto; font-family: -apple-system, sans-serif; }
+  .identify-taxon-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .identify-taxon-btn {
+    flex: 1; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.14);
+    color: var(--ink-dim); padding: 8px 6px; border-radius: var(--radius-md); font-size: var(--fs-sm);
+    cursor: pointer; transition: border-color .15s ease, color .15s ease, transform .15s var(--spring);
+  }
+  .identify-taxon-btn:active { transform: scale(.96); }
+  .identify-taxon-btn[data-active="true"] { color: var(--ink); border-color: var(--parchment); background: rgba(222,210,179,.1); }
+  .identify-upload-zone {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    border: 1.5px dashed rgba(255,255,255,.2); border-radius: var(--radius-md);
+    padding: 32px 16px; cursor: pointer; text-align: center;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .identify-upload-zone:hover, .identify-upload-zone:focus-visible { border-color: var(--parchment); background: rgba(255,255,255,.03); }
+  .identify-upload-zone svg { width: 30px; height: 30px; color: var(--parchment); opacity: .85; }
+  .identify-upload-zone .identify-upload-label { color: var(--ink); font-size: var(--fs-base); }
+  .identify-upload-zone .identify-upload-hint { color: var(--ink-dim); font-size: var(--fs-xs); font-style: italic; }
+  .identify-upload-zone input[type="file"] { display: none; }
+  .identify-preview-wrap { position: relative; margin-bottom: 16px; border-radius: var(--radius-md); overflow: hidden; }
+  .identify-preview-wrap img { display: block; width: 100%; max-height: 260px; object-fit: cover; }
+  .identify-retake-btn {
+    position: absolute; top: 8px; right: 8px; background: rgba(18,18,18,.8); backdrop-filter: blur(8px);
+    color: var(--ink); border: 1px solid rgba(255,255,255,.2); border-radius: var(--radius-full);
+    padding: 5px 12px; font-size: var(--fs-2xs); cursor: pointer; transition: transform .15s var(--spring);
+  }
+  .identify-retake-btn:active { transform: scale(.94); }
+  .identify-submit-btn {
+    width: 100%; background: rgba(30,34,30,.7); border: 1px solid var(--parchment);
+    color: var(--ink); padding: 11px; border-radius: var(--radius-full); font-size: var(--fs-base);
+    cursor: pointer; margin-bottom: 6px; transition: background .2s ease, transform .15s var(--spring);
+  }
+  .identify-submit-btn:hover { background: rgba(222,210,179,.12); }
+  .identify-submit-btn:active { transform: scale(.97); }
+  .identify-submit-btn:disabled { opacity: .5; cursor: default; }
+  .identify-status {
+    text-align: center; padding: 24px 8px; color: var(--ink-dim); font-size: var(--fs-sm); font-style: italic;
+  }
+  .identify-status.is-error { color: #E08A8A; font-style: normal; }
+  .identify-not-configured {
+    background: rgba(197,106,31,.1); border: 1px solid rgba(197,106,31,.4); border-radius: var(--radius-md);
+    padding: 12px 14px; font-size: var(--fs-sm); color: var(--ink-prose); line-height: 1.5;
+  }
+  .identify-match-card {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+    padding: 12px 4px; border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .identify-match-card:last-child { border-bottom: none; }
+  .identify-match-name { font-family: Georgia, serif; font-size: var(--fs-base); color: var(--ink); }
+  .identify-match-sci { font-style: italic; color: var(--ink-dim); font-size: var(--fs-xs); }
+  .identify-match-tag {
+    display: inline-block; margin-top: 4px; font-size: var(--fs-2xs); color: var(--flora);
+    border: 1px solid var(--flora); border-radius: var(--radius-sm); padding: 1px 6px;
+  }
+  .identify-match-confidence { flex: 0 0 auto; text-align: right; font-size: var(--fs-md); color: var(--parchment); font-weight: 700; }
+  .identify-match-link { display: block; font-size: var(--fs-2xs); color: var(--ink-dim); margin-top: 2px; }
+  .identify-warnings { margin-top: 10px; font-size: var(--fs-2xs); color: var(--ink-dim); font-style: italic; }
 
   @media (max-width: 700px) {
-    .topbar h1 { font-size: 1.05rem; }
-    .filter-btn { font-size: .72rem; padding: 5px 10px; }
+    .topbar h1 { font-size: var(--fs-md); }
+    .filter-btn { font-size: var(--fs-xs); padding: 5px 10px; }
     .drawer { width: 100vw; max-width: 100vw; }
+    .identify-drawer { width: 100%; }
   }
   @media (max-width: 899px) {
     .drawer.full .ambient-row { font-size: 22px; }
@@ -1027,6 +1220,18 @@
     <div class="search-constraint-bar" id="searchConstraintBar"></div>
     <div class="saved-journey-bar" id="savedJourneyBar"></div>
     <div class="search-results" id="searchResults"></div>
+  </div>
+</div>
+
+<div class="identify-overlay" id="identifyOverlay" role="dialog" aria-modal="true" aria-label="Identify a species from a photo" aria-hidden="true">
+  <div class="identify-drawer">
+    <div class="identify-header">
+      <h2>Identify a Species</h2>
+      <button type="button" class="identify-close" id="identifyCloseBtn" aria-label="Close">&times;</button>
+    </div>
+    <div class="identify-body" id="identifyBody">
+      <!-- Rebuilt fresh each time the overlay opens — see renderIdentifyBody -->
+    </div>
   </div>
 </div>
 
@@ -1109,6 +1314,24 @@
     grave: '<path d="M7,21 L7,12.5 C7,7.8 9.2,4.5 12,4.5 C14.8,4.5 17,7.8 17,12.5 L17,21 Z" fill="currentColor"/>' +
       '<path d="M12,17.5 L9.6,14.2 L11,14.9 L11,10.2 L12,12.3 L13,10.2 L13,14.9 L14.4,14.2 Z" fill="#121212"/>' +
       '<path d="M12,10.2 C10.2,8.1 8.6,8.6 7.4,7 C9,7.3 10.2,7.9 11.1,9 M12,10.2 C13.8,8.1 15.4,8.6 16.6,7 C15,7.3 13.8,7.9 12.9,9" stroke="#121212" stroke-width="1" fill="none" stroke-linecap="round"/>',
+    // Portrait bust for the notable-figures kind — a small laurel-leaf
+    // accent by the head (dark detail, same currentColor-fill-plus-
+    // #121212-detail language as every icon above) nods to "a person
+    // the record remembers" without drawing a literal wreath.
+    person: '<circle cx="12" cy="8.5" r="4" fill="currentColor"/>' +
+      '<path d="M4,21 C4,15 7.5,12.5 12,12.5 C16.5,12.5 20,15 20,21 Z" fill="currentColor"/>' +
+      '<path d="M15,10 C16.5,9 17.5,7.5 17,6 C18.5,6.5 19,8.5 17.5,10 C16.8,10.6 15.8,10.6 15,10 Z" fill="#121212"/>',
+    // Pint glass for the pub kind — a handle outline and a couple of
+    // "froth" strokes at the rim are the dark detail, same language.
+    pub: '<path d="M7,9 L7,20 C7,20.6 7.4,21 8,21 L15,21 C15.6,21 16,20.6 16,20 L16,9 Z" fill="currentColor"/>' +
+      '<path d="M16,11 C18,11 19.3,12.4 19.3,14.3 C19.3,16.2 18,17.6 16,17.6" fill="none" stroke="#121212" stroke-width="1.4"/>' +
+      '<path d="M9,9 L9,6.5 M12.5,9 L12.5,5.5" stroke="#121212" stroke-width="1.2" stroke-linecap="round"/>',
+    // Holy well — a stone drum with a dark opening, capped by a simple
+    // peaked well-house roof line (dark detail again).
+    well: '<path d="M4,14 L4,20 C4,20.6 4.4,21 5,21 L19,21 C19.6,21 20,20.6 20,20 L20,14 Z" fill="currentColor"/>' +
+      '<ellipse cx="12" cy="14" rx="8" ry="2.4" fill="currentColor"/>' +
+      '<ellipse cx="12" cy="14" rx="5" ry="1.4" fill="#121212"/>' +
+      '<path d="M7,10 L12,4 L17,10" fill="none" stroke="#121212" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>',
     // ---- Cluster emblems — one shared cultural motif per discipline mix,
     // replacing the plain number bubble. Same drawing language as the
     // five above (currentColor fill/stroke, a dark #121212 detail line,
@@ -1195,7 +1418,10 @@
     flora: 'rgba(122,153,130,.75)',
     lore: 'rgba(96,140,168,.75)',
     town: 'rgba(154,147,132,.75)',
-    grave: 'rgba(215,70,70,.75)'
+    grave: 'rgba(215,70,70,.75)',
+    person: 'rgba(156,107,62,.75)',
+    pub: 'rgba(197,106,31,.75)',
+    well: 'rgba(46,139,139,.75)'
   };
 
   // Short field-vocabulary phrase banks, one per discipline plus a neutral
@@ -1379,6 +1605,34 @@
   function legendsLinkedTo(kind, name) {
     return Object.keys(legendData).filter(function (k) {
       var lt = legendData[k].linkedTo;
+      return lt && lt.kind === kind && lt.name === name;
+    });
+  }
+  function gravesLinkedTo(kind, name) {
+    return Object.keys(graveData).filter(function (k) {
+      var lt = graveData[k].linkedTo;
+      return lt && lt.kind === kind && lt.name === name;
+    });
+  }
+  // Same shape as legendsLinkedTo/gravesLinkedTo above — three near-
+  // identical functions rather than one generic one keyed off
+  // JOINABLE_KINDS is duplication worth cleaning up eventually, but not
+  // worth the risk of touching the two working ones just to add a third.
+  function personsLinkedTo(kind, name) {
+    return Object.keys(personData).filter(function (k) {
+      var lt = personData[k].linkedTo;
+      return lt && lt.kind === kind && lt.name === name;
+    });
+  }
+  function pubsLinkedTo(kind, name) {
+    return Object.keys(pubData).filter(function (k) {
+      var lt = pubData[k].linkedTo;
+      return lt && lt.kind === kind && lt.name === name;
+    });
+  }
+  function wellsLinkedTo(kind, name) {
+    return Object.keys(wellData).filter(function (k) {
+      var lt = wellData[k].linkedTo;
       return lt && lt.kind === kind && lt.name === name;
     });
   }
@@ -1694,7 +1948,7 @@
   }
 
   var siteData = {
-    "Poulnabrone Dolmen": { lng: -9.1400, lat: 53.0487, discipline: "Archaeology", category: "Megalithic Tomb", note: "Iconic portal tomb set on the limestone pavement, dating to the Neolithic period." },
+    "Poulnabrone Dolmen": { lng: -9.1400, lat: 53.0487, discipline: "Archaeology", category: "Megalithic Tomb", note: "Iconic portal tomb set on the limestone pavement, dating to the Neolithic period.", tier: 0.5 },
     "Caherconnell": { lng: -9.1376, lat: 53.0420, discipline: "Archaeology", category: "Ringfort", note: "Well-preserved stone ringfort with an internal stone structure and medieval occupation history." },
     "Cahercommaun": { lng: -9.0707, lat: 53.0146, discipline: "Archaeology", category: "Cliff Fort", note: "Triple-walled promontory ringfort perched dramatically on the edge of the Tullycommon limestone scarp." },
     "Corcomroe Abbey": { lng: -9.0544, lat: 53.1269, discipline: "Archaeology / Lore", category: "Monastic Ruin", note: "Early 13th-century Cistercian abbey in a secluded valley, renowned for its carved limestone ornamentation." },
@@ -1943,9 +2197,190 @@
       fieldNotes: "Ruins of the medieval Kilmoon convent, church and cemetery are recorded here from at least the early 19th century; the surrounding parish also holds several ringforts (cahers) and earthworks traditionally called 'Danish encampments.'" },
     "Feakle": { lng: -8.65, lat: 52.93, location: "Feakle, East Clare", confidence: "Documented",
       provisional: "Sits outside the core Burren area this map otherwise covers — included because it's one of Clare's most-searched-for graves, not because it's geographically part of the Burren.",
-      notableBurials: "Biddy Early (c. 1798–1874), the celebrated Clare 'wise woman' and folk healer.",
-      associations: "Famous throughout Munster for her cures and her 'blue bottle' of second sight; her cottage ruins near Feakle are still a visited site.",
+      notableBurials: "Biddy Early (c. 1798–1874), the celebrated Clare 'wise woman' and folk healer; Brian Merriman (c. 1749–1805), master of Gaelic satirical verse and author of Cúirt an Mheán Oíche (The Midnight Court).",
+      associations: "Famous throughout Munster for her cures and her 'blue bottle' of second sight; her cottage ruins near Feakle are still a visited site. Merriman lived and taught locally around Feakle and Spancilhill.",
       fieldNotes: "Included as a notable near-miss: Feakle sits in East Clare rather than the Burren proper, but Biddy Early is one of the county's most searched-for graves and often assumed to be a Burren figure." }
+  };
+
+  // Notable Figures — people whose lives leave a real, mappable trace:
+  // birthplace, residence, burial. Modelled the same way legends/graves
+  // are (small, separate entries, cross-linked via linkedTo) rather than
+  // teaching the map a new "multi-point person" shape — a person with
+  // three locations is just three small entries, same as any other
+  // joinable kind. Deliberately NOT exhaustive this pass: several figures
+  // from the source sheet are skipped outright rather than force-fit —
+  // Francis Stuart and John Joe Conway's burials are already fully
+  // covered by the existing Craggagh Cemetery / Kilmoon Graveyard grave
+  // entries above (adding a second marker on the same spot would just be
+  // clutter), and a few Dublin-based or far-East-Clare figures (Eugene
+  // O'Curry, Thomas Westropp, Ellie Hanley, most of Biddy Early's own
+  // locations) sit too far outside the core Burren area this map covers
+  // to link honestly to anything nearby. linkedTo targets were matched
+  // by real distance to existing sites/towns (under ~2km) — where
+  // nothing was that close, the entry stays an independent point instead
+  // of forcing a misleading link.
+  var personData = {
+    "Brian Merriman (Birthplace)": { lng: -9.29, lat: 52.93, linkedTo: { kind: "town", name: "Ennistymon" },
+      years: "c. 1749 – 1805", domain: "Gaelic Satirical Poetry",
+      note: "Birthplace of Brian Merriman, master of Gaelic satirical verse whose Cúirt an Mheán Oíche (The Midnight Court) gave voice to the wild, untamed longings of the human heart with a wit as sharp as the limestone itself." },
+    "Brian Merriman (Feakle)": { lng: -8.65, lat: 52.93, tier: 2,
+      years: "c. 1749 – 1805", domain: "Gaelic Satirical Poetry",
+      provisional: "Sits outside the core Burren area this map otherwise covers, like the Feakle grave entry it shares a graveyard with.",
+      note: "Merriman lived and taught in the Feakle/Spancilhill area for much of his life and is buried in Feakle Graveyard — see that grave entry for burial detail." },
+    "Máire Rua / Mary O'Brien (Leamaneh)": { lng: -9.14, lat: 52.99, linkedTo: { kind: "site", name: "Leamaneh Castle" },
+      years: "c. 1615 – 1686", domain: "17th-Century Landownership & Politics",
+      note: "The formidable Máire Rúa (Red Mary) O'Brien's home — a sovereign of the limestone stones whose fierce spirit and indomitable will forged a towering legend across the fractured epochs of seventeenth-century Clare." },
+    "Máire Rua / Mary O'Brien (Burial)": { lng: -8.98, lat: 52.85, linkedTo: { kind: "town", name: "Ennis" },
+      years: "c. 1615 – 1686", domain: "17th-Century Landownership & Politics",
+      note: "Máire Rúa is buried at Ennis Friary, a considerable distance from the Leamaneh stronghold she ruled — a reminder that the Burren's fiercest legends often outgrow the walls that first contained them." },
+    "John O'Donohue (Birthplace)": { lng: -8.95, lat: 53.05, tier: 2,
+      years: "1956 – 2008", domain: "Celtic Philosophy & Poetry",
+      provisional: "Coordinate is the general Caltra/Tubber area given in the source record, not a verified address point.",
+      note: "Birthplace of John O'Donohue, lyrical philosopher of the Burren stone, whose Anam Cara wove ancient Celtic spirituality into a sacred architecture of landscape, belonging, and the invisible grace of the everyday." },
+    "John O'Donohue (Residence)": { lng: -9.28, lat: 53.12, linkedTo: { kind: "site", name: "Fanore" },
+      years: "1956 – 2008", domain: "Celtic Philosophy & Poetry",
+      note: "O'Donohue lived and wrote here along the Fanore coastline — the landscape that shaped his thinking most directly. He is buried nearby at Craggagh Cemetery (see that grave entry)." },
+    "John Joe Conway (Kilfenora)": { lng: -9.22, lat: 52.99, linkedTo: { kind: "town", name: "Kilfenora" },
+      years: "1935 – 2019", domain: "Pastoral Tradition & Oral History",
+      note: "Home ground of John Joe Conway, quiet guardian of the old ways and pastoral soul of the limestone uplands, carrying the deep, unwritten history of the earth in his daily labour and enduring friendship. He is buried at Kilmoon Graveyard (see that grave entry); his life features in the documentary The Silver Branch." },
+    "Patrick McCormack (Mullaghmore)": { lng: -9.00, lat: 53.01, linkedTo: { kind: "site", name: "Mullaghmore" },
+      years: "20th century – living", domain: "Environmental Conservation & Farming",
+      note: "Steadfast farmer-poet and sentinel of Mullaghmore, standing as a living embodiment of resistance and profound communion with the sacred topography of the Burren — a central voice in the fight against development at Mullaghmore, told in The Silver Branch." },
+    "Teasie McCormack (Birthplace)": { lng: -9.05, lat: 52.95, linkedTo: { kind: "town", name: "Kilnaboy" },
+      years: "c. 1930 – 2025", domain: "Hearth Wisdom & Domestic Lore",
+      note: "Birthplace of Teasie McCormack (née Foot) — an Ollamh of the Burren frontier, a quiet sage whose profound intellect was matched only by the infinite grace of her hospitality." },
+    "Teasie McCormack (Old Smokey)": { lng: -9.06, lat: 52.97, linkedTo: { kind: "town", name: "Corofin" },
+      years: "c. 1930 – 2025", domain: "Hearth Wisdom & Domestic Lore",
+      note: "\"Old Smokey\" at Tullagha, near Corofin — keeper of the perpetual hearth, the sloe-gin harvest, and the unwritten history of the karst, she remains the timeless marrow of this stone landscape." },
+    "Teasie McCormack (Burial)": { lng: -9.22, lat: 52.99, linkedTo: { kind: "site", name: "Kilfenora Cathedral" },
+      years: "c. 1930 – 2025", domain: "Hearth Wisdom & Domestic Lore",
+      note: "Buried at St Fachnan's Cathedral, Kilfenora, closing an Ollamh's life spent as the marrow of this stone landscape." },
+    "Saint MacCreiche (Liscannor)": { lng: -9.38, lat: 52.94, linkedTo: { kind: "town", name: "Liscannor" },
+      years: "6th century", domain: "Early Christian Monasticism",
+      note: "An early missionary seed planted in the western winds, Saint MacCreiche's hallowed footprint is said to have consecrated the ocean-facing shores of Liscannor into timeless sacred ground. Buried at nearby Kilmacreehy Church." }
+  };
+
+  // Pubs — every entry links to a town/site, matching the plan agreed
+  // before building this: pubs "mostly tied to a town." Source sheet
+  // gave a town name only, never a street address or coordinate, so
+  // every pub's own lat/lng is a small deterministic offset from its
+  // linked town/site's own coordinate (spread out so several pubs in
+  // one village don't stack on the same point) — each one is marked
+  // provisional/approximate for exactly that reason. Two pubs (Spanish
+  // Point) and one (Crusheen) were left out entirely rather than
+  // guessed at: neither place exists yet as a site/town on this map, so
+  // there was nothing real to anchor them to.
+  var pubData = {
+    "Gus O'Connor's Pub": { lng: -9.3774, lat: 53.0172, linkedTo: { kind: "town", name: "Doolin" }, category: "Pub / Music", established: "est. 1832", patrons: "Traditional musicians, Christy Moore, travelling poets", provisional: "Coordinate is an approximate placement near Doolin — the source record gives a village name, not a street address, so this is not a verified location.", note: "Legendary coastal tavern globally famed as a crucible for traditional Irish music sessions and weary travelers traversing the Atlantic route." },
+    "McDaid's Pub (McGann's)": { lng: -9.37605, lat: 53.01512, linkedTo: { kind: "town", name: "Doolin" }, category: "Pub / Music", established: "est. 1970", patrons: "Fiddle masters, international folk enthusiasts", provisional: "Coordinate is an approximate placement near Doolin — the source record gives a village name, not a street address, so this is not a verified location.", note: "Intimate, flagstone-floored heritage pub nestled near the Doolin riverbanks, renowned for fiery fiddle tunes and welcoming local storytelling." },
+    "O'Connor's Pub": { lng: -9.291, lat: 53.0292, linkedTo: { kind: "town", name: "Lisdoonvarna" }, category: "Pub / Heritage", established: "est. 1845", patrons: "Willie Daly (Matchmaker), folk singers", provisional: "Coordinate is an approximate placement near Lisdoonvarna — the source record gives a village name, not a street address, so this is not a verified location.", note: "Historic spa-town institution famous for hosting the annual Matchmaking Festival and decades of traditional music heritage." },
+    "The Roadside Tavern": { lng: -9.28965, lat: 53.02712, linkedTo: { kind: "town", name: "Lisdoonvarna" }, category: "Pub / Brewery", established: "est. 1893", patrons: "Peter Curtin, local botanists, visiting geologists", provisional: "Coordinate is an approximate placement near Lisdoonvarna — the source record gives a village name, not a street address, so this is not a verified location.", note: "Iconic rustic pub home to the Burren Brewery crafting micro-brews inspired by local karst spring water and wild botanicals." },
+    "Monks Ballyvaughan": { lng: -9.1494, lat: 53.1167, linkedTo: { kind: "town", name: "Ballyvaughan" }, category: "Pub / Seafood", established: "est. 1960", patrons: "Local fishermen, maritime travelers, coastal sailors", provisional: "Coordinate is an approximate placement near Ballyvaughan — the source record gives a village name, not a street address, so this is not a verified location.", note: "Pier-side tavern overlooking Galway Bay, renowned for fresh local seafood and sheltering sailors and travelers since the mid-twentieth century." },
+    "The Hydro Hotel Bar": { lng: -9.29299, lat: 53.0281, linkedTo: { kind: "town", name: "Lisdoonvarna" }, category: "Pub / Hotel Bar", established: "est. 1902", patrons: "Spa tourists, Victorian writers, medical seekers", provisional: "Coordinate is an approximate placement near Lisdoonvarna — the source record gives a village name, not a street address, so this is not a verified location.", note: "Historic Victorian spa hotel bar reflecting the heyday of Lisdoonvarna's mineral-water tourism and literary gatherings." },
+    "The Barnagh House": { lng: -9.2161, lat: 52.9915, linkedTo: { kind: "town", name: "Kilfenora" }, category: "Pub / Cultural", established: "est. 1925", patrons: "Set dancers, local farmers, rural historians", provisional: "Coordinate is an approximate placement near Kilfenora — the source record gives a village name, not a street address, so this is not a verified location.", note: "Traditional crossroads pub situated near the ancient cathedral ruins, echoing with stories of centuries-old set dancing and local folklore." },
+    "Vaughan's Pub": { lng: -9.21475, lat: 52.98942, linkedTo: { kind: "town", name: "Kilfenora" }, category: "Pub / Music", established: "est. 1826", patrons: "Traditional céilí bands, dancers from across Clare", provisional: "Coordinate is an approximate placement near Kilfenora — the source record gives a village name, not a street address, so this is not a verified location.", note: "Renowned hub for traditional music and set dancing, deeply tied to the rich ecclesiastical and archaeological history of Kilfenora." },
+    "Lynch's Pub": { lng: -9.2889, lat: 53.119, linkedTo: { kind: "site", name: "Fanore" }, category: "Pub / Coastal", established: "est. 1940", patrons: "Atlantic fishermen, coastal walkers, local poets", provisional: "Coordinate is an approximate placement near Fanore — the source record gives a village name, not a street address, so this is not a verified location.", note: "Remote coastal outpost perched along the Wild Atlantic Way, offering shelter from Atlantic gales and tales of shoreline wrecks." },
+    "O'Looney's Bar": { lng: -9.37939, lat: 53.0161, linkedTo: { kind: "town", name: "Doolin" }, category: "Pub / Coastal", established: "est. 1985", patrons: "Doolin Coast Guard volunteers, marine researchers", provisional: "Coordinate is an approximate placement near Doolin — the source record gives a village name, not a street address, so this is not a verified location.", note: "Waterside pub positioned near the pier, blending modern hospitality with maritime stories of the Doolin rescue services and fishermen." },
+    "The Burren Storehouse": { lng: -9.28942, lat: 53.02873, linkedTo: { kind: "town", name: "Lisdoonvarna" }, category: "Pub / Venue", established: "est. 2014", patrons: "Food writers, acoustic artists, cultural tourists", provisional: "Coordinate is an approximate placement near Lisdoonvarna — the source record gives a village name, not a street address, so this is not a verified location.", note: "Modern cultural hub and performance space housed in a restored heritage building, celebrating local food, music, and Burren artistry." },
+    "An Teach Bar": { lng: -9.083, lat: 53.0222, linkedTo: { kind: "town", name: "Carron" }, category: "Pub / Upland", established: "est. 1978", patrons: "Upland sheep farmers, archaeologists, hill walkers", provisional: "Coordinate is an approximate placement near Carron — the source record gives a village name, not a street address, so this is not a verified location.", note: "Remote upland pub set in the heart of the high Burren karst landscape, serving hikers, farmers, and archaeologists." },
+    "The Village Inn": { lng: -9.14805, lat: 53.11462, linkedTo: { kind: "town", name: "Ballyvaughan" }, category: "Pub / Community", established: "est. 1910", patrons: "Local villagers, tradespeople, passing travelers", provisional: "Coordinate is an approximate placement near Ballyvaughan — the source record gives a village name, not a street address, so this is not a verified location.", note: "Cozy village tavern offering a warm hearth, traditional sessions, and stories passed down through generations of north Clare families." },
+    "The Rathbaun Hotel Bar": { lng: -9.29135, lat: 53.02682, linkedTo: { kind: "town", name: "Lisdoonvarna" }, category: "Pub / Family", established: "est. 1952", patrons: "Festival participants, matchmaking hopefuls", provisional: "Coordinate is an approximate placement near Lisdoonvarna — the source record gives a village name, not a street address, so this is not a verified location.", note: "Long-standing family-run hotel bar serving as a lively gathering point during the autumn matchmaking and festival seasons." },
+    "Green's Pub": { lng: -9.15139, lat: 53.1156, linkedTo: { kind: "town", name: "Ballyvaughan" }, category: "Pub / Historic", established: "est. 1888", patrons: "Local elders, artists, rural storytellers", provisional: "Coordinate is an approximate placement near Ballyvaughan — the source record gives a village name, not a street address, so this is not a verified location.", note: "Traditional stone-fronted village pub retaining old-world character, local drafts, and quiet corners for storytelling." },
+    "The Wild Honey Inn Bar": { lng: -9.29207, lat: 53.02901, linkedTo: { kind: "town", name: "Lisdoonvarna" }, category: "Pub / Gastropub", established: "est. 1860", patrons: "Culinary critics, international food travelers", provisional: "Coordinate is an approximate placement near Lisdoonvarna — the source record gives a village name, not a street address, so this is not a verified location.", note: "Beautifully restored 19th-century coaching inn combining traditional north Clare pub warmth with world-class culinary heritage." },
+    "Doolin Inn Bar": { lng: -9.37582, lat: 53.01673, linkedTo: { kind: "town", name: "Doolin" }, category: "Pub / Lodge", established: "est. 2018", patrons: "Eco-tourists, Aran Island ferry passengers", provisional: "Coordinate is an approximate placement near Doolin — the source record gives a village name, not a street address, so this is not a verified location.", note: "Sustainable village bar welcoming travelers exploring the karst coast, cliffs, and offshore Aran Islands." },
+    "Hogan's Pub": { lng: -9.379, lat: 52.9402, linkedTo: { kind: "town", name: "Liscannor" }, category: "Pub / Coastal", established: "est. 1912", patrons: "Stone quarrymen, local fishermen, marine traders", provisional: "Coordinate is an approximate placement near Liscannor — the source record gives a village name, not a street address, so this is not a verified location.", note: "Historic harbor-side tavern tied to the maritime heritage of Liscannor Bay, local stone quarrying, and coastal lore." },
+    "McCluskey's Pub": { lng: -9.37765, lat: 52.93812, linkedTo: { kind: "town", name: "Liscannor" }, category: "Pub / Village", established: "est. 1935", patrons: "Agricultural workers, pilgrims visiting St. Brigid's", provisional: "Coordinate is an approximate placement near Liscannor — the source record gives a village name, not a street address, so this is not a verified location.", note: "Traditional village bar echoing with local tales of sea trade, farming traditions, and proximity to St. Brigid's Grotto." },
+    "The Arch Bar": { lng: -9.293, lat: 52.9442, linkedTo: { kind: "town", name: "Ennistymon" }, category: "Pub / Historic", established: "est. 1855", patrons: "Market traders, local musicians, poets", provisional: "Coordinate is an approximate placement near Ennistymon — the source record gives a village name, not a street address, so this is not a verified location.", note: "Vibrant market-town pub set beneath historic stone arches, famous for lively music sessions along the Inagh River." },
+    "The Falls Hotel Bar": { lng: -9.29165, lat: 52.94212, linkedTo: { kind: "town", name: "Ennistymon" }, category: "Pub / Riverside", established: "est. 1820", patrons: "Mill workers, traveling merchants, naturalists", provisional: "Coordinate is an approximate placement near Ennistymon — the source record gives a village name, not a street address, so this is not a verified location.", note: "Historic bar overlooking the cascading river rapids and the ruins of an ancient 18th-century cotton and wool mill." },
+    "Clancy's Pub": { lng: -9.29498, lat: 52.9431, linkedTo: { kind: "town", name: "Ennistymon" }, category: "Pub / Town", established: "est. 1945", patrons: "Town locals, political figures, musicians", provisional: "Coordinate is an approximate placement near Ennistymon — the source record gives a village name, not a street address, so this is not a verified location.", note: "Traditional town-center watering hole known for sharp wit, local musicians, and deep roots in north Clare community life." },
+    "The West Clare Bar": { lng: -9.29142, lat: 52.94373, linkedTo: { kind: "town", name: "Ennistymon" }, category: "Pub / Heritage", established: "est. 1905", patrons: "Railway workers, local historians", provisional: "Coordinate is an approximate placement near Ennistymon — the source record gives a village name, not a street address, so this is not a verified location.", note: "Classic pub preserving old local artifacts, photographs, and oral histories of market days past." },
+    "The Corner House": { lng: -9.29335, lat: 52.94182, linkedTo: { kind: "town", name: "Ennistymon" }, category: "Pub / Music", established: "est. 1968", patrons: "Visiting tradition-bearers, fiddle players", provisional: "Coordinate is an approximate placement near Ennistymon — the source record gives a village name, not a street address, so this is not a verified location.", note: "Intimate music venue where visiting players and local masters gather for unscripted winter evening sessions." },
+    "Queally's Pub": { lng: -9.14781, lat: 53.11623, linkedTo: { kind: "town", name: "Ballyvaughan" }, category: "Pub / Local", established: "est. 1920", patrons: "Farmers from the high Burren, local residents", provisional: "Coordinate is an approximate placement near Ballyvaughan — the source record gives a village name, not a street address, so this is not a verified location.", note: "Traditional rural tavern offering an authentic slice of north Clare daily life away from the heavy tourist routes." },
+    "Joseph's Pub": { lng: -9.38098, lat: 52.9391, linkedTo: { kind: "town", name: "Liscannor" }, category: "Pub / Rural", established: "est. 1940", patrons: "Cliff of Moher visitors, rural locals", provisional: "Coordinate is an approximate placement near Liscannor — the source record gives a village name, not a street address, so this is not a verified location.", note: "Classic countryside pub situated along the approaches to the Cliffs of Moher, steeped in quiet rural tradition." },
+    "Russell's Bar": { lng: -9.37775, lat: 53.01482, linkedTo: { kind: "town", name: "Doolin" }, category: "Pub / Music", established: "est. 1975", patrons: "Traditional session players, international tourists", provisional: "Coordinate is an approximate placement near Doolin — the source record gives a village name, not a street address, so this is not a verified location.", note: "Traditional music bar anchoring the lower village, known for impromptu afternoon sessions and friendly hospitality." },
+    "Gleeson's Pub": { lng: -9.08165, lat: 53.02012, linkedTo: { kind: "town", name: "Carron" }, category: "Pub / Crossroads", established: "est. 1930", patrons: "Hill farmers, weather researchers, geologists", provisional: "Coordinate is an approximate placement near Carron — the source record gives a village name, not a street address, so this is not a verified location.", note: "Remote crossroads gathering spot central to the sheep-farming community and upland traditions of the high plateau." },
+    "The Log Cabin": { lng: -9.28755, lat: 53.11692, linkedTo: { kind: "site", name: "Fanore" }, category: "Pub / Scenic", established: "est. 1982", patrons: "Landscape photographers, coastal hikers", provisional: "Coordinate is an approximate placement near Fanore — the source record gives a village name, not a street address, so this is not a verified location.", note: "Rustic scenic bar offering panoramic views across Galway Bay toward the Connemara mountains under shifting skies." },
+    "Ballyreen Pub (The Roadside Stop)": { lng: -9.29089, lat: 53.1179, linkedTo: { kind: "site", name: "Fanore" }, category: "Pub / Coastal", established: "est. 1960", patrons: "Anglers, coastal explorers, geologists", provisional: "Coordinate is an approximate placement near Fanore — the source record gives a village name, not a street address, so this is not a verified location.", note: "Isolated roadside tavern positioned where the limestone cliffs meet the Atlantic crashing waves." },
+    "The Doolin Cafe Bar": { lng: -9.37847, lat: 53.01701, linkedTo: { kind: "town", name: "Doolin" }, category: "Pub / Contemporary", established: "est. 2005", patrons: "Modern travelers, acoustic musicians", provisional: "Coordinate is an approximate placement near Doolin — the source record gives a village name, not a street address, so this is not a verified location.", note: "Contemporary social spot hosting evening acoustic sets and relaxed gatherings after cliff walks." },
+    "Corofin Arms": { lng: -9.077, lat: 52.9442, linkedTo: { kind: "town", name: "Corofin" }, category: "Pub / Heritage", established: "est. 1890", patrons: "Anglers visiting Lake Inchiquin, local musicians", provisional: "Coordinate is an approximate placement near Corofin — the source record gives a village name, not a street address, so this is not a verified location.", note: "Historic angling pub situated near the gateway to the southern Burren and ancient lake forts." },
+    "Bofey Quinn's": { lng: -9.07565, lat: 52.94212, linkedTo: { kind: "town", name: "Corofin" }, category: "Pub / Music", established: "est. 1994", patrons: "Traditional musicians, festival organizers", provisional: "Coordinate is an approximate placement near Corofin — the source record gives a village name, not a street address, so this is not a verified location.", note: "Acclaimed pub and restaurant serving as a cultural anchor for traditional music in the Corofin area." },
+    "The Vaughan Lodge Bar": { lng: -9.345, lat: 52.9382, linkedTo: { kind: "town", name: "Lahinch" }, category: "Pub / Hotel Bar", established: "est. 2004", patrons: "Golfers, coastal visitors, food enthusiasts", provisional: "Coordinate is an approximate placement near Lahinch — the source record gives a village name, not a street address, so this is not a verified location.", note: "Elegant boutique hotel bar offering a refined selection of drinks and quiet conversation near the championship links." },
+    "The Dunshee Bar": { lng: -9.29407, lat: 52.94401, linkedTo: { kind: "town", name: "Ennistymon" }, category: "Pub / Historic", established: "est. 1915", patrons: "Local townspeople, artists, writers", provisional: "Coordinate is an approximate placement near Ennistymon — the source record gives a village name, not a street address, so this is not a verified location.", note: "Atmospheric traditional pub with deep ties to the artistic and literary community of Ennistymon." },
+    "The Pipers Inn": { lng: -9.21809, lat: 52.9904, linkedTo: { kind: "town", name: "Kilfenora" }, category: "Pub / Cultural", established: "est. 1988", patrons: "Uilleann pipers, traditional dancers, historians", provisional: "Coordinate is an approximate placement near Kilfenora — the source record gives a village name, not a street address, so this is not a verified location.", note: "Cultural hub dedicated to preserving the piping and musical heritage of north-west Clare." },
+    "Cassidy's Pub": { lng: -9.08499, lat: 53.0211, linkedTo: { kind: "town", name: "Carron" }, category: "Pub / Rural", established: "est. 1928", patrons: "Upland farmers, rural poets, hill walkers", provisional: "Coordinate is an approximate placement near Carron — the source record gives a village name, not a street address, so this is not a verified location.", note: "Traditional rural cottage pub offering quiet shelter and historic ties to the lonely Carran valley." },
+    "O'Dea's Pub": { lng: -9.07898, lat: 52.9431, linkedTo: { kind: "town", name: "Corofin" }, category: "Pub / Historic", established: "est. 1870", patrons: "Local agriculturalists, heritage researchers", provisional: "Coordinate is an approximate placement near Corofin — the source record gives a village name, not a street address, so this is not a verified location.", note: "Traditional village bar steeped in the local history of the O'Dea clan and nearby Dysert O'Dea castle." },
+    "The Coast Guard Bar": { lng: -9.28731, lat: 53.11853, linkedTo: { kind: "site", name: "Fanore" }, category: "Pub / Coastal", established: "est. 1978", patrons: "Marine rescue personnel, coastal walkers", provisional: "Coordinate is an approximate placement near Fanore — the source record gives a village name, not a street address, so this is not a verified location.", note: "Sea-facing tavern celebrating the maritime history and rescue services of the rugged Clare coast." },
+    "The Falls Bar": { lng: -9.29044, lat: 52.94258, linkedTo: { kind: "town", name: "Ennistymon" }, category: "Pub / Riverside", established: "est. 1895", patrons: "River anglers, local poets, heritage tourists", provisional: "Coordinate is an approximate placement near Ennistymon — the source record gives a village name, not a street address, so this is not a verified location.", note: "Historic riverside spot where locals have gathered for generations to watch the salmon leap the falls." },
+    "The Station Bar": { lng: -9.29536, lat: 52.94226, linkedTo: { kind: "town", name: "Ennistymon" }, category: "Pub / Railway Heritage", established: "est. 1887", patrons: "Former West Clare Railway travelers, historians", provisional: "Coordinate is an approximate placement near Ennistymon — the source record gives a village name, not a street address, so this is not a verified location.", note: "Historic bar commemorating the old railway line that once linked Ennis to the coastal communities." },
+    "The Cliffs View Bar": { lng: -9.37742, lat: 52.93973, linkedTo: { kind: "town", name: "Liscannor" }, category: "Pub / Scenic", established: "est. 1990", patrons: "Cliff sightseers, touring cyclists, photographers", provisional: "Coordinate is an approximate placement near Liscannor — the source record gives a village name, not a street address, so this is not a verified location.", note: "Elevated vantage point bar offering sweeping views across Liscannor Bay toward the open Atlantic." },
+    "The Mountain Stage Bar": { lng: -9.2682, lat: 53.0468, linkedTo: { kind: "site", name: "Slieve Elva" }, category: "Pub / Upland", established: "est. 1984", patrons: "Endurance hikers, fell runners, botanists", provisional: "Coordinate is an approximate placement near Slieve Elva — the source record gives a village name, not a street address, so this is not a verified location.", note: "Remote gathering spot nestled in the shadow of Slieve Elva, frequented by those exploring the high plateau." },
+    "The Anchor Inn Bar": { lng: -8.936, lat: 53.1402, linkedTo: { kind: "town", name: "Kinvara" }, category: "Pub / Coastal", established: "est. 1948", patrons: "Galway Bay sailors, wildlife photographers", provisional: "Coordinate is an approximate placement near Kinvara — the source record gives a village name, not a street address, so this is not a verified location.", note: "Traditional harbor pub just across the county border, sharing deep cultural ties with north Clare traditions." },
+    "The Pier Head Bar": { lng: -9.28925, lat: 53.11662, linkedTo: { kind: "site", name: "Fanore" }, category: "Pub / Coastal", established: "est. 1980", patrons: "Shoreline fishermen, lobsterers, marine biologists", provisional: "Coordinate is an approximate placement near Fanore — the source record gives a village name, not a street address, so this is not a verified location.", note: "Coastal pub looking out over the rocky fishing piers and tidal pools of the northern shoreline." },
+    "The Meadow View Bar": { lng: -9.21452, lat: 52.99103, linkedTo: { kind: "town", name: "Kilfenora" }, category: "Pub / Rural", established: "est. 1962", patrons: "Farming families, local hurling supporters", provisional: "Coordinate is an approximate placement near Kilfenora — the source record gives a village name, not a street address, so this is not a verified location.", note: "Friendly rural pub known for quiet conversations, sports discussions, and community gatherings." },
+    "The Last Inn": { lng: -9.37483, lat: 53.01558, linkedTo: { kind: "town", name: "Doolin" }, category: "Pub / Coastal", established: "est. 2010", patrons: "Late-night travelers, festival-goers, musicians", provisional: "Coordinate is an approximate placement near Doolin — the source record gives a village name, not a street address, so this is not a verified location.", note: "Vibrant watering hole catching the final evening rays and rounding out Doolin's famous nightly music trail." }
+  };
+
+  // Holy Wells — 37 linked to a nearby site/town (within ~3km, real
+  // coordinates from the source record), 12 standalone. St. Brigid's
+  // Well was deliberately NOT duplicated here — it already exists as
+  // its own siteData entry with the established "not an authentic
+  // ancient holy well" warning, and this well-sheet's own entry for it
+  // says much the same thing in a different voice, so there was
+  // nothing to add by making a second marker. The "Dubious Claims"
+  // wording throughout is kept close to the source's own skeptical
+  // framing (deliberately continuing the same honest-about-embellishment
+  // editorial stance as that St Brigid's Well policy) rather than
+  // softened into reverent prose.
+  var wellData = {
+    "St. Colman's Well": { lng: -8.9224, lat: 53.0642, linkedTo: { kind: "site", name: "Kilmacduagh Monastery" }, location: "Kilmacduagh", firstDocumented: "c. 12th Century", saint: "St. Colman MacDuagh", provisional: "No site or town close enough nearby to link honestly (nearest is 2.93km away); coordinate is as given in the source record, not independently verified.", note: "Hagiographic records attribute rapid anchorite hermit feats that stretch standard medieval timelines." },
+    "St. Fachnan's Well": { lng: -9.2241, lat: 52.9865, linkedTo: { kind: "site", name: "Kilfenora Cathedral" }, location: "Kilfenora", firstDocumented: "c. 1100s", saint: "St. Fachnan", provisional: "No site or town close enough nearby to link honestly (nearest is 0.65km away); coordinate is as given in the source record, not independently verified.", note: "Traditional miracle cures for eye ailments often exaggerate natural mineral filtration properties." },
+    "Tobercornan": { lng: -9.1245, lat: 53.1321, linkedTo: { kind: "town", name: "Ballyvaughan" }, location: "Tuber / Gleninagh", firstDocumented: "c. 1860", saint: "St. Curnan", provisional: "No site or town close enough nearby to link honestly (nearest is 2.48km away); coordinate is as given in the source record, not independently verified.", note: "Protected gothic-style stone well-house; local folklore warned the spring would dry up if its exact location was mapped by outsiders." },
+    "St. John's Well": { lng: -9.1452, lat: 53.1214, linkedTo: { kind: "town", name: "Ballyvaughan" }, location: "Ballyvaughan", firstDocumented: "c. 1750", saint: "St. John the Baptist", provisional: "No site or town close enough nearby to link honestly (nearest is 0.71km away); coordinate is as given in the source record, not independently verified.", note: "Blends pre-Christian midsummer solstice fire rituals directly into Christian baptismal traditions." },
+    "St. Brendan's Well": { lng: -9.2941, lat: 53.0982, linkedTo: { kind: "site", name: "Fanore" }, location: "Fanore", firstDocumented: "c. 1600s", saint: "St. Brendan the Navigator", provisional: "No site or town close enough nearby to link honestly (nearest is 2.21km away); coordinate is as given in the source record, not independently verified.", note: "Attributed to the great navigator saint, though historical proof of his specific footprint in this cove is missing." },
+    "St. MacCoughlan's Well": { lng: -9.2198, lat: 52.9812, linkedTo: { kind: "town", name: "Kilfenora" }, location: "Kilfenora", firstDocumented: "c. 14th Century", saint: "St. MacCoughlan", provisional: "No site or town close enough nearby to link honestly (nearest is 1.04km away); coordinate is as given in the source record, not independently verified.", note: "Associated with obscure regional anchors whose actual existence is preserved entirely through local oral variants." },
+    "St. Anne's Well": { lng: -9.0654, lat: 52.9341, linkedTo: { kind: "town", name: "Corofin" }, location: "Corofin", firstDocumented: "c. 1800", saint: "St. Anne", provisional: "No site or town close enough nearby to link honestly (nearest is 1.26km away); coordinate is as given in the source record, not independently verified.", note: "Modern devotional practices heavily embellish older, pre-Christian agrarian fertility rites." },
+    "St. Flannan's Well": { lng: -9.2891, lat: 52.9389, linkedTo: { kind: "town", name: "Ennistymon" }, location: "Ennistymon", firstDocumented: "c. 1180", saint: "St. Flannan", provisional: "No site or town close enough nearby to link honestly (nearest is 0.53km away); coordinate is as given in the source record, not independently verified.", note: "Local lore claims the water never boils or freezes—a common hyperbole for sacred karst springs." },
+    "St. Gobnait's Well": { lng: -9.1123, lat: 53.0789, linkedTo: { kind: "site", name: "Aillwee Cave" }, location: "Burren Upland", firstDocumented: "c. 19th Century", saint: "St. Gobnait", provisional: "No site or town close enough nearby to link honestly (nearest is 2.38km away); coordinate is as given in the source record, not independently verified.", note: "Gobnait is historically anchored in Cork; northern shrines frequently appropriate her honey/bee patronage without direct links." },
+    "Tobereendoney": { lng: -9.0987, lat: 53.0456, linkedTo: { kind: "site", name: "Termon" }, location: "Carron", firstDocumented: "c. 1839", saint: "Sunday Well (Tobar an Domhnaigh)", provisional: "No site or town close enough nearby to link honestly (nearest is 2.52km away); coordinate is as given in the source record, not independently verified.", note: "Dedicated to Sunday itself rather than a canonized saint, reflecting a Christianized adaptation of ancient day-worship." },
+    "St. MacCreiche's Well": { lng: -9.3912, lat: 53.0145, linkedTo: { kind: "town", name: "Doolin" }, location: "Doolin Coast", firstDocumented: "c. 11th Century", saint: "St. MacCreiche", provisional: "No site or town close enough nearby to link honestly (nearest is 0.94km away); coordinate is as given in the source record, not independently verified.", note: "Physical location of the spring shifted multiple times due to severe historical Atlantic coastal erosion." },
+    "St. Senan's Well": { lng: -9.5234, lat: 52.6341, linkedTo: { kind: "town", name: "Kilrush" }, location: "Scattery Border", firstDocumented: "c. 9th Century", saint: "St. Senan", provisional: "No site or town close enough nearby to link honestly (nearest is 2.69km away); coordinate is as given in the source record, not independently verified.", note: "Claims that the spring water calms ocean storms when sprinkled are pure maritime hyperbole." },
+    "Toberateea": { lng: -9.0543, lat: 52.9456, linkedTo: { kind: "town", name: "Corofin" }, location: "Kilnaboy", firstDocumented: "c. 1840", saint: "Anonymous Anchorite", provisional: "No site or town close enough nearby to link honestly (nearest is 1.55km away); coordinate is as given in the source record, not independently verified.", note: "Healing claims for toothaches rely entirely on ritual repetition rather than active medical compounds." },
+    "St. Manchan's Well": { lng: -9.0876, lat: 52.9234, linkedTo: { kind: "site", name: "Dysert O'Dea Castle" }, location: "Corofin Area", firstDocumented: "c. 15th Century", saint: "St. Manchan", provisional: "No site or town close enough nearby to link honestly (nearest is 1.95km away); coordinate is as given in the source record, not independently verified.", note: "Often confused with relics from other counties bearing similar saintly names; dubious provenance." },
+    "St. Patrick's Well": { lng: -9.0234, lat: 53.1123, linkedTo: { kind: "site", name: "Corcomroe Abbey" }, location: "Burren Margins", firstDocumented: "c. 12th Century", saint: "St. Patrick", provisional: "No site or town close enough nearby to link honestly (nearest is 2.63km away); coordinate is as given in the source record, not independently verified.", note: "Historians note St. Patrick's physical footprint in the far western limestone crust is entirely hagiographic myth." },
+    "Toberscaul": { lng: -9.2812, lat: 53.1023, linkedTo: { kind: "site", name: "Fanore" }, location: "Fanore", firstDocumented: "c. 1850", saint: "Anonymous", provisional: "No site or town close enough nearby to link honestly (nearest is 1.8km away); coordinate is as given in the source record, not independently verified.", note: "Functional folk name derived from local landscape cutting hazards rather than formal saintly dedication." },
+    "Tobergrania": { lng: -9.1123, lat: 53.0567, linkedTo: { kind: "site", name: "Poulnabrone Dolmen" }, location: "Carron", firstDocumented: "c. 19th Century", saint: "Grainne (Mythological)", provisional: "No site or town close enough nearby to link honestly (nearest is 2.05km away); coordinate is as given in the source record, not independently verified.", note: "Blends mythological figures (Grainne of the Pursuit) with Christian saint lore to blur origins." },
+    "Tobereena": { lng: -9.3812, lat: 53.0234, linkedTo: { kind: "town", name: "Doolin" }, location: "Doolin", firstDocumented: "c. 1880", saint: "Anonymous", provisional: "No site or town close enough nearby to link honestly (nearest is 0.86km away); coordinate is as given in the source record, not independently verified.", note: "A practical roadside spring later sacralized by travelers seeking safe passage over dangerous karst ridges." },
+    "Tobermurry": { lng: -9.2745, lat: 53.0312, linkedTo: { kind: "town", name: "Lisdoonvarna" }, location: "Lisdoonvarna", firstDocumented: "c. 1854", saint: "Blessed Virgin Mary", provisional: "No site or town close enough nearby to link honestly (nearest is 1.16km away); coordinate is as given in the source record, not independently verified.", note: "Dedicated during the 19th-century devotional revival, retrofitting older anonymous spring sites with Marian titles." },
+    "St. Inish's Well": { lng: -9.3451, lat: 52.9981, linkedTo: { kind: "town", name: "Doolin" }, location: "Coastal Clare", firstDocumented: "c. 19th Century", saint: "Regional Female Saint", provisional: "No site or town close enough nearby to link honestly (nearest is 2.94km away); coordinate is as given in the source record, not independently verified.", note: "Obscure dedication where the original saint's name completely degraded into generic local folklore." },
+    "Tobersool": { lng: -9.0543, lat: 53.0678, linkedTo: { kind: "site", name: "Termon" }, location: "Burren", firstDocumented: "c. 1839", saint: "Anonymous", provisional: "No site or town close enough nearby to link honestly (nearest is 2.44km away); coordinate is as given in the source record, not independently verified.", note: "Named for the murky or bubbling nature of the spring; healing efficacy is placebo and ritual tradition." },
+    "Tobernahoo": { lng: -9.2312, lat: 52.9789, linkedTo: { kind: "site", name: "Kilfenora Cathedral" }, location: "Kilfenora", firstDocumented: "c. 1845", saint: "Anonymous", provisional: "No site or town close enough nearby to link honestly (nearest is 1.61km away); coordinate is as given in the source record, not independently verified.", note: "Standard agricultural well retrofitted with holy status during penal times when secret mass rocks were nearby." },
+    "St. Columba's Well": { lng: -9.0432, lat: 53.1234, linkedTo: { kind: "site", name: "Corcomroe Abbey" }, location: "Burren Edge", firstDocumented: "c. 6th Century", saint: "St. Columba (Colmcille)", provisional: "No site or town close enough nearby to link honestly (nearest is 0.84km away); coordinate is as given in the source record, not independently verified.", note: "Colmcille legends are ubiquitous across Ireland; many western wells bear his name simply due to widespread cultural footprint." },
+    "Tobervologue": { lng: -9.2789, lat: 52.9412, linkedTo: { kind: "town", name: "Ennistymon" }, location: "Ennistymon", firstDocumented: "c. 1870", saint: "Anonymous", provisional: "No site or town close enough nearby to link honestly (nearest is 0.97km away); coordinate is as given in the source record, not independently verified.", note: "Water is high in mineral content due to limestone filtration, leading to genuine temporary relief misinterpreted as divine miracle." },
+    "St. Benignus's Well": { lng: -9.1123, lat: 53.1456, linkedTo: { kind: "town", name: "New Quay" }, location: "Kilronan Border", firstDocumented: "c. 11th Century", saint: "St. Benignus", provisional: "No site or town close enough nearby to link honestly (nearest is 1.41km away); coordinate is as given in the source record, not independently verified.", note: "Attributed to St. Patrick's early disciple; local connection relies on sweeping regional hagiography." },
+    "St. Ide's Well": { lng: -9.1543, lat: 53.0112, linkedTo: { kind: "site", name: "Leamaneh Castle" }, location: "North Clare", firstDocumented: "c. 12th Century", saint: "St. Ide (Ita)", provisional: "No site or town close enough nearby to link honestly (nearest is 2.79km away); coordinate is as given in the source record, not independently verified.", note: "St. Ide is primarily anchored in Limerick; her association with this specific Clare spring is a later devotional migration." },
+    "Toberelly": { lng: -9.1345, lat: 53.1189, linkedTo: { kind: "town", name: "Ballyvaughan" }, location: "Ballyvaughan", firstDocumented: "c. 1850", saint: "Anonymous", provisional: "No site or town close enough nearby to link honestly (nearest is 1.06km away); coordinate is as given in the source record, not independently verified.", note: "Spring emerging from a deep limestone fissure; surrounded by tales of subterranean fairy guardians rather than saints." },
+    "St. Kieran's Well": { lng: -9.0432, lat: 52.9567, linkedTo: { kind: "town", name: "Corofin" }, location: "Corofin Area", firstDocumented: "c. 11th Century", saint: "St. Kieran", provisional: "No site or town close enough nearby to link honestly (nearest is 2.73km away); coordinate is as given in the source record, not independently verified.", note: "Shares a name with several major Irish saints, making precise historical attribution difficult and prone to embellishment." },
+    "Tobernea": { lng: -9.3654, lat: 52.9489, linkedTo: { kind: "town", name: "Liscannor" }, location: "Liscannor", firstDocumented: "c. 1890", saint: "Anonymous", provisional: "No site or town close enough nearby to link honestly (nearest is 1.43km away); coordinate is as given in the source record, not independently verified.", note: "Positioned close to the coast; folklore claims its water level defies the ocean tide, which is physically impossible." },
+    "St. Senach's Well": { lng: -9.2212, lat: 52.9834, linkedTo: { kind: "town", name: "Kilfenora" }, location: "Kilfenora", firstDocumented: "c. 12th Century", saint: "St. Senach", provisional: "No site or town close enough nearby to link honestly (nearest is 0.84km away); coordinate is as given in the source record, not independently verified.", note: "Dedicated to an early bishop of Kilfenora whose actual biographical details are sparse and mythologized." },
+    "Tobernahilty": { lng: -9.1043, lat: 53.0389, linkedTo: { kind: "site", name: "Caherconnell" }, location: "Carron", firstDocumented: "c. 1860", saint: "Anonymous", provisional: "No site or town close enough nearby to link honestly (nearest is 2.25km away); coordinate is as given in the source record, not independently verified.", note: "Tied to ancient tree veneration customs where the nearby hazel or willow was believed to absorb sickness." },
+    "St. Carthage's Well": { lng: -9.1234, lat: 52.9712, linkedTo: { kind: "site", name: "Seven Streams of Teeskagh" }, location: "North Clare", firstDocumented: "c. 7th Century", saint: "St. Carthage", provisional: "No site or town close enough nearby to link honestly (nearest is 1.63km away); coordinate is as given in the source record, not independently verified.", note: "Carthage is principally linked to Lismore; attribution here reflects secondary ecclesiastical expansion claims." },
+    "St. Lachteen's Well": { lng: -9.0512, lat: 52.9434, linkedTo: { kind: "town", name: "Corofin" }, location: "Corofin", firstDocumented: "c. 11th Century", saint: "St. Lachteen", provisional: "No site or town close enough nearby to link honestly (nearest is 1.73km away); coordinate is as given in the source record, not independently verified.", note: "Local tradition claims the well water glows under moonlight—purely poetic folklore." },
+    "Tobercrone": { lng: -9.0789, lat: 53.0512, linkedTo: { kind: "site", name: "Termon" }, location: "Burren", firstDocumented: "c. 1839", saint: "Anonymous", provisional: "No site or town close enough nearby to link honestly (nearest is 1.32km away); coordinate is as given in the source record, not independently verified.", note: "Practical survival spring that gained a reputation for miraculous non-drying properties during severe droughts." },
+    "Tobernasandbox": { lng: -9.2789, lat: 53.1043, linkedTo: { kind: "site", name: "Fanore" }, location: "Fanore", firstDocumented: "c. 19th Century", saint: "Anonymous", provisional: "No site or town close enough nearby to link honestly (nearest is 1.64km away); coordinate is as given in the source record, not independently verified.", note: "Named for its sandy limestone bed; local tales attribute magical filtering properties to saintly blessing." },
+    "St. Assicus's Well": { lng: -8.9123, lat: 53.1567, linkedTo: { kind: "town", name: "Kinvara" }, location: "Clare / Galway", firstDocumented: "c. 5th Century", saint: "St. Assicus", provisional: "No site or town close enough nearby to link honestly (nearest is 2.52km away); coordinate is as given in the source record, not independently verified.", note: "Assicus was patron of coppersmiths; attributing a well in a non-mining karst zone is an incongruous hagiographic transfer." },
+    "Tobermorey": { lng: -9.2945, lat: 52.9312, linkedTo: { kind: "town", name: "Ennistymon" }, location: "Ennistymon", firstDocumented: "c. 1850", saint: "Anonymous", provisional: "No site or town close enough nearby to link honestly (nearest is 1.32km away); coordinate is as given in the source record, not independently verified.", note: "Traditional thanksgiving site used by tenant farmers before autumn rent payments, blending spirituality with social survival." },
+    "Tobercornan (Secondary)": { lng: -8.9451, lat: 53.0112, tier: 2, location: "Tuber", firstDocumented: "c. 1820", saint: "St. Curnan", provisional: "No site or town close enough nearby to link honestly (nearest is 3.83km away); coordinate is as given in the source record, not independently verified.", note: "Named after local early Christian figures whose actual identities became heavily mythologized." },
+    "St. Etchen's Well": { lng: -9.1678, lat: 53.0123, tier: 2, location: "North Clare", firstDocumented: "c. 1700s", saint: "St. Etchen", provisional: "No site or town close enough nearby to link honestly (nearest is 3.31km away); coordinate is as given in the source record, not independently verified.", note: "Miraculous interventions regarding cattle disease are purely anecdotal pastoral coping mechanisms." },
+    "St. Caimin's Well": { lng: -8.3541, lat: 52.9123, tier: 2, location: "Inis Cealtra", firstDocumented: "c. 650 AD", saint: "St. Caimin", provisional: "Sits well outside the core Burren area this map otherwise covers (35.61km from the nearest mapped site/town) — included as a notable near-miss rather than because it's geographically part of the Burren.", note: "Island monastic associations were frequently projected onto mainland shore wells to encourage local pilgrimage." },
+    "St. Mochulla's Well": { lng: -8.7982, lat: 52.8891, tier: 2, location: "Tulla Region", firstDocumented: "c. 11th Century", saint: "St. Mochulla", provisional: "Sits well outside the core Burren area this map otherwise covers (13.53km from the nearest mapped site/town) — included as a notable near-miss rather than because it's geographically part of the Burren.", note: "Associated with weather-control and rain-making rituals during droughts; scientifically unfounded." },
+    "St. Crone's Well": { lng: -9.1982, lat: 53.0345, tier: 2, location: "North Clare", firstDocumented: "c. 19th Century", saint: "St. Crone", provisional: "No site or town close enough nearby to link honestly (nearest is 4.14km away); coordinate is as given in the source record, not independently verified.", note: "Very little documentation exists in diocesan archives; sustained purely by family oral history." },
+    "St. Brecan's Well": { lng: -9.2345, lat: 53.0891, tier: 2, location: "North Clare", firstDocumented: "c. 10th Century", saint: "St. Brecan", provisional: "No site or town close enough nearby to link honestly (nearest is 3.4km away); coordinate is as given in the source record, not independently verified.", note: "Mainland Clare outpost status linked to Aran monastic sites is historically tenuous." },
+    "Toberslevane": { lng: -9.2812, lat: 53.0789, tier: 2, location: "Slieve Elva", firstDocumented: "c. 19th Century", saint: "Anonymous", provisional: "No site or town close enough nearby to link honestly (nearest is 3.8km away); coordinate is as given in the source record, not independently verified.", note: "Primarily a high-altitude watering hole for sheep that acquired minor sacred status among hill farmers." },
+    "St. Laserian's Well": { lng: -8.6543, lat: 52.8912, tier: 2, location: "Clare Border", firstDocumented: "c. 7th Century", saint: "St. Laserian", provisional: "Sits well outside the core Burren area this map otherwise covers (22.54km from the nearest mapped site/town) — included as a notable near-miss rather than because it's geographically part of the Burren.", note: "Associated with regional monastic networks; healing claims lack any contemporary medical documentation." },
+    "Toberbeg": { lng: -9.2981, lat: 53.0912, tier: 2, location: "Fanore", firstDocumented: "c. 1900", saint: "Anonymous", provisional: "No site or town close enough nearby to link honestly (nearest is 3.02km away); coordinate is as given in the source record, not independently verified.", note: "Minor roadside trickle elevated to holy well status simply due to its pure taste compared to stagnant surface water." },
+    "Tobervaddy": { lng: -9.1432, lat: 52.8891, tier: 2, location: "Kilnamona", firstDocumented: "c. 1840", saint: "Anonymous (The Dog's Well)", provisional: "No site or town close enough nearby to link honestly (nearest is 5.72km away); coordinate is as given in the source record, not independently verified.", note: "Folk etymology suggests it cured mad dog bites; a dangerous piece of pre-modern medical folklore." },
+    "St. Finghin's Well": { lng: -8.8451, lat: 52.8123, tier: 2, location: "Quin Region", firstDocumented: "c. 10th Century", saint: "St. Finghin", provisional: "Sits well outside the core Burren area this map otherwise covers (10.14km from the nearest mapped site/town) — included as a notable near-miss rather than because it's geographically part of the Burren.", note: "Historically tied to mental health cures; patients were submerged, blending faith healing with harsh hydrotherapy." },
+    "The Lost Well of Elva": { lng: -9.2643, lat: 53.0856, tier: 2, location: "Slieve Elva", firstDocumented: "c. 19th Century", saint: "Anonymous Upland Saint", provisional: "No site or town close enough nearby to link honestly (nearest is 3.94km away); coordinate is as given in the source record, not independently verified.", note: "Mythical upland spring said to appear only to those pure of heart; heavily romanticized by 19th-century antiquarians." }
   };
 
   // Route system — first test run. A route is an ordered sequence of
@@ -2881,6 +3316,56 @@
       return disciplineColor[first] || '#ded2b3';
     }
 
+    // isJoinable re-validates the target actually exists in siteData/
+    // townData rather than trusting linkedTo blindly — a typo'd or
+    // future-broken link fails safe (falls back to independent point)
+    // rather than silently vanishing from the map with no badge to
+    // attach to and no marker of its own.
+    function isJoinable(linkedTo) {
+      if (!linkedTo) return false;
+      var pool = linkedTo.kind === 'town' ? townData : (linkedTo.kind === 'site' ? siteData : null);
+      return !!(pool && pool[linkedTo.name]);
+    }
+
+    // ZOOM-PRIORITY SYSTEM — registry of every "joinable" kind (a marker
+    // that becomes a badge on its linked site/town rather than its own
+    // pin, when linkedTo is set and resolves). Adding pubs or person-
+    // related locations later means adding ONE more entry here (plus
+    // their own data object and a badge corner in the CSS) — nothing
+    // else about allPoints, clustering, or the join mechanism itself
+    // needs to change. defaultTier only matters for entries that AREN'T
+    // joined (no linkedTo, or a broken one) and so render as their own
+    // independent point — see the tier system below.
+    var JOINABLE_KINDS = [
+      { kind: 'legend', data: legendData, disciplines: ['lore'], defaultTier: 2 },
+      { kind: 'grave', data: graveData, disciplines: ['archaeology'], defaultTier: 2 },
+      { kind: 'person', data: personData, disciplines: ['lore'], defaultTier: 2 },
+      { kind: 'pub', data: pubData, disciplines: ['lore'], defaultTier: 2 },
+      { kind: 'well', data: wellData, disciplines: ['lore'], defaultTier: 2 }
+    ];
+
+    // Tiers express "how zoomed-out can the map be before this exists at
+    // all" — towns (tier 0) are exempt outright (see isBelowTierFloor),
+    // everything else needs its tier's floor cleared first. A formula
+    // rather than a fixed per-tier lookup table so a fractional tier
+    // (an entry's own `tier: 0.5` override) genuinely lands between two
+    // named tiers rather than needing a new named tier defined for every
+    // in-between case — e.g. Poulnabrone Dolmen is tier 0.5 below, a
+    // deliberately more prominent site without changing what "tier 1"
+    // means for every other site.
+    var TIER_ZOOM_FLOOR_BASE = 8;   // matches the map's own minZoom — tier 0 is "always"
+    var TIER_ZOOM_FLOOR_STEP = 1.5; // zoom needed per additional tier level — tuned so tier 1
+    // (ordinary sites) clears its floor at 9.5, comfortably below the map's own default opening
+    // zoom of 10.2, so today's "sites are visible as soon as the map loads" experience doesn't
+    // change. Only tier 2 (unlinked minor legends/graves today; pubs/person-locations later)
+    // gets held back until zoom 11 — the part that was actually meant to change.
+    function tierMinZoom(tier) { return TIER_ZOOM_FLOOR_BASE + tier * TIER_ZOOM_FLOOR_STEP; }
+    function isBelowTierFloor(p) {
+      if (p.kind === 'town') return false;
+      var tier = (typeof p.tier === 'number') ? p.tier : 1;
+      return map.getZoom() < tierMinZoom(tier);
+    }
+
     var allPoints = [];
     Object.keys(siteData).forEach(function (name) {
       var d = siteData[name];
@@ -2888,7 +3373,8 @@
         key: 'site:' + name, kind: 'site', name: name,
         lng: d.lng, lat: d.lat,
         disciplines: d.discipline.toLowerCase().split(' / '),
-        provisional: !!d.provisional, contested: !!d.warning
+        provisional: !!d.provisional, contested: !!d.warning,
+        tier: (typeof d.tier === 'number') ? d.tier : 1
       });
     });
     Object.keys(townData).forEach(function (name) {
@@ -2897,25 +3383,27 @@
         key: 'town:' + name, kind: 'town', name: name,
         lng: t.lng, lat: t.lat,
         disciplines: ['town'],
-        provisional: !!t.provisional, contested: !!t.warning
+        provisional: !!t.provisional, contested: !!t.warning,
+        tier: 0
       });
     });
-    Object.keys(legendData).forEach(function (name) {
-      var g = legendData[name];
-      allPoints.push({
-        key: 'legend:' + name, kind: 'legend', name: name,
-        lng: g.lng, lat: g.lat,
-        disciplines: ['lore'],
-        provisional: !!g.provisional, contested: !!g.warning
-      });
-    });
-    Object.keys(graveData).forEach(function (name) {
-      var gv = graveData[name];
-      allPoints.push({
-        key: 'grave:' + name, kind: 'grave', name: name,
-        lng: gv.lng, lat: gv.lat,
-        disciplines: ['archaeology'],
-        provisional: !!gv.provisional, contested: !!gv.warning
+    // Every registered joinable kind (legend, grave, and whatever gets
+    // added later) goes through the exact same logic: if it validly
+    // links to a real site/town, it's excluded here entirely and
+    // rendered as a badge instead (see buildPointMarkerEl); otherwise it
+    // becomes its own independent point at its tier (its own `tier`
+    // field if set, else the registry's defaultTier for that kind).
+    JOINABLE_KINDS.forEach(function (reg) {
+      Object.keys(reg.data).forEach(function (name) {
+        var e = reg.data[name];
+        if (isJoinable(e.linkedTo)) return;
+        allPoints.push({
+          key: reg.kind + ':' + name, kind: reg.kind, name: name,
+          lng: e.lng, lat: e.lat,
+          disciplines: reg.disciplines,
+          provisional: !!e.provisional, contested: !!e.warning,
+          tier: (typeof e.tier === 'number') ? e.tier : reg.defaultTier
+        });
       });
     });
 
@@ -2936,6 +3424,23 @@
         // vividly red. Same hue, just lighter/more saturated.
         return { iconKey: 'grave', primary: '#D74646', secondary: null, town: false, provisional: p.provisional, contested: p.contested };
       }
+      if (p.kind === 'person') {
+        // Warm terracotta/bronze — reads as "aged portrait" rather than
+        // any existing discipline color (flora green, geology slate,
+        // archaeology gold, lore blue, grave red all already taken).
+        return { iconKey: 'person', primary: '#9C6B3E', secondary: null, town: false, provisional: p.provisional, contested: p.contested };
+      }
+      if (p.kind === 'pub') {
+        // Warm burnt-orange — the last free hue in the family (flora
+        // green, geology slate, archaeology gold, lore blue, grave red,
+        // person bronze all taken already).
+        return { iconKey: 'pub', primary: '#C56A1F', secondary: null, town: false, provisional: p.provisional, contested: p.contested };
+      }
+      if (p.kind === 'well') {
+        // Cool teal — the "sacred water" end of the palette, distinct
+        // from lore blue (which stays reserved for legends generally).
+        return { iconKey: 'well', primary: '#2E8B8B', secondary: null, town: false, provisional: p.provisional, contested: p.contested };
+      }
       var d = siteData[p.name];
       var parts = d.discipline.split(' / ');
       var iconKey = parts[0].toLowerCase();
@@ -2946,8 +3451,29 @@
 
     function buildMarkerEl(iconKey, primaryColor, opts) {
       opts = opts || {};
+      var linkedItems = opts.linkedItems || [];
       var el = document.createElement('div');
       el.className = 'mk' + (opts.town ? ' town' : '');
+      // BADGE CONSOLIDATION — replaces the old one-corner-per-kind badge
+      // system (legend/grave/person/pub/well each getting their own fixed
+      // spot). That worked at 2-3 kinds; by the time a 5th and 6th kind
+      // (pub, well) arrived, corners had run out and badges were sharing
+      // space, overlapping on the busiest markers (Fanore ended up with
+      // five badges jockeying for four corners). A marker only ever shows
+      // ONE badge now — a count — regardless of how many different kinds
+      // are actually linked, so adding a 6th, 7th, 20th future kind never
+      // needs a new corner. The breakdown lives in the same hover popup
+      // clusters/towns already use, just with a second, static list
+      // (linked items never change at render time, unlike a town's
+      // absorbed-count list, which is why they're two separate list
+      // elements — see syncTownPopupList for the one that does change).
+      var linkedListHtml = linkedItems.map(function (item) {
+        var st = LINKED_KIND_STYLE[item.kind] || { color: 'var(--parchment)', label: item.kind };
+        return '<button type="button" class="cluster-hover-item" data-link-kind="' + item.kind + '" data-link-name="' + item.name + '">' +
+          '<span class="cluster-hover-dot" style="background:' + st.color + '"></span>' +
+          '<span class="cluster-hover-name">' + item.name + '</span></button>';
+      }).join('');
+      var showPopup = opts.town || linkedItems.length > 0;
       // Everything visual lives in .mk-inner, not directly on .mk itself —
       // MapLibre sets `transform: translate(...)` on .mk directly to
       // position it geographically, so the scale transform used for the
@@ -2961,15 +3487,23 @@
         (opts.secondaryColor ? '<div class="mk-ring' + (opts.provisional ? ' provisional' : '') + '" style="border-color:' + opts.secondaryColor + '"></div>' : (opts.provisional ? '<div class="mk-ring provisional" style="border-color:' + primaryColor + '"></div>' : '')) +
         '<div class="mk-body" style="' + (opts.contested ? 'background:#121212;border-color:' + primaryColor : 'background:' + primaryColor + ';border-color:' + primaryColor) + '"><svg viewBox="0 0 24 24" style="color:' + (opts.contested ? primaryColor : '#ded2b3') + '">' + iconPaths[iconKey] + '</svg></div>' +
         (opts.badge ? '<div class="mk-badge">' + opts.badge + '</div>' : '') +
+        (linkedItems.length ? '<div class="mk-consolidated-badge" aria-hidden="true">' + linkedItems.length + '</div>' : '') +
         '<div class="mk-label">' + opts.label + '</div>' +
         '</div>' +
-        (opts.town ? '<div class="cluster-hover-popup" role="tooltip">' +
+        (showPopup ? '<div class="cluster-hover-popup" role="tooltip">' +
           '<div class="cluster-hover-title">' + opts.label + '</div>' +
           (opts.townNote ? '<div class="cluster-hover-note">' + opts.townNote + '</div>' : '') +
+          (linkedListHtml ? '<div class="cluster-hover-linked-list">' + linkedListHtml + '</div>' : '') +
           '<div class="cluster-hover-list"></div></div>' : '');
       el.tabIndex = 0;
       el.setAttribute('role', 'button');
       el.setAttribute('aria-label', opts.label);
+      el.querySelectorAll('.cluster-hover-linked-list .cluster-hover-item').forEach(function (btn) {
+        btn.addEventListener('click', function (domEvent) {
+          domEvent.stopPropagation();
+          navigateTo(btn.getAttribute('data-link-kind'), btn.getAttribute('data-link-name'));
+        });
+      });
       return el;
     }
 
@@ -3064,6 +3598,42 @@
         return '<button class="route-chip link-chip" data-link-kind="legend" data-link-name="' + k + '" style="--route-accent:' + disciplineColor.lore + '">Local legend: ' + k + '</button>';
       }).join('') + '</div>';
     }
+    // Same idea, graves — sites/towns never showed these at all before,
+    // even though a grave with a linkedTo has always meant "this is
+    // about that place" just as much as a legend does.
+    function linkedGravesChipsHtml(kind, name) {
+      var keys = gravesLinkedTo(kind, name);
+      if (!keys.length) return '';
+      return '<div class="site-routes">' + keys.map(function (k) {
+        return '<button class="route-chip link-chip" data-link-kind="grave" data-link-name="' + k + '" style="--route-accent:#D74646">Notable grave: ' + k + '</button>';
+      }).join('') + '</div>';
+    }
+    // Same idea again, notable figures.
+    function linkedPersonsChipsHtml(kind, name) {
+      var keys = personsLinkedTo(kind, name);
+      if (!keys.length) return '';
+      return '<div class="site-routes">' + keys.map(function (k) {
+        return '<button class="route-chip link-chip" data-link-kind="person" data-link-name="' + k + '" style="--route-accent:#9C6B3E">Notable figure: ' + k + '</button>';
+      }).join('') + '</div>';
+    }
+    // Same idea again, pubs — a town like Doolin can link several at
+    // once, but .site-routes already wraps onto new lines, so this
+    // doesn't need its own truncation/overflow handling.
+    function linkedPubsChipsHtml(kind, name) {
+      var keys = pubsLinkedTo(kind, name);
+      if (!keys.length) return '';
+      return '<div class="site-routes">' + keys.map(function (k) {
+        return '<button class="route-chip link-chip" data-link-kind="pub" data-link-name="' + k + '" style="--route-accent:#C56A1F">' + k + '</button>';
+      }).join('') + '</div>';
+    }
+    // Same idea again, holy wells.
+    function linkedWellsChipsHtml(kind, name) {
+      var keys = wellsLinkedTo(kind, name);
+      if (!keys.length) return '';
+      return '<div class="site-routes">' + keys.map(function (k) {
+        return '<button class="route-chip link-chip" data-link-kind="well" data-link-name="' + k + '" style="--route-accent:#2E8B8B">' + k + '</button>';
+      }).join('') + '</div>';
+    }
     function siteOrTownLinkChipHtml(g) {
       if (!g.linkedTo) return '';
       var label = (g.linkedTo.kind === 'town' ? 'About this town: ' : 'About this place: ') + g.linkedTo.name;
@@ -3108,6 +3678,9 @@
       Object.keys(townData).forEach(function (n) { if (n !== excludeName) candidates.push({ name: n, kind: 'town' }); });
       Object.keys(legendData).forEach(function (n) { if (n !== excludeName) candidates.push({ name: n, kind: 'legend' }); });
       Object.keys(graveData).forEach(function (n) { if (n !== excludeName) candidates.push({ name: n, kind: 'grave' }); });
+      Object.keys(personData).forEach(function (n) { if (n !== excludeName) candidates.push({ name: n, kind: 'person' }); });
+      Object.keys(pubData).forEach(function (n) { if (n !== excludeName) candidates.push({ name: n, kind: 'pub' }); });
+      Object.keys(wellData).forEach(function (n) { if (n !== excludeName) candidates.push({ name: n, kind: 'well' }); });
       candidates.sort(function (a, b) { return b.name.length - a.name.length; });
 
       function isWordChar(ch) { return !!ch && /[A-Za-z]/.test(ch); }
@@ -3217,6 +3790,9 @@
       else if (kind === 'town') openTownDrawer(id);
       else if (kind === 'legend') openLegendDrawer(id);
       else if (kind === 'grave') openGraveDrawer(id);
+      else if (kind === 'person') openPersonDrawer(id);
+      else if (kind === 'pub') openPubDrawer(id);
+      else if (kind === 'well') openWellDrawer(id);
       else openScriptoriumDrawer(id); // flora, story, or any other Scriptorium category
     }
     function navigateToRoute(routeId) {
@@ -3234,6 +3810,9 @@
       else if (prev.kind === 'town') { flyToEntry(prev.id); openTownDrawer(prev.id); }
       else if (prev.kind === 'legend') { flyToEntry(prev.id); openLegendDrawer(prev.id); }
       else if (prev.kind === 'grave') { flyToEntry(prev.id); openGraveDrawer(prev.id); }
+      else if (prev.kind === 'person') { flyToEntry(prev.id); openPersonDrawer(prev.id); }
+      else if (prev.kind === 'pub') { flyToEntry(prev.id); openPubDrawer(prev.id); }
+      else if (prev.kind === 'well') { flyToEntry(prev.id); openWellDrawer(prev.id); }
       else if (prev.kind === 'route') showRoute(prev.id);
       else openScriptoriumDrawer(prev.id);
     }
@@ -3257,11 +3836,15 @@
       entry.style.setProperty('--accent-tag', accent);
       entry.innerHTML = '<div class="entry-header-row"><h2>' + name + '</h2>' + bookmarkBtnHtml('site', name) + '</div>' +
         '<span class="tag">' + d.discipline + ' — ' + d.category + '</span>' +
-        '<p>' + d.note + '</p>' +
+        '<p>' + autoLinkNote(d.note, name) + '</p>' +
         (d.warning ? '<div class="warning">' + d.warning + '</div>' : '') +
         (d.provisional ? '<div class="provisional-note">' + d.provisional + '</div>' : '') +
         deepDiveBtnHtml() +
         linkedLegendsChipsHtml('site', name) +
+        linkedGravesChipsHtml('site', name) +
+        linkedPersonsChipsHtml('site', name) +
+        linkedPubsChipsHtml('site', name) +
+        linkedWellsChipsHtml('site', name) +
         routeChipsHtml(name) +
         externalMapLinksHtml(d.lat, d.lng, name);
       drawerBody.appendChild(entry);
@@ -3296,6 +3879,10 @@
         deepDiveBtnHtml() +
         nearestSitesChipsHtml(name) +
         linkedLegendsChipsHtml('town', name) +
+        linkedGravesChipsHtml('town', name) +
+        linkedPersonsChipsHtml('town', name) +
+        linkedPubsChipsHtml('town', name) +
+        linkedWellsChipsHtml('town', name) +
         routeChipsHtml(name) +
         externalMapLinksHtml(t.lat, t.lng, name) +
         nearestSitesTableHtml(name);
@@ -3421,7 +4008,7 @@
       entry.style.setProperty('--accent-tag', accent);
       entry.innerHTML = '<div class="entry-header-row"><h2>' + name + '</h2>' + bookmarkBtnHtml('legend', name) + '</div>' +
         '<span class="tag">Lore — Folklore (' + g.confidence + ')</span>' +
-        '<p>' + g.note + '</p>' +
+        '<p>' + autoLinkNote(g.note, name) + '</p>' +
         (g.warning ? '<div class="warning">' + g.warning + '</div>' : '') +
         (g.provisional ? '<div class="provisional-note">' + g.provisional + '</div>' : '') +
         deepDiveBtnHtml() +
@@ -3456,9 +4043,9 @@
       entry.style.setProperty('--accent-tag', accent);
       entry.innerHTML = '<div class="entry-header-row"><h2>' + name + '</h2>' + bookmarkBtnHtml('grave', name) + '</div>' +
         '<span class="tag">Notable Grave Site — ' + gv.location + ' (' + gv.confidence + ')</span>' +
-        (gv.notableBurials ? '<p><strong>Notable Burials:</strong> ' + gv.notableBurials + '</p>' : '') +
-        (gv.associations ? '<p><strong>Legends / Associations:</strong> ' + gv.associations + '</p>' : '') +
-        (gv.fieldNotes ? '<p><strong>Field Notes:</strong> ' + gv.fieldNotes + '</p>' : '') +
+        (gv.notableBurials ? '<p><strong>Notable Burials:</strong> ' + autoLinkNote(gv.notableBurials, name) + '</p>' : '') +
+        (gv.associations ? '<p><strong>Legends / Associations:</strong> ' + autoLinkNote(gv.associations, name) + '</p>' : '') +
+        (gv.fieldNotes ? '<p><strong>Field Notes:</strong> ' + autoLinkNote(gv.fieldNotes, name) + '</p>' : '') +
         (gv.warning ? '<div class="warning">' + gv.warning + '</div>' : '') +
         (gv.provisional ? '<div class="provisional-note">' + gv.provisional + '</div>' : '') +
         deepDiveBtnHtml() +
@@ -3469,6 +4056,109 @@
       wireLinkChips(entry);
       var graveBookmarkBtn = entry.querySelector('.bookmark-btn');
       if (graveBookmarkBtn) wireBookmarkBtn(graveBookmarkBtn);
+      drawerEl.classList.add('open');
+      drawerEl.setAttribute('aria-hidden', 'false');
+    }
+
+    // Notable Figures — same drawer shape again, built from personData's
+    // own fields (years, domain, a single prose note per location-role
+    // rather than the grave-style split fields, since each person entry
+    // is already scoped to one specific role — birthplace, residence,
+    // burial — not a whole-life summary).
+    function openPersonDrawer(name) {
+      var pd = personData[name];
+      var accent = '#9C6B3E';
+      var drawerEl = document.getElementById('drawer');
+      drawerEl.style.setProperty('--accent', accent);
+      drawerEl.style.setProperty('--accent-soft', accentSoftColor.person);
+      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('person');
+      renderAmbientRows('legend', 'person', name);
+      var drawerBody = document.getElementById('drawerBody');
+      drawerBody.innerHTML = '';
+      var entry = document.createElement('div');
+      entry.className = 'site-entry';
+      entry.style.setProperty('--accent-tag', accent);
+      entry.innerHTML = '<div class="entry-header-row"><h2>' + name + '</h2>' + bookmarkBtnHtml('person', name) + '</div>' +
+        '<span class="tag">Notable Figure — ' + pd.domain + (pd.years ? ' (' + pd.years + ')' : '') + '</span>' +
+        '<p>' + autoLinkNote(pd.note, name) + '</p>' +
+        (pd.warning ? '<div class="warning">' + pd.warning + '</div>' : '') +
+        (pd.provisional ? '<div class="provisional-note">' + pd.provisional + '</div>' : '') +
+        deepDiveBtnHtml() +
+        siteOrTownLinkChipHtml(pd) +
+        externalMapLinksHtml(pd.lat, pd.lng, name);
+      drawerBody.appendChild(entry);
+      wireDeepDiveBtn(entry);
+      wireLinkChips(entry);
+      var personBookmarkBtn = entry.querySelector('.bookmark-btn');
+      if (personBookmarkBtn) wireBookmarkBtn(personBookmarkBtn);
+      drawerEl.classList.add('open');
+      drawerEl.setAttribute('aria-hidden', 'false');
+    }
+
+    // Pubs — same shape again, built from pubData's category/established/
+    // patrons/note fields.
+    function openPubDrawer(name) {
+      var pb = pubData[name];
+      var accent = '#C56A1F';
+      var drawerEl = document.getElementById('drawer');
+      drawerEl.style.setProperty('--accent', accent);
+      drawerEl.style.setProperty('--accent-soft', accentSoftColor.pub);
+      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('pub');
+      renderAmbientRows('legend', 'pub', name);
+      var drawerBody = document.getElementById('drawerBody');
+      drawerBody.innerHTML = '';
+      var entry = document.createElement('div');
+      entry.className = 'site-entry';
+      entry.style.setProperty('--accent-tag', accent);
+      entry.innerHTML = '<div class="entry-header-row"><h2>' + name + '</h2>' + bookmarkBtnHtml('pub', name) + '</div>' +
+        '<span class="tag">' + pb.category + (pb.established ? ' — ' + pb.established : '') + '</span>' +
+        '<p>' + autoLinkNote(pb.note, name) + '</p>' +
+        (pb.patrons ? '<p><strong>Notable Patrons:</strong> ' + pb.patrons + '</p>' : '') +
+        (pb.warning ? '<div class="warning">' + pb.warning + '</div>' : '') +
+        (pb.provisional ? '<div class="provisional-note">' + pb.provisional + '</div>' : '') +
+        deepDiveBtnHtml() +
+        siteOrTownLinkChipHtml(pb) +
+        externalMapLinksHtml(pb.lat, pb.lng, name);
+      drawerBody.appendChild(entry);
+      wireDeepDiveBtn(entry);
+      wireLinkChips(entry);
+      var pubBookmarkBtn = entry.querySelector('.bookmark-btn');
+      if (pubBookmarkBtn) wireBookmarkBtn(pubBookmarkBtn);
+      drawerEl.classList.add('open');
+      drawerEl.setAttribute('aria-hidden', 'false');
+    }
+
+    // Holy Wells — same shape again, built from wellData's location/
+    // firstDocumented/saint/note fields. The note text is kept close to
+    // the source's own skeptical framing (see the comment above
+    // wellData itself) rather than softened into reverent prose.
+    function openWellDrawer(name) {
+      var w = wellData[name];
+      var accent = '#2E8B8B';
+      var drawerEl = document.getElementById('drawer');
+      drawerEl.style.setProperty('--accent', accent);
+      drawerEl.style.setProperty('--accent-soft', accentSoftColor.well);
+      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('well');
+      renderAmbientRows('legend', 'well', name);
+      var drawerBody = document.getElementById('drawerBody');
+      drawerBody.innerHTML = '';
+      var entry = document.createElement('div');
+      entry.className = 'site-entry';
+      entry.style.setProperty('--accent-tag', accent);
+      entry.innerHTML = '<div class="entry-header-row"><h2>' + name + '</h2>' + bookmarkBtnHtml('well', name) + '</div>' +
+        '<span class="tag">Holy Well — ' + w.location + (w.saint ? ' (' + w.saint + ')' : '') + '</span>' +
+        (w.firstDocumented ? '<p><strong>First Documented:</strong> ' + w.firstDocumented + '</p>' : '') +
+        '<p><strong>Dubious Claims &amp; Field Notes:</strong> ' + autoLinkNote(w.note, name) + '</p>' +
+        (w.warning ? '<div class="warning">' + w.warning + '</div>' : '') +
+        (w.provisional ? '<div class="provisional-note">' + w.provisional + '</div>' : '') +
+        deepDiveBtnHtml() +
+        siteOrTownLinkChipHtml(w) +
+        externalMapLinksHtml(w.lat, w.lng, name);
+      drawerBody.appendChild(entry);
+      wireDeepDiveBtn(entry);
+      wireLinkChips(entry);
+      var wellBookmarkBtn = entry.querySelector('.bookmark-btn');
+      if (wellBookmarkBtn) wireBookmarkBtn(wellBookmarkBtn);
       drawerEl.classList.add('open');
       drawerEl.setAttribute('aria-hidden', 'false');
     }
@@ -3497,17 +4187,22 @@
 
     // A curated route's `stops` list was originally always siteData keys —
     // the Field Notes journey below (see generateFieldNotesRoute) can mix
-    // in towns, legends, and graves too, since a bookmark can be any of
-    // the four. No name collides across the four objects — five grave
-    // entries originally shared an exact name with the site they're
-    // attached to (e.g. "Kilfenora Cathedral") and were suffixed "(Grave)"
-    // specifically to preserve that — so a plain name lookup across all
-    // four stays safe. Keep it that way when adding new entries.
+    // in towns, legends, graves, and now people too, since a bookmark can
+    // be any of the five. No name collides across the five objects —
+    // five grave entries originally shared an exact name with the site
+    // they're attached to (e.g. "Kilfenora Cathedral") and were suffixed
+    // "(Grave)" specifically to preserve that; person entries are always
+    // suffixed with their role (e.g. "(Birthplace)") for the same reason
+    // — so a plain name lookup across all five stays safe. Keep it that
+    // way when adding new entries.
     function coordsForStop(name) {
       if (siteData[name]) return siteData[name];
       if (townData[name]) return townData[name];
       if (legendData[name]) return legendData[name];
       if (graveData[name]) return graveData[name];
+      if (personData[name]) return personData[name];
+      if (pubData[name]) return pubData[name];
+      if (wellData[name]) return wellData[name];
       return null;
     }
 
@@ -3598,7 +4293,7 @@
     }
     function visiblePoints() {
       var activeSet = activeDisciplineSet();
-      return allPoints.filter(function (p) { return !isDisciplineHidden(p, activeSet); });
+      return allPoints.filter(function (p) { return !isDisciplineHidden(p, activeSet) && !isBelowTierFloor(p); });
     }
 
     function computeGroups() {
@@ -3641,36 +4336,19 @@
 
       var visited = new Array(n).fill(false);
       var groups = [];
-      var townPosByKey = {};
       for (var i = 0; i < n; i++) {
         if (projected[i].p.kind === 'town') {
           groups.push({ kind: 'town', item: projected[i], absorbedCount: townAbsorbed[i] || 0, absorbedItems: townAbsorbedItems[i] || [] });
           visited[i] = true;
-          townPosByKey[projected[i].p.key] = projected[i];
         }
       }
-      // A legend linked to a town sits a couple hundred metres away from
-      // it on the map, cross-linked via a chip rather than clustered
-      // together — but since the TOWN OVERHAUL made town markers roughly
-      // double size with a permanent name caption above them, that small
-      // real-world offset often isn't enough screen distance any more to
-      // keep the two from visually colliding at low/medium zoom. Rather
-      // than changing the linked offset itself, the legend just stays
-      // hidden (same invisible/non-interactive "grouped" state used
-      // elsewhere) until zooming in has pushed it far enough from its
-      // town on screen to no longer overlap — same self-correcting idea
-      // as a cluster splitting apart, just keyed to one specific town
-      // instead of screen-distance to any nearby point.
-      var TOWN_LEGEND_CLEARANCE = 56;
-      for (i = 0; i < n; i++) {
-        if (visited[i] || projected[i].p.kind !== 'legend') continue;
-        var ld = legendData[projected[i].p.name];
-        if (!ld || !ld.linkedTo || ld.linkedTo.kind !== 'town') continue;
-        var townPos = townPosByKey['town:' + ld.linkedTo.name];
-        if (!townPos) continue;
-        var lldx = projected[i].x - townPos.x, lldy = projected[i].y - townPos.y;
-        if (Math.sqrt(lldx * lldx + lldy * lldy) < TOWN_LEGEND_CLEARANCE) visited[i] = true;
-      }
+      // A town-linked legend used to need special-case hiding here (it
+      // could visually collide with the bigger TOWN OVERHAUL-era town
+      // marker/caption) — superseded by the ICON OVERHAUL further up:
+      // any legend/grave with a valid linkedTo is excluded from
+      // allPoints entirely now and rendered as a badge fused onto its
+      // target's own marker instead, so there's nothing left here that
+      // could still collide.
       for (i = 0; i < n; i++) {
         if (visited[i] || absorbed[i]) continue;
         var group = [projected[i]];
@@ -3755,12 +4433,30 @@
       el.tabIndex = state === 'visible' ? 0 : -1;
     }
 
+    // Badge colors/icons per joinable kind — kept as one small lookup
+    // here rather than threading five separate opts fields through
+    // buildMarkerEl the way the old per-corner badges did.
+    var LINKED_KIND_STYLE = {
+      legend: { color: 'var(--lore)', icon: 'legend', label: 'Local legend' },
+      grave: { color: '#D74646', icon: 'grave', label: 'Notable grave' },
+      person: { color: '#9C6B3E', icon: 'person', label: 'Notable figure' },
+      pub: { color: '#C56A1F', icon: 'pub', label: 'Pub' },
+      well: { color: '#2E8B8B', icon: 'well', label: 'Holy well' }
+    };
     function buildPointMarkerEl(p) {
       var style = styleForPoint(p);
+      var linkedItems = [];
+      if (p.kind === 'site' || p.kind === 'town') {
+        [['legend', legendsLinkedTo], ['grave', gravesLinkedTo], ['person', personsLinkedTo],
+         ['pub', pubsLinkedTo], ['well', wellsLinkedTo]].forEach(function (pair) {
+          pair[1](p.kind, p.name).forEach(function (name) { linkedItems.push({ kind: pair[0], name: name }); });
+        });
+      }
       var el = buildMarkerEl(style.iconKey, style.primary, {
         label: p.name, secondaryColor: style.secondary,
         provisional: style.provisional, contested: style.contested, town: style.town,
-        townNote: style.town ? townData[p.name].note : null
+        townNote: style.town ? townData[p.name].note : null,
+        linkedItems: linkedItems
       });
       el.setAttribute('data-discipline', p.disciplines.join(' '));
       var openFn = function () { navigateTo(p.kind, p.name); };
@@ -4462,6 +5158,27 @@
           lat: gv.lat, lng: gv.lng, habitatTags: []
         });
       });
+      Object.keys(personData).forEach(function (name) {
+        var pd = personData[name];
+        searchIndex.push({
+          kind: 'person', name: name, category: 'Notable Figure', discipline: 'lore',
+          note: pd.note, lat: pd.lat, lng: pd.lng, habitatTags: []
+        });
+      });
+      Object.keys(pubData).forEach(function (name) {
+        var pb = pubData[name];
+        searchIndex.push({
+          kind: 'pub', name: name, category: pb.category, discipline: 'lore',
+          note: pb.note, lat: pb.lat, lng: pb.lng, habitatTags: []
+        });
+      });
+      Object.keys(wellData).forEach(function (name) {
+        var w = wellData[name];
+        searchIndex.push({
+          kind: 'well', name: name, category: 'Holy Well', discipline: 'lore',
+          note: w.note, lat: w.lat, lng: w.lng, habitatTags: []
+        });
+      });
 
       // Scriptorium entries (flora, story, and any future category) are no
       // longer inlined here — they're fetched at runtime from the same
@@ -4544,7 +5261,7 @@
       function searchIsOpen() { return overlay.classList.contains('open'); }
 
       function kindLabel(k) {
-        return { site: 'Sites', town: 'Towns', legend: 'Lore', flora: 'Flora', grave: 'Graves' }[k] || k;
+        return { site: 'Sites', town: 'Towns', legend: 'Lore', flora: 'Flora', grave: 'Graves', person: 'Notable Figures', pub: 'Pubs', well: 'Holy Wells' }[k] || k;
       }
       function facetHabitats() {
         var set = {};
@@ -4621,7 +5338,7 @@
       }
 
       function renderFacets() {
-        var kinds = ['site', 'town', 'legend', 'grave', 'flora'];
+        var kinds = ['site', 'town', 'legend', 'grave', 'person', 'pub', 'well', 'flora'];
         var html = kinds.map(function (k) {
           return '<button class="facet-chip" data-kind="' + k + '" data-active="' + (activeKind === k) + '">' + kindLabel(k) + '</button>';
         }).join('');
@@ -4802,6 +5519,7 @@
       }
 
       function openSearch() {
+        overlay.classList.remove('minimal');
         overlay.classList.add('open');
         overlay.setAttribute('aria-hidden', 'false');
         setTimeout(function () { input.focus(); }, 30);
@@ -4856,7 +5574,155 @@
       if (!overlay.classList.contains('open')) trigger.click();
       var savedBtn = document.getElementById('savedOnlyBtn');
       if (savedBtn && savedBtn.getAttribute('data-active') !== 'true') savedBtn.click();
+      // Strip the search-specific chrome (input box, facet chips) down to
+      // just the result cards — see the .search-overlay.minimal CSS for
+      // why. Order matters: this has to run AFTER the trigger.click()
+      // above, since openSearch() itself clears this class every time it
+      // runs (so a normal search open never inherits it by accident).
+      overlay.classList.add('minimal');
     }
+
+    // ---- Identify a Species ----
+    // Fill this in once the FastAPI service from the species-ID build has
+    // a real hosted address — see that service's own README for why it
+    // isn't one yet (hosting was left as an open decision, not something
+    // picked for you). Left blank on purpose rather than pointed at
+    // localhost or a guessed URL: an empty string here means the UI shows
+    // an honest "not connected yet" message instead of a confusing
+    // network error every time someone taps the button.
+    var SPECIES_ID_API_BASE_URL = '';
+
+    var identifyOverlay = document.getElementById('identifyOverlay');
+    var identifyBody = document.getElementById('identifyBody');
+    var identifySelectedTaxon = 'plant';
+    var identifySelectedFile = null;
+
+    function closeIdentifyOverlay() {
+      identifyOverlay.classList.remove('open');
+      identifyOverlay.setAttribute('aria-hidden', 'true');
+      identifySelectedFile = null;
+    }
+    function openIdentifyOverlay() {
+      identifySelectedFile = null;
+      identifySelectedTaxon = 'plant';
+      renderIdentifyBody('idle');
+      identifyOverlay.classList.add('open');
+      identifyOverlay.setAttribute('aria-hidden', 'false');
+    }
+    document.getElementById('identifyCloseBtn').addEventListener('click', closeIdentifyOverlay);
+    identifyOverlay.addEventListener('click', function (e) { if (e.target === identifyOverlay) closeIdentifyOverlay(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && identifyOverlay.classList.contains('open')) closeIdentifyOverlay(); });
+
+    // state: 'idle' (pick a photo) | 'ready' (photo picked, not sent yet)
+    // | 'loading' | 'results' | 'error'. Rebuilds the whole body each
+    // time rather than patching pieces — same reasoning as everywhere
+    // else in this file that does that (search results, town badges):
+    // simple to reason about, cheap enough at this scale, and avoids
+    // stale-listener bugs.
+    function renderIdentifyBody(state, payload) {
+      if (!SPECIES_ID_API_BASE_URL) {
+        identifyBody.innerHTML =
+          '<div class="identify-not-configured">' +
+          'The identification service isn\'t connected yet — it needs a real hosted address before this can actually identify anything. ' +
+          'See the species-ID service\'s own README for what\'s still undecided.' +
+          '</div>';
+        return;
+      }
+
+      var taxonRowHtml = '<div class="identify-taxon-row">' +
+        ['plant', 'insect', 'animal'].map(function (t) {
+          return '<button type="button" class="identify-taxon-btn" data-taxon="' + t + '" data-active="' + (t === identifySelectedTaxon) + '">' +
+            t.charAt(0).toUpperCase() + t.slice(1) + '</button>';
+        }).join('') + '</div>';
+
+      if (state === 'idle' || state === 'ready') {
+        var previewHtml = identifySelectedFile
+          ? '<div class="identify-preview-wrap"><img id="identifyPreviewImg" alt="Selected photo"><button type="button" class="identify-retake-btn" id="identifyRetakeBtn">Retake</button></div>'
+          : '<label class="identify-upload-zone" id="identifyUploadZone" tabindex="0">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8 A2 2 0 0 1 6 6 H8 L9.5 4 H14.5 L16 6 H18 A2 2 0 0 1 20 8 V18 A2 2 0 0 1 18 20 H6 A2 2 0 0 1 4 18 Z"/><circle cx="12" cy="13" r="3.6"/></svg>' +
+            '<span class="identify-upload-label">Take or choose a photo</span>' +
+            '<span class="identify-upload-hint">Fill the frame with the plant, insect, or animal</span>' +
+            '<input type="file" accept="image/*" capture="environment" id="identifyFileInput">' +
+            '</label>';
+        identifyBody.innerHTML = taxonRowHtml + previewHtml +
+          (identifySelectedFile ? '<button type="button" class="identify-submit-btn" id="identifySubmitBtn">Identify</button>' : '');
+        wireIdentifyIdleControls();
+        if (identifySelectedFile) {
+          var img = document.getElementById('identifyPreviewImg');
+          if (img) img.src = URL.createObjectURL(identifySelectedFile);
+        }
+      } else if (state === 'loading') {
+        identifyBody.innerHTML = taxonRowHtml +
+          '<div class="identify-preview-wrap"><img src="' + (identifySelectedFile ? URL.createObjectURL(identifySelectedFile) : '') + '" alt="Selected photo"></div>' +
+          '<div class="identify-status">Identifying…</div>';
+      } else if (state === 'error') {
+        identifyBody.innerHTML = taxonRowHtml +
+          '<div class="identify-status is-error">' + (payload || 'Something went wrong — try again.') + '</div>' +
+          '<button type="button" class="identify-submit-btn" id="identifyRetryBtn">Try Again</button>';
+        document.getElementById('identifyRetryBtn').addEventListener('click', function () { renderIdentifyBody('ready'); });
+      } else if (state === 'results') {
+        var matchesHtml = (payload.matches || []).map(function (m) {
+          return '<div class="identify-match-card">' +
+            '<div>' +
+            '<div class="identify-match-name">' + (m.common_name || m.scientific_name) + '</div>' +
+            '<div class="identify-match-sci">' + m.scientific_name + '</div>' +
+            (m.is_regional_match ? '<span class="identify-match-tag">Documented on this map</span>' : '') +
+            (m.database_url ? '<a class="identify-match-link" href="' + m.database_url + '" target="_blank" rel="noopener noreferrer">View entry →</a>' : '') +
+            '</div>' +
+            '<div class="identify-match-confidence">' + m.confidence_percent + '%</div>' +
+            '</div>';
+        }).join('');
+        identifyBody.innerHTML = taxonRowHtml + matchesHtml +
+          (payload.warnings && payload.warnings.length ? '<div class="identify-warnings">' + payload.warnings.join(' ') + '</div>' : '') +
+          '<button type="button" class="identify-submit-btn" id="identifyAgainBtn" style="margin-top:14px">Identify Another</button>';
+        document.getElementById('identifyAgainBtn').addEventListener('click', function () {
+          identifySelectedFile = null;
+          renderIdentifyBody('idle');
+        });
+      }
+    }
+
+    function wireIdentifyIdleControls() {
+      document.querySelectorAll('.identify-taxon-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          identifySelectedTaxon = btn.getAttribute('data-taxon');
+          renderIdentifyBody(identifySelectedFile ? 'ready' : 'idle');
+        });
+      });
+      var fileInput = document.getElementById('identifyFileInput');
+      if (fileInput) {
+        fileInput.addEventListener('change', function () {
+          if (fileInput.files && fileInput.files[0]) {
+            identifySelectedFile = fileInput.files[0];
+            renderIdentifyBody('ready');
+          }
+        });
+      }
+      var retakeBtn = document.getElementById('identifyRetakeBtn');
+      if (retakeBtn) retakeBtn.addEventListener('click', function () { identifySelectedFile = null; renderIdentifyBody('idle'); });
+      var submitBtn = document.getElementById('identifySubmitBtn');
+      if (submitBtn) submitBtn.addEventListener('click', submitIdentifyRequest);
+    }
+
+    async function submitIdentifyRequest() {
+      if (!identifySelectedFile) return;
+      renderIdentifyBody('loading');
+      try {
+        var formData = new FormData();
+        formData.append('file', identifySelectedFile);
+        var url = SPECIES_ID_API_BASE_URL.replace(/\/$/, '') + '/identify?taxon_group=' + identifySelectedTaxon;
+        var resp = await fetch(url, { method: 'POST', body: formData });
+        if (!resp.ok) {
+          var errBody = await resp.json().catch(function () { return {}; });
+          throw new Error(errBody.detail || ('The service returned an error (' + resp.status + ').'));
+        }
+        var data = await resp.json();
+        renderIdentifyBody('results', data);
+      } catch (err) {
+        renderIdentifyBody('error', err.message);
+      }
+    }
+
     function renderBurgerMenu() {
       var savedCount = fieldNotesList().length;
       burgerMenuPanel.innerHTML =
@@ -4867,6 +5733,20 @@
         '<button type="button" class="burger-menu-item" id="menuPlanRouteBtn">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20 L9 5 L14 16 L20 4"/></svg>' +
         'Plan a Route' +
+        '</button>' +
+        '<div class="burger-menu-divider"><span>Browse the Scriptorium</span></div>' +
+        '<a class="burger-menu-item" href="scriptorium/flora/index.html" target="_blank" rel="noopener noreferrer">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21 C12 21 5 15 5 9 C5 5 8 3 12 3 C16 3 19 5 19 9 C19 15 12 21 12 21 Z"/><path d="M12 3 L12 21 M12 9 L7 6 M12 12 L17 9 M12 15 L7 13"/></svg>' +
+        'Flora' +
+        '</a>' +
+        '<a class="burger-menu-item" href="scriptorium/story/index.html" target="_blank" rel="noopener noreferrer">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4 H15 A2 2 0 0 1 17 6 V20 H7 A2 2 0 0 1 5 18 Z"/><path d="M5 18 A2 2 0 0 1 7 16 H17"/></svg>' +
+        'Stories & Sites' +
+        '</a>' +
+        '<div class="burger-menu-divider"><span>Field Tools</span></div>' +
+        '<button type="button" class="burger-menu-item" id="menuIdentifyBtn">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8 A2 2 0 0 1 6 6 H8 L9.5 4 H14.5 L16 6 H18 A2 2 0 0 1 20 8 V18 A2 2 0 0 1 18 20 H6 A2 2 0 0 1 4 18 Z"/><circle cx="12" cy="13" r="3.6"/></svg>' +
+        'Identify a Species' +
         '</button>';
       document.getElementById('menuBookmarksBtn').addEventListener('click', function () {
         closeBurgerMenu();
@@ -4882,6 +5762,15 @@
         if (fieldNotesRouteStops().length >= 2) generateFieldNotesRoute();
         else openSavedItemsView();
       });
+      document.getElementById('menuIdentifyBtn').addEventListener('click', function () {
+        closeBurgerMenu();
+        openIdentifyOverlay();
+      });
+      // Flora/Stories links are plain <a target="_blank"> — real static
+      // pages living outside the map's own SPA navigation (see the new
+      // scriptorium/hub-template.html), same reasoning as why the
+      // Google/Apple Maps links also open in a new tab rather than
+      // navigating the map itself away.
     }
     burgerMenuBtn.addEventListener('click', function (e) {
       e.stopPropagation();

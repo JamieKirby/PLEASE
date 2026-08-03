@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{CATEGORY_TITLE}} — The Burren Scriptorium</title>
+<meta name="description" content="Browse every {{CATEGORY_TITLE}} entry in the Burren Scriptorium.">
+<link rel="stylesheet" href="../styles.css">
+<!-- Self-contained styling below (not just ../styles.css) — this page
+     didn't exist when styles.css was last known-good, so rather than
+     assume it defines classes for a list this shape, everything needed
+     to render acceptably is inlined here too. If styles.css already
+     covers .hub-list etc., these rules simply get overridden by it
+     (loaded after ../styles.css, so it wins) rather than conflicting. -->
+<style>
+  body { background: #121212; color: #e6e6e6; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; margin: 0; }
+  nav { padding: 14px calc(3% + env(safe-area-inset-right)) 14px calc(3% + env(safe-area-inset-left)); border-bottom: 1px solid rgba(255,255,255,.08); }
+  nav a { color: #a8a8a8; text-decoration: none; margin-right: 18px; font-size: .85rem; }
+  nav a.nav-home { color: #ded2b3; font-family: Georgia, serif; font-style: italic; }
+  nav a:hover { color: #ded2b3; }
+  main { max-width: 720px; margin: 0 auto; padding: 32px 24px 80px; }
+  h1 { font-family: Georgia, serif; font-weight: 400; font-size: 1.8rem; color: #ded2b3; margin: 0 0 8px; }
+  .hub-count { font-style: italic; color: #a8a8a8; font-size: .85rem; margin: 0 0 28px; }
+  .hub-list { list-style: none; margin: 0; padding: 0; }
+  .hub-list li { border-bottom: 1px solid rgba(255,255,255,.08); }
+  .hub-list a { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 16px 4px; text-decoration: none; color: #e6e6e6; }
+  .hub-list a:hover, .hub-list a:focus-visible { background: rgba(255,255,255,.04); }
+  .hub-entry-title { font-family: Georgia, serif; font-size: 1.05rem; }
+  .hub-entry-irish { font-style: italic; color: #ded2b3; opacity: .85; font-size: .85rem; flex: 0 0 auto; }
+</style>
+</head>
+<body class="theme-{{CATEGORY}}">
+
+  <nav>
+    <a href="../index.html" class="nav-home">The Burren Scriptorium</a>
+    <a href="../index.html">Home</a>
+    <a href="../flora/">Flora</a>
+    <a href="../story/">Stories &amp; Sites</a>
+  </nav>
+
+  <main>
+    <h1>{{CATEGORY_TITLE}}</h1>
+    <p class="hub-count">{{ENTRY_COUNT}} entries</p>
+    <ul class="hub-list">
+{{ENTRY_LIST}}
+    </ul>
+  </main>
+
+</body>
+</html>
