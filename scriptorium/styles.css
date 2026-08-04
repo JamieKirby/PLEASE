@@ -1,48 +1,17 @@
 /* ==========================================================================
-   The Burren Scriptorium — shared stylesheet for every static page
-   (entry pages, hub/browse pages, and the Scriptorium home page).
+   The Burren Scriptorium — page styles.
 
-   This file has never existed before now — template.html and
-   hub-template.html have both referenced ../styles.css since they were
-   first built, but nothing was ever actually written here, so every
-   static page has been rendering with zero styling. This is that file.
+   Palette, type scale and radius scale are NOT here: they live in
+   assets/tokens.css, which both this file and the map's index.html link.
+   This file used to carry a hand-copied :root block with a comment
+   saying "the two documents can't share CSS custom properties across
+   files, so these are a deliberate, exact-value copy… Keep them in
+   sync." They can, they now do, and that copy is gone.
 
-   Palette below is hand-matched to the interactive map's own :root
-   tokens (in the repo root index.html) — the two documents can't share
-   CSS custom properties across files, so these are a deliberate,
-   exact-value copy, not a fresh design. Keep them in sync if the map's
-   palette ever changes.
+   Chrome (the top bar, burger menu, search overlay, bookmark star,
+   soundscape row) lives in assets/chrome.css. What's left here is what's
+   genuinely page-specific: entry layout, hub listings, verse treatment.
    ========================================================================== */
-
-:root {
-  --canvas: #121212;
-  --canvas-2: #1a1a1a;
-  --ink: #e6e6e6;
-  --ink-dim: #a8a8a8;
-  --ink-prose: #cfcfcf;
-  --parchment: #ded2b3;
-  --flora: #4A6B53;
-  --geology: #5C6B73;
-  --archaeology: #A9822E;
-  --lore: #35617A;
-  --vein: #8f7fae;
-
-  --spring: cubic-bezier(.34, 1.56, .64, 1);
-
-  --fs-2xs: .68rem;
-  --fs-xs: .74rem;
-  --fs-sm: .8rem;
-  --fs-base: .85rem;
-  --fs-md: 1rem;
-  --fs-lg: 1.3rem;
-  --fs-xl: 1.7rem;
-  --fs-2xl: 2.1rem;
-
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 14px;
-  --radius-full: 20px;
-}
 
 * { box-sizing: border-box; }
 
@@ -54,35 +23,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* A quick, gentle fade on the way OUT to another page — see the small
-   inline script at the bottom of template.html/hub-template.html/home
-   that adds .leaving on click before letting the navigation continue.
-   This is the closest an actual full-page <a href> navigation can get
-   to a real transition; there's no way to animate content that hasn't
-   loaded yet on the other side, so this fades what's already on screen
-   rather than attempting anything fancier. */
-body { opacity: 1; transition: opacity .18s ease; }
-body.leaving { opacity: 0; }
-
 a { color: inherit; }
-
-/* ---- Nav — identical across every page type ---- */
-nav {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 18px;
-  padding: 14px calc(3% + env(safe-area-inset-right)) 14px calc(3% + env(safe-area-inset-left));
-  border-bottom: 1px solid rgba(255,255,255,.08);
-}
-nav a {
-  color: var(--ink-dim); text-decoration: none; font-size: var(--fs-sm);
-  display: inline-flex; align-items: center; gap: 5px;
-  transition: color .15s ease, transform .15s var(--spring);
-}
-nav a:active { transform: scale(.96); }
-nav a.nav-home { color: var(--parchment); font-family: Georgia, serif; font-style: italic; font-size: var(--fs-md); margin-right: auto; }
-nav a:hover, nav a:focus-visible { color: var(--parchment); }
-nav a.nav-back-to-map { color: var(--parchment); border: 1px solid rgba(222,210,179,.4); border-radius: var(--radius-full); padding: 5px 12px 5px 8px; }
-nav a.nav-back-to-map:hover { background: rgba(222,210,179,.1); }
-nav a.nav-back-to-map svg { width: 14px; height: 14px; }
 
 main { max-width: 720px; margin: 0 auto; padding: 40px 24px 90px; }
 
@@ -151,6 +92,25 @@ main { max-width: 720px; margin: 0 auto; padding: 40px 24px 90px; }
 .explore-on-map-btn:hover { background: rgba(222,210,179,.12); }
 .explore-on-map-btn:active { transform: scale(.97); }
 .explore-on-map-btn svg { width: 15px; height: 15px; flex: 0 0 auto; }
+
+
+/* The title now shares a row with the bookmark star, which is the SAME
+   star (same localStorage key, same markup) the map's drawer renders —
+   see assets/state.js. Starring a plant from a search result and finding
+   it in the map's Field Notes an hour later is the single clearest
+   signal that these are one product and not two websites. */
+.entry-title-row { display: flex; align-items: flex-start; gap: 12px; }
+.entry-title-row .entry-title { flex: 1 1 auto; margin-bottom: 0; }
+.entry-title-row .bookmark-btn { margin-top: 6px; }
+.entry-header .entry-meta-row { margin-top: 10px; }
+
+/* Ogham was carried in the flora data and rendered nowhere. The entries
+   that have it are the oldest and most carefully written on the site. */
+.entry-ogham { color: var(--parchment); opacity: .8; }
+.entry-ogham em { font-style: italic; opacity: .75; }
+
+.hub-entry-sci { font-style: italic; color: var(--ink-dim); font-size: var(--fs-sm); flex: 0 0 auto; }
+.hub-list a { flex-wrap: wrap; }
 
 /* ---- Hub / browse pages (hub-template.html) ---- */
 h1 { font-family: Georgia, serif; font-weight: 400; font-size: var(--fs-xl); color: var(--parchment); margin: 0 0 8px; }

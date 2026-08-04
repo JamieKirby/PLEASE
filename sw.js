@@ -12,7 +12,13 @@
    fresh copy is fetched in the background for next time; first visit to
    any URL still goes to the network like normal.
    ========================================================================== */
-var CACHE_NAME = 'burren-scriptorium-v1';
+/* Bumped v1 -> v2 with the unification build. The activate handler below
+   deletes every cache whose name isn't the current one, so bumping this
+   string is what stops a returning visitor being served the OLD
+   <category>/<slug>.html pages (and the old, unlinked manifest.json) out
+   of cache while the new clean-URL pages sit unused on the server.
+   Bump it again any time the shape of the output changes. */
+var CACHE_NAME = 'burren-scriptorium-v2';
 
 self.addEventListener('install', function (event) {
   self.skipWaiting();

@@ -1,0 +1,230 @@
+/* ==========================================================================
+   Burren — shared chrome styles.
+
+   Paired with chrome.js. Deliberately reuses the map's own visual
+   language (the .burger-menu-* treatment, the .bookmark-btn star, the
+   .soundscape-widget row) rather than inventing a second one, because
+   the point of this whole exercise is that a person crossing from the
+   map to a page shouldn't feel like they changed websites.
+
+   The .bookmark-btn and .soundscape-* rules below are intentionally
+   byte-compatible with index.html's own copies — index.html can drop
+   its versions and link this file whenever the map adopts <burren-chrome>.
+   Until then they coexist without conflict, since the two documents
+   never load each other's stylesheets.
+
+   Requires tokens.css to be loaded first.
+   ========================================================================== */
+
+burren-chrome { display: block; }
+
+/* ---- The bar --------------------------------------------------------- */
+
+.bc-bar {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 10px calc(18px + env(safe-area-inset-right)) 10px calc(18px + env(safe-area-inset-left));
+  background: rgba(18,18,18,.86);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: var(--fs-sm);
+}
+
+.bc-home {
+  color: var(--parchment); text-decoration: none; letter-spacing: .04em;
+  font-family: Georgia, "Times New Roman", serif; font-size: var(--fs-md);
+  white-space: nowrap;
+}
+.bc-home:hover { color: var(--ink); }
+
+.bc-nav { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 0; flex-wrap: wrap; }
+.bc-nav a {
+  color: var(--ink-dim); text-decoration: none; padding: 3px 0;
+  border-bottom: 1px solid transparent; white-space: nowrap;
+  transition: color .18s ease, border-color .18s ease;
+}
+.bc-nav a:hover { color: var(--ink); }
+.bc-nav a[aria-current="page"] { color: var(--parchment); border-bottom-color: var(--parchment); }
+
+.bc-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+.bc-search-trigger,
+.bc-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(30,34,30,.7); border: 1px solid rgba(255,255,255,.14);
+  color: var(--ink-dim); padding: 6px 12px; border-radius: var(--radius-full);
+  font-size: var(--fs-xs); font-family: inherit; cursor: pointer; text-decoration: none;
+  white-space: nowrap;
+  transition: border-color .2s ease, color .2s ease, transform .15s var(--spring);
+}
+.bc-search-trigger:hover, .bc-back:hover { color: var(--ink); border-color: var(--parchment); }
+.bc-search-trigger:active, .bc-back:active { transform: scale(.96); }
+.bc-search-trigger svg, .bc-back svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.bc-kbd { font-size: var(--fs-2xs); opacity: .65; letter-spacing: .05em; }
+
+/* ---- Burger ---------------------------------------------------------- */
+
+.bc-menu-wrap { position: relative; }
+.bc-burger {
+  width: 34px; height: 34px; flex: 0 0 auto; padding: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  background: rgba(30,34,30,.7); border: 1px solid rgba(255,255,255,.14); border-radius: var(--radius-md);
+  cursor: pointer; transition: transform .15s var(--spring);
+}
+.bc-burger:active { transform: scale(.94); }
+.bc-burger span {
+  display: block; width: 16px; height: 2px; border-radius: var(--radius-sm);
+  background: var(--ink-dim); transition: transform .25s ease, opacity .2s ease, background .2s ease;
+}
+.bc-burger:hover span, .bc-burger[aria-expanded="true"] span { background: var(--parchment); }
+.bc-burger[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.bc-burger[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.bc-burger[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+.bc-panel {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 45; width: 250px;
+  background: rgba(18,18,18,.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,.14); border-radius: var(--radius-md);
+  padding: 8px; display: none; flex-direction: column; gap: 4px;
+  box-shadow: 0 14px 32px rgba(0,0,0,.45);
+}
+.bc-panel.open { display: flex; }
+
+.bc-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 9px 10px; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--ink-prose); text-align: left;
+  font-family: inherit; font-size: var(--fs-sm); cursor: pointer; text-decoration: none;
+}
+.bc-item:hover, .bc-item:focus-visible { background: rgba(255,255,255,.07); outline: none; }
+.bc-item:active { background: rgba(255,255,255,.11); }
+.bc-item svg { width: 15px; height: 15px; flex: 0 0 auto; color: var(--parchment); }
+.bc-item-widget { cursor: default; flex-wrap: wrap; }
+.bc-item-widget:hover { background: transparent; }
+.bc-widget-slot { flex: 1 1 100%; }
+.bc-count {
+  margin-left: auto; font-size: var(--fs-2xs); color: var(--parchment);
+  background: rgba(222,210,179,.14); border-radius: var(--radius-full); padding: 1px 7px;
+}
+.bc-divider { height: 1px; background: rgba(255,255,255,.1); margin: 4px 2px; }
+
+/* ---- Search overlay --------------------------------------------------- */
+
+body.bc-locked { overflow: hidden; }
+
+.bc-overlay {
+  position: fixed; inset: 0; z-index: 60; display: none;
+  background: rgba(8,8,8,.72); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  padding: max(6vh, 40px) 16px 16px;
+}
+.bc-overlay.open { display: block; }
+.bc-overlay-inner {
+  max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px;
+  max-height: calc(100vh - max(6vh, 40px) - 32px);
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.bc-input-row {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(22,22,22,.96); border: 1px solid rgba(255,255,255,.16);
+  border-radius: var(--radius-md); padding: 12px 14px;
+}
+.bc-input-row svg { width: 17px; height: 17px; color: var(--ink-dim); flex: 0 0 auto; }
+.bc-input {
+  flex: 1 1 auto; background: transparent; border: 0; outline: none;
+  color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: var(--fs-md);
+}
+.bc-input::placeholder { color: var(--ink-dim); font-style: italic; }
+.bc-close {
+  background: transparent; border: 0; color: var(--ink-dim); font-size: 22px;
+  line-height: 1; cursor: pointer; padding: 0 2px;
+}
+.bc-close:hover { color: var(--ink); }
+
+.bc-facets { display: flex; gap: 8px; }
+.bc-facet {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(30,34,30,.7); border: 1px solid rgba(255,255,255,.14);
+  color: var(--ink-dim); padding: 5px 12px; border-radius: var(--radius-full);
+  font-size: var(--fs-xs); font-family: inherit; cursor: pointer;
+}
+.bc-facet svg { width: 12px; height: 12px; }
+.bc-facet[data-active="true"] { color: var(--parchment); border-color: var(--parchment); }
+
+.bc-results { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; -webkit-overflow-scrolling: touch; }
+.bc-empty { color: var(--ink-dim); font-style: italic; padding: 18px 4px; font-family: Georgia, serif; }
+.bc-empty a { color: var(--parchment); }
+
+.bc-result {
+  display: flex; align-items: flex-start; gap: 12px; text-decoration: none;
+  background: rgba(22,22,22,.9); border: 1px solid rgba(255,255,255,.09);
+  border-radius: var(--radius-md); padding: 12px 14px;
+  transition: border-color .15s ease, background .15s ease;
+}
+.bc-result:hover { border-color: rgba(222,210,179,.5); background: rgba(30,30,30,.95); }
+.bc-result-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.bc-result-title {
+  color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: var(--fs-md);
+  display: flex; align-items: center; gap: 7px;
+}
+.bc-read { color: var(--parchment); font-size: var(--fs-2xs); opacity: .75; }
+.bc-result-irish { color: var(--ink-dim); font-style: italic; font-size: var(--fs-xs); }
+.bc-result-summary {
+  color: var(--ink-prose); font-size: var(--fs-xs); opacity: .85; line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.bc-result-side { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.bc-result-cat {
+  font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-dim); border: 1px solid rgba(255,255,255,.16);
+  border-radius: var(--radius-full); padding: 2px 9px; white-space: nowrap;
+}
+.bc-result-cat[data-cat="flora"]  { color: var(--flora);       border-color: color-mix(in srgb, var(--flora) 55%, transparent); }
+.bc-result-cat[data-cat="fauna"]  { color: var(--fauna);       border-color: color-mix(in srgb, var(--fauna) 55%, transparent); }
+.bc-result-cat[data-cat="story"]  { color: var(--archaeology); border-color: color-mix(in srgb, var(--archaeology) 55%, transparent); }
+.bc-result-cat[data-cat="poetry"] { color: var(--vein);        border-color: color-mix(in srgb, var(--vein) 55%, transparent); }
+
+/* ---- Shared with the map: the bookmark star -------------------------- */
+
+.bookmark-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%; flex: 0 0 auto;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.18);
+  color: var(--ink-dim); cursor: pointer;
+  transition: color .15s ease, border-color .15s ease, transform .15s var(--spring);
+}
+.bookmark-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.4; }
+.bookmark-btn:hover { color: var(--parchment); border-color: var(--parchment); }
+.bookmark-btn:active { transform: scale(.88); }
+.bookmark-btn.saved { color: var(--parchment); border-color: var(--parchment); }
+.bookmark-btn.saved svg { fill: var(--parchment); }
+
+/* ---- Shared with the map: the soundscape row ------------------------- */
+
+.soundscape-widget {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 10px 2px; font-family: -apple-system, sans-serif;
+}
+.soundscape-toggle {
+  width: 26px; height: 26px; border-radius: 50%; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.06); border: 1px solid var(--parchment); color: var(--parchment);
+  cursor: pointer; transition: transform .15s var(--spring), background .15s ease;
+}
+.soundscape-toggle:active { transform: scale(.9); }
+.soundscape-toggle svg { width: 12px; height: 12px; }
+.soundscape-toggle.playing { background: rgba(222,210,179,.18); }
+.soundscape-volume { width: 70px; accent-color: var(--parchment); }
+.soundscape-mode { font-size: var(--fs-xs); color: var(--ink-dim); font-style: italic; min-width: 46px; }
+
+/* ---- Narrow screens --------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .bc-bar { gap: 10px; padding-left: calc(14px + env(safe-area-inset-left)); padding-right: calc(14px + env(safe-area-inset-right)); }
+  .bc-nav { order: 3; flex-basis: 100%; gap: 14px; font-size: var(--fs-xs); }
+  .bc-back span { display: none; }
+  .bc-kbd { display: none; }
+  .bc-panel { width: min(280px, calc(100vw - 28px)); }
+  .bc-result-side { flex-direction: column-reverse; align-items: flex-end; gap: 6px; }
+}

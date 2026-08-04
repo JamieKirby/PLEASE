@@ -4,11 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Burren Scriptorium</title>
-<link rel="icon" href="../favicon.svg" type="image/svg+xml">
-<link rel="alternate icon" href="../favicon.ico">
-<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="icon" href="{{SITE_ROOT}}favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="{{SITE_ROOT}}favicon.ico">
+<link rel="apple-touch-icon" href="{{SITE_ROOT}}apple-touch-icon.png">
 <meta name="description" content="A digital field guide and research hub for the natural history, antiquities, and Gaelic lore of the Burren, North Clare.">
-<link rel="stylesheet" href="styles.css">
+{{HEAD_EXTRA}}
+<link rel="stylesheet" href="{{ASSETS}}tokens.css">
+<link rel="stylesheet" href="{{ASSETS}}chrome.css">
+<link rel="stylesheet" href="{{ROOT}}styles.css">
+<script src="{{ASSETS}}site-config.js"></script>
+<script src="{{ASSETS}}state.js"></script>
+<script src="{{ASSETS}}entry-render.js"></script>
+<script src="{{ASSETS}}soundscape.js"></script>
+<script src="{{ASSETS}}seam.js"></script>
+<script src="{{ASSETS}}chrome.js"></script>
 <style>
   /* Home-page-only styling — everything shared (nav, palette, type
      scale) still comes from styles.css; this is just the wave scene and
@@ -38,11 +47,29 @@
   .wave-layer {
     transition: none;
     animation: wave-drift linear infinite, wave-color-shift ease-in-out infinite;
+    /* Reduces the odds of a visible seam/snap at the loop boundary by
+       asking the browser to keep this on its own stable compositing
+       layer rather than potentially re-rasterizing it mid-animation —
+       doesn't change the animation's own math, just how reliably the
+       browser paints it frame to frame. */
+    will-change: transform;
   }
   .wave-layer-1 { opacity: .28; animation-duration: 42s, 26s; }
   .wave-layer-2 { opacity: .4; animation-duration: 34s, 22s; animation-delay: 0s, -7s; }
   .wave-layer-3 { opacity: .55; animation-duration: 26s, 19s; animation-delay: 0s, -13s; }
   .wave-layer-4 { opacity: .8; animation-duration: 19s, 16s; animation-delay: 0s, -4s; }
+
+  /* Every second wave (rows 2 and 4) gets a diagonal stripe pattern cut
+     through it, same angle both times. This is a second copy of that
+     layer's own path, filled with the stripe pattern instead of a solid
+     colour, sharing only the drift animation (not the colour-shift one —
+     the stripes stay a fixed tone rather than cycling) at the exact same
+     duration and zero delay as its solid twin, so the two stay
+     perfectly locked together as they drift rather than sliding apart
+     over time. */
+  .wave-stripe { transition: none; animation: wave-drift linear infinite; will-change: transform; fill: url(#wave-stripes); }
+  .wave-stripe-2 { opacity: .5; animation-duration: 34s; }
+  .wave-stripe-4 { opacity: .6; animation-duration: 19s; }
 
   @keyframes wave-drift {
     from { transform: translateX(0); }
@@ -85,18 +112,16 @@
 </head>
 <body class="theme-home">
 
-  <nav>
-    <a href="index.html" class="nav-home">The Burren Scriptorium</a>
-    {{NAV_LINKS}}
-    <a href="../index.html" class="nav-back-to-map">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 6 L9 12 L15 18"/></svg>
-      Back to the Map
-    </a>
-  </nav>
+  {{CHROME}}
 
   <div class="home-hero">
     <div class="wave-scene" aria-hidden="true">
       <svg viewBox="0 0 800 400" preserveAspectRatio="none">
+        <defs>
+          <pattern id="wave-stripes" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="16" stroke="var(--parchment)" stroke-width="3"/>
+          </pattern>
+        </defs>
         <path class="wave-layer wave-layer-1" d="
           M0,230 C60,190 90,270 150,240 C210,210 240,280 300,245
           C360,210 390,275 450,235 C510,195 540,270 600,240
@@ -115,6 +140,15 @@
           C1190,315 1230,250 1290,280 C1350,310 1390,250 1450,280
           C1510,310 1550,255 1600,270
           L1600,400 L800,400 Z"/>
+        <path class="wave-stripe wave-stripe-2" d="
+          M0,270 C70,320 110,250 170,290 C230,330 270,255 330,285
+          C390,315 430,250 490,280 C550,310 590,250 650,280
+          C710,310 750,255 800,270
+          L800,400 L0,400 Z
+          M800,270 C870,320 910,250 970,290 C1030,330 1070,255 1130,285
+          C1190,315 1230,250 1290,280 C1350,310 1390,250 1450,280
+          C1510,310 1550,255 1600,270
+          L1600,400 L800,400 Z"/>
         <path class="wave-layer wave-layer-3" d="
           M0,320 C50,280 100,350 160,315 C220,280 260,340 320,310
           C380,280 420,335 480,308 C540,280 580,330 640,308
@@ -125,6 +159,15 @@
           C1500,286 1540,325 1600,320
           L1600,400 L800,400 Z"/>
         <path class="wave-layer wave-layer-4" d="
+          M0,360 C55,340 95,375 155,358 C215,340 245,378 305,357
+          C365,335 400,372 460,355 C520,338 555,374 615,356
+          C675,338 715,370 800,362
+          L800,400 L0,400 Z
+          M800,362 C855,340 895,375 955,358 C1015,340 1045,378 1105,357
+          C1165,335 1200,372 1260,355 C1320,338 1355,374 1415,356
+          C1475,338 1515,370 1600,362
+          L1600,400 L800,400 Z"/>
+        <path class="wave-stripe wave-stripe-4" d="
           M0,360 C55,340 95,375 155,358 C215,340 245,378 305,357
           C365,335 400,372 460,355 C520,338 555,374 615,356
           C675,338 715,370 800,362
@@ -170,7 +213,7 @@
         <p class="home-card-desc">Original verse on the Burren's landscape, ruins, and townlands.</p>
       </div>
     </a>
-    <a class="home-card" href="../index.html">
+    <a class="home-card" href="{{SITE_ROOT}}index.html">
       <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="11" cy="11" r="7"/><path d="M21 21 L16.65 16.65"/></svg>
       <div>
         <p class="home-card-title">The Interactive Map</p>
@@ -178,17 +221,6 @@
       </div>
     </a>
   </div>
-
-  <script>
-    document.querySelectorAll('a[href]').forEach(function (a) {
-      if (a.target === '_blank' || a.getAttribute('href').charAt(0) === '#') return;
-      a.addEventListener('click', function (e) {
-        e.preventDefault();
-        document.body.classList.add('leaving');
-        setTimeout(function () { window.location.href = a.href; }, 160);
-      });
-    });
-  </script>
 
 </body>
 </html>

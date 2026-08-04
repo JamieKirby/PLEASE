@@ -4,6 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>The Burren — Field Map (Real Basemap)</title>
+<!-- Rewritten at runtime by setCanonicalUrl whenever a Scriptorium entry's
+     drawer is open, so an iOS share sheet offers the entry's own title
+     instead of "The Burren — Field Map" for all 129 of them. -->
+<meta property="og:title" content="The Burren — Field Map">
+<meta property="og:type" content="website">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -16,49 +21,46 @@
      contourProtocolUrl, sharedDemProtocolUrl) has stayed stable across
      that gap. -->
 <script src="https://unpkg.com/maplibre-contour@0.1.0/dist/index.min.js"></script>
+
+<!-- ==========================================================================
+     Shared layer — the same files every Scriptorium page loads.
+
+     These live in scriptorium/assets/ (source) and are copied to
+     scriptorium/dist/assets/ by build.js, which is why the paths below
+     point at the built location. They are what stop the map and the
+     Scriptorium from being two separate products:
+
+       tokens.css       the palette and type scale, previously hand-copied
+                        into two files with a "keep them in sync" comment
+       site-config.js   category titles, reading order, crossing copy
+       state.js         Field Notes / soundscape prefs / read history —
+                        the SAME localStorage keys this file already used,
+                        so existing saves survive untouched
+       entry-render.js  one renderer for entry content, shared with build.js
+       soundscape.js    the ambient engine, previously inlined here with a
+                        comment claiming a shared copy existed (it didn't)
+       seam.js          crossing behaviour: smart back, speculation rules
+
+     Loaded without defer and before the main script below, which reads
+     them at definition time. Each has a graceful-degradation path if the
+     fetch fails; see the guards at the top of the main script.
+     ========================================================================== -->
+<link rel="stylesheet" href="scriptorium/assets/tokens.css">
+<script src="scriptorium/assets/site-config.js"></script>
+<script src="scriptorium/assets/state.js"></script>
+<script src="scriptorium/assets/entry-render.js"></script>
+<script src="scriptorium/assets/soundscape.js"></script>
+<script src="scriptorium/assets/seam.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500&display=swap');
 
-  :root {
-    --canvas: #121212;
-    --canvas-2: #1a1a1a;
-    --ink: #e6e6e6;
-    --ink-dim: #a8a8a8;
-    --ink-prose: #cfcfcf;
-    --parchment: #ded2b3;
-    --vein: #8f7fae;
-    --throat: #d9a441;
-    --flora: #4A6B53;
-    --geology: #5C6B73;
-    --archaeology: #A9822E;
-    --lore: #35617A;
+  /* The palette, type scale and radius scale used to be declared here
+     AND hand-copied into scriptorium/styles.css, with a comment in that
+     file admitting it was a duplicate to keep in sync manually. They now
+     live once, in scriptorium/assets/tokens.css, linked above — so a
+     colour change lands on both surfaces at the same moment instead of
+     one of them drifting until somebody notices. */
 
-    /* A little overshoot rather than a flat ease — used on presses and
-       small interactive pops (badges, buttons, popovers), NOT on large
-       panel/drawer resizes, where the same bounce would read as a glitch
-       rather than a deliberate spring. */
-    --spring: cubic-bezier(.34, 1.56, .64, 1);
-
-    /* Type scale — was ~26 distinct font-size values scattered through
-       the file (several within a hair of each other, e.g. .74/.76/.78rem
-       all doing the same job); consolidated to 8 named tiers. SVG marker/
-       specimen label sizes (10-22px) are a separate, already-intentional
-       micro-system and are NOT part of this — those stay as literal px. */
-    --fs-2xs: .68rem;   /* tiny badges, uppercase meta */
-    --fs-xs: .74rem;    /* small labels, timestamps, meta */
-    --fs-sm: .8rem;     /* secondary body text */
-    --fs-base: .85rem;  /* primary body text, buttons */
-    --fs-md: 1rem;      /* sub-headings, prominent body */
-    --fs-lg: 1.3rem;    /* section headings */
-    --fs-xl: 1.7rem;    /* major headings */
-    --fs-2xl: 2.1rem;   /* page title */
-
-    /* Radius scale — was 7 distinct px values, now 4 named tiers. */
-    --radius-sm: 4px;    /* tags, tiny accents */
-    --radius-md: 8px;    /* cards, dropdown panels */
-    --radius-lg: 14px;   /* larger badges/cards */
-    --radius-full: 20px; /* pill buttons */
-  }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
   html, body { height: 100%; overflow: hidden; }
   body { background: var(--canvas); color: var(--ink); font-family: Georgia, "Times New Roman", serif; }
@@ -281,6 +283,13 @@
     top: auto; bottom: calc(100% + 6px);
     opacity: 1; font-size: 15px; font-weight: 700; letter-spacing: .2px;
     color: var(--parchment);
+  }
+  /* Set by resolveTownLabelCollisions (see renderAll) on whichever of a
+     colliding pair of town names is chosen to flip — same label, same
+     styling, just anchored below the marker instead of above so two
+     close towns' names don't overlap each other. */
+  .mk.town.mk-label-flip .mk-label {
+    bottom: auto; top: calc(100% + 6px);
   }
 
   .mk.town .mk-body { background: #6b675c; border-color: #9a9384; }
@@ -583,7 +592,7 @@
        to the top with a real vh-based gap lands it in the upper third
        consistently across phone and desktop viewport heights, where a
        fixed px value wouldn't. */
-    position: relative; width: 100%; height: 70vh; max-height: 550px;
+    position: relative; width: 100%; height: 91vh; max-height: 715px;
     margin: 0; display: flex; align-items: flex-start; justify-content: center;
     cursor: grab; touch-action: pan-y; padding-top: 12vh;
     transition: height .4s cubic-bezier(.2,.8,.2,1), width .4s cubic-bezier(.2,.8,.2,1), margin .4s cubic-bezier(.2,.8,.2,1), padding .4s cubic-bezier(.2,.8,.2,1);
@@ -608,13 +617,22 @@
 
   .drawer-body { max-height: none; overflow: visible; padding: 0; mask-image: none; -webkit-mask-image: none; }
 
-  .site-entry h2 { font-size: var(--fs-xl); font-weight: 400; color: var(--ink); margin-bottom: 4px; }
+  .site-entry h2 { font-size: var(--fs-xl); font-weight: 400; color: var(--ink); margin-bottom: 8px; }
   /* Town pages: English name (with a small bracketed phonetic guide in
      the header itself), an Irish-language name underneath, and a
      smaller still scholar-poet line on the name's meaning or the story
      behind it — the "scholar-poet" voice made explicit for towns rather
      than just implied by tone. */
-  .site-entry h2 .phonetic { font-size: .55em; font-weight: 400; font-style: italic; color: var(--ink-dim); letter-spacing: 0; }
+  .site-entry h2 .phonetic {
+    /* Was plain inline text, which could break mid-phrase — the
+       pronunciation splitting across two lines mid-hyphen while the
+       tail end shared a line with the name. inline-block + nowrap
+       makes it one atomic unit: it either fits entirely after the
+       name on the same line, or the whole thing wraps down to its own
+       new line — never a partial share. */
+    display: inline-block; white-space: nowrap;
+    font-size: .55em; font-weight: 400; font-style: italic; color: var(--ink-dim); letter-spacing: 0;
+  }
   .site-entry .irish-name { font-family: Georgia, serif; font-style: italic; font-size: var(--fs-md); color: var(--accent-tag, var(--parchment)); opacity: .95; margin: -2px 0 6px; }
   .site-entry .irish-meaning { font-size: var(--fs-base); font-style: italic; color: var(--ink-dim); line-height: 1.6; margin-bottom: 14px; }
   .site-entry .tag { display: inline-block; align-self: flex-start; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .6px; color: var(--accent-tag, var(--parchment)); border: 1px solid var(--accent-tag, var(--parchment)); border-radius: var(--radius-full); padding: 2px 10px; margin-bottom: 14px; opacity: .9; }
@@ -625,13 +643,20 @@
   }
 
   .deep-dive-btn {
-    display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; margin: 6px 0 4px;
-    background: rgba(30,34,30,.7); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-    color: #d8d8d8; padding: 8px 16px; border-radius: var(--radius-full); font-size: var(--fs-base);
+    /* Was a thin, unfilled outline pill at roughly tag-sized weight —
+       same accent-tinted border colour family as .site-entry .tag, same
+       pill shape, close enough in size that it read as another tag
+       rather than the primary action of the drawer. Solid accent-tinted
+       fill + a full-strength border + bolder text is what actually
+       separates "this is a button you press" from "this is a label." */
+    display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; margin: 10px 0 8px;
+    background: color-mix(in srgb, var(--accent) 24%, rgba(20,22,20,.9));
+    border: 1.5px solid var(--accent);
+    color: var(--ink); padding: 10px 20px; border-radius: var(--radius-full); font-size: var(--fs-base); font-weight: 600;
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif; cursor: pointer;
     transition: background .2s ease, border-color .2s ease, transform .15s var(--spring);
   }
-  .deep-dive-btn:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+  .deep-dive-btn:hover { background: color-mix(in srgb, var(--accent) 38%, rgba(20,22,20,.9)); }
   .deep-dive-btn:active { transform: scale(.96); }
   .deep-dive-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .drawer.full .deep-dive-btn { display: none; }
@@ -680,7 +705,7 @@
     .drawer.full .drawer-stage { display: flex; align-items: flex-start; height: 100%; overflow-y: hidden; }
   }
   .drawer.full .drawer-specimen {
-    width: min(38vw, 380px); height: 42vh; max-height: none;
+    width: min(49vw, 494px); height: 55vh; max-height: none;
     margin: 11vh 0 0 8%; padding-top: 0;
   }
   .drawer.full .drawer-specimen svg { width: 100%; height: 100%; }
@@ -695,7 +720,7 @@
   .drawer.full .drawer-body::-webkit-scrollbar-thumb { background: var(--accent-soft); border-radius: var(--radius-sm); }
   .drawer.full .site-entry h2 { font-size: var(--fs-2xl); }
   @media (max-width: 899px) {
-    .drawer.full .drawer-specimen { width: 88vw; height: 30vh; margin: 6vh auto 0; }
+    .drawer.full .drawer-specimen { width: 88vw; height: 39vh; margin: 6vh auto 0; }
     .drawer.full .drawer-content { width: 88vw; margin: 4vh auto 6vh; }
     .drawer.full .site-entry h2 { font-size: var(--fs-xl); }
     .drawer.full .drawer-body { max-height: none; }
@@ -927,7 +952,17 @@
     margin-top: auto; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08);
     display: flex; flex-wrap: wrap; justify-content: center; gap: 16px;
     position: sticky; bottom: 0;
-    background: linear-gradient(180deg, transparent, var(--canvas-2) 45%);
+    /* Was `var(--canvas-2) 45%` — a fully opaque flat colour, while
+       .drawer's own actual background is a translucent blurred panel
+       (rgba(26,26,26,.92) + backdrop-filter), not a solid fill. Content
+       fading up from below matched at the top of the gradient but hit a
+       flatter, more opaque rectangle by the time it reached the
+       buttons — that mismatch, not the gradient technique itself, is
+       what still read as a visible box. Matching the drawer's own
+       rgba value (not the fully-opaque --canvas-2 token) is what
+       actually makes this blend into the same panel instead of sitting
+       on top of it. */
+    background: linear-gradient(180deg, transparent, rgba(26,26,26,.92) 45%);
   }
   .maplink-btn {
     display: inline-flex; align-items: center; gap: 6px;
@@ -940,6 +975,25 @@
   .maplink-btn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.4); }
   .maplink-btn:active { transform: scale(.96); }
   .maplink-btn svg { width: 13px; height: 13px; flex: 0 0 auto; opacity: .95; }
+
+  /* Floating "back to the Scriptorium" pill — sits below the topbar (using
+     its real measured height, set as --topbar-height by JS on load/resize,
+     since the topbar wraps to two rows on narrow screens and a guessed
+     fixed offset would either overlap it or leave a gap) and below the
+     drawer's own z-index (50) so an open drawer still covers it rather
+     than floating on top, per "not above the drawers." */
+  .scriptorium-fab {
+    position: fixed; top: calc(var(--topbar-height, 64px) + 12px); right: calc(16px + env(safe-area-inset-right));
+    z-index: 15; display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(30,34,30,.7); border: 1px solid rgba(255,255,255,.22);
+    color: #d8d8d8; padding: 8px 16px; border-radius: var(--radius-full); font-size: var(--fs-sm);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif; text-decoration: none;
+    transition: background .2s ease, border-color .2s ease, transform .15s var(--spring);
+  }
+  .scriptorium-fab:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.4); }
+  .scriptorium-fab:active { transform: scale(.96); }
+  .scriptorium-fab svg { width: 15px; height: 15px; flex: 0 0 auto; opacity: .9; }
+  @media (max-width: 520px) { .scriptorium-fab { padding: 8px 12px; font-size: var(--fs-xs); } }
 
   /* Inline auto-links inside a town's description (see autoLinkNote) — a
      plain underlined word within the prose, not a pill button like the
@@ -969,6 +1023,29 @@
   .bookmark-btn.saved { color: var(--parchment); border-color: var(--parchment); }
   .bookmark-btn.saved svg { fill: var(--parchment); }
   .entry-header-row { display: flex; align-items: center; gap: 8px; }
+
+  /* ---- Scriptorium entry content, inside the drawer ----
+     The drawer now renders through the same entry-render.js the static
+     pages use, so it emits markup the map had no styles for: the
+     subCategory · scientificName · ogham meta row, and the verse variant
+     for poetry. These are the map-side half of what scriptorium/styles.css
+     already declares — deliberately the same class names and the same
+     values, so a poem reads the same in the drawer as on its own page.
+     The cross-reference links are real <a href> tags intercepted by
+     wireScriptoriumLinks; the dotted underline ties them to the map's
+     own .note-link inline style rather than reading as a stray hyperlink. */
+  .scriptorium-content { font-size: var(--fs-base); line-height: 1.7; color: var(--ink-prose); }
+  .scriptorium-content p { margin: 0 0 14px; }
+  .scriptorium-content a { color: var(--parchment); text-decoration: underline dotted; text-underline-offset: 3px; }
+  .scriptorium-content a:hover { text-decoration-style: solid; }
+  .site-entry .entry-meta-row { margin: 4px 0 12px; font-size: var(--fs-sm); color: var(--ink-dim); }
+  .site-entry .entry-scientific-name { font-style: italic; color: var(--ink-prose); }
+  .site-entry .entry-meta-dot { margin: 0 8px; opacity: .5; }
+  .site-entry .entry-ogham { color: var(--parchment); opacity: .8; }
+  .site-entry .entry-ogham em { font-style: italic; opacity: .75; }
+  .scriptorium-content.is-verse { line-height: 1.55; font-style: italic; }
+  .scriptorium-content.is-verse p { margin: 0 0 22px; }
+  .scriptorium-content.is-verse p + p { text-indent: 1.4em; }
 
   /* ---- Ambient soundscape control ----
      Used to be a small persistent corner widget, fixed-position over
@@ -1235,6 +1312,10 @@
 
   <div class="map-area">
     <div id="map"></div>
+    <a href="scriptorium/" class="scriptorium-fab" id="scriptoriumFab" aria-label="Open the Scriptorium">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4 H15 A2 2 0 0 1 17 6 V20 H7 A2 2 0 0 1 5 18 Z"/><path d="M5 18 A2 2 0 0 1 7 16 H17"/></svg>
+      Scriptorium
+    </a>
 
     <div class="legend">
       <div class="legend-item"><span class="legend-dot" style="background:var(--flora)"></span> Flora & Herbalism</div>
@@ -2001,12 +2082,51 @@
       '<path class="specimen-leader" d="M 240,130 C 220,102 208,86 182,62"/>' +
       '<text class="specimen-label" x="8" y="54">TRAIL</text>' +
       '<text class="specimen-label" x="8" y="70" font-style="italic">(waymarked route)</text>',
-    legend:
+    // Was a single swirl shared across all 32 legendData entries — now 4
+    // variants picked by LEGEND_SPECIMEN_VARIANT below, curated by each
+    // legend's actual content (read every entry's note, not guessed from
+    // its title alone) rather than hashed. The original swirl is kept
+    // as-is at index 3 for the Chronicle bucket — it was already
+    // abstract enough to suit "recorded lore" generically, so no need
+    // to replace working art just to reach 4 variants.
+    legend: [
+      // 0 — Fairy & Otherworldly: a fairy rath (grass mound) ringed by
+      // small toadstool marks, with a spark above suggesting enchantment.
+      '<path class="specimen-line" d="M 100,320 C 100,270 150,240 200,240 C 250,240 300,270 300,320"/>' +
+      '<path class="specimen-line" d="M 60,320 L 340,320"/>' +
+      '<circle class="specimen-line" cx="140" cy="323" r="4"/>' +
+      '<circle class="specimen-line" cx="180" cy="328" r="4"/>' +
+      '<circle class="specimen-line" cx="220" cy="328" r="4"/>' +
+      '<circle class="specimen-line" cx="260" cy="323" r="4"/>' +
+      '<path class="specimen-line" d="M 210,185 L 210,215 M 195,200 L 225,200 M 200,190 L 220,210 M 220,190 L 200,210"/>' +
+      '<path class="specimen-leader" d="M 210,185 C 190,158 176,142 148,116"/>' +
+      '<text class="specimen-label" x="8" y="108">FAIRY RATH</text>' +
+      '<text class="specimen-label" x="8" y="124" font-style="italic">(otherworldly)</text>',
+      // 1 — Ghost & Guardian: a simple hovering shroud, eyes only, held
+      // just above (not touching) a ground line.
+      '<path class="specimen-line" d="M 150,300 L 150,220 C 150,190 250,190 250,220 L 250,300 C 240,312 230,288 220,300 C 210,312 200,288 190,300 C 180,312 170,288 160,300 Z"/>' +
+      '<path class="specimen-line" d="M 180,238 L 180,244 M 220,238 L 220,244"/>' +
+      '<path class="specimen-line" d="M 90,320 C 140,310 260,310 310,320"/>' +
+      '<path class="specimen-leader" d="M 200,190 C 182,162 168,146 142,120"/>' +
+      '<text class="specimen-label" x="8" y="112">GHOST STORY</text>' +
+      '<text class="specimen-label" x="8" y="128" font-style="italic">(supernatural)</text>',
+      // 2 — Saint & Sanctuary: a plain standing cross on a small plinth,
+      // deliberately simpler than the site-level church/high-cross
+      // specimens (this is illustrating a story, not a specific ruin).
+      '<path class="specimen-line" d="M 190,340 L 210,340 L 210,320 L 190,320 Z"/>' +
+      '<path class="specimen-line" d="M 195,320 L 195,180 L 205,180 L 205,320 Z"/>' +
+      '<path class="specimen-line" d="M 160,220 L 240,220 L 240,210 L 160,210 Z"/>' +
+      '<path class="specimen-leader" d="M 200,180 C 182,152 168,136 142,110"/>' +
+      '<text class="specimen-label" x="8" y="102">SAINTLY LORE</text>' +
+      '<text class="specimen-label" x="8" y="118" font-style="italic">(ecclesiastical)</text>',
+      // 3 — Chronicle & Landscape (catch-all: kings, real events, natural-
+      // phenomena folklore, cultural customs) — the original swirl.
       '<path class="specimen-line" d="M 200,270 C 200,250 215,235 235,235 C 260,235 280,255 280,280 C 280,310 255,335 220,335 C 175,335 140,300 140,255 C 140,205 180,165 230,165 C 250,165 268,172 282,184"/>' +
       '<circle cx="200" cy="270" r="5" fill="var(--parchment)" opacity=".8"/>' +
       '<path class="specimen-leader" d="M 230,165 C 210,136 196,120 168,94"/>' +
       '<text class="specimen-label" x="8" y="86">FOLKLORE</text>' +
-      '<text class="specimen-label" x="8" y="102" font-style="italic">(local legend)</text>',
+      '<text class="specimen-label" x="8" y="102" font-style="italic">(local legend)</text>'
+    ],
     'generic-fallback':
       '<path class="specimen-line" d="M 180,340 L 175,180 C 173,160 227,160 225,180 L 220,340 Z"/>' +
       '<path class="specimen-leader" d="M 200,175 C 182,148 168,132 142,108"/>' +
@@ -2133,6 +2253,33 @@
     for (var i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) | 0; }
     return Math.abs(h);
   }
+
+  // Deliberate, content-aware variant choice for the 4 `legend`
+  // illustrations (see SPECIMEN_SVGS.legend) — read every one of the 32
+  // entries' own note text rather than guessing from the title (a name
+  // like "The Last Bear's Den" doesn't say púca; its note does).
+  // Anything not listed falls through to 3 (Chronicle), the safest
+  // catch-all for whichever bucket doesn't clearly fit the other three.
+  var LEGEND_SPECIMEN_VARIANT = {
+    // 0 — Fairy & Otherworldly
+    "The Cow of Plenty & the Smith's Third Hand": 0, "The Merrow's Red Cap": 0,
+    'The Ringfort Fairies of Caherconnell': 0, 'The Fairy Musicians of Doolin': 0,
+    "The Giant's Quarrel of Mullaghmore": 0, 'The Selkie of Fanore': 0,
+    'The Herb-Wife of the Perfumery Valley': 0, "The Last Bear's Den": 0,
+    // 1 — Ghost & Guardian
+    "Mál and the Hag's Head": 1, 'The Executed Masons': 1, 'The Christmas Eve Ghosts': 1,
+    "Cahercommaun's Cliff Guardian": 1, 'The Drowned Sailors of Black Head': 1,
+    'The Banshee of Gleninagh': 1, 'Máire Rúa of Leamaneh': 1,
+    "Rathborney's Whispering Yew": 1, "Carran Turlough's Vanishing Herd": 1,
+    // 2 — Saint & Sanctuary
+    'The Sheela-na-gig of Killinaboy': 2, "The Bishops' Crosses of Kilfenora": 2,
+    "Kilmacduagh's Leaning Tower": 2, "Termon's Sanctuary Stone": 2,
+    "Killmoon's Lost Bell": 2, "King Guaire's Flying Feast": 2, "Guaire's Answered Question": 2
+    // Everything else (Diarmuid and Gráinne's Bed, the sunken city, the
+    // fossil serpent, the whistling caves, the seven streams, the
+    // hidden harbour, the matchmaker's book, the Schools' Folklore
+    // Collection) falls through to 3 — Chronicle & Landscape.
+  };
 
   function specimenSvg(family, entryName, variantIndex) {
     var key = (entryName && SPECIMEN_ONE_OFFS[entryName]) || family;
@@ -2457,7 +2604,7 @@
     "John O'Donohue (Residence)": { lng: -9.28, lat: 53.12, linkedTo: { kind: "site", name: "Fanore" },
       years: "1956 – 2008", domain: "Celtic Philosophy & Poetry",
       note: "O'Donohue lived and wrote here along the Fanore coastline — the landscape that shaped his thinking most directly. He is buried nearby at Craggagh Cemetery (see that grave entry)." },
-    "John Joe Conway (Kilfenora)": { lng: -9.22, lat: 52.99, linkedTo: { kind: "town", name: "Kilfenora" },
+    "John Joe Conway (Kilfenora)": { lng: -9.2161, lat: 52.9903, linkedTo: { kind: "town", name: "Kilfenora" },
       years: "1935 – 2019", domain: "Pastoral Tradition & Oral History",
       note: "Home ground of John Joe Conway, quiet guardian of the old ways and pastoral soul of the limestone uplands, carrying the deep, unwritten history of the earth in his daily labour and enduring friendship. He is buried at Kilmoon Graveyard (see that grave entry); his life features in the documentary The Silver Branch." },
     "Patrick McCormack (Mullaghmore)": { lng: -9.00, lat: 53.01, linkedTo: { kind: "site", name: "Mullaghmore" },
@@ -2469,7 +2616,7 @@
     "Teasie McCormack (Old Smokey)": { lng: -9.06, lat: 52.97, linkedTo: { kind: "town", name: "Corofin" },
       years: "c. 1930 – 2025", domain: "Hearth Wisdom & Domestic Lore",
       note: "\"Old Smokey\" at Tullagha, near Corofin — keeper of the perpetual hearth, the sloe-gin harvest, and the unwritten history of the karst, she remains the timeless marrow of this stone landscape." },
-    "Teasie McCormack (Burial)": { lng: -9.22, lat: 52.99, linkedTo: { kind: "site", name: "Kilfenora Cathedral" },
+    "Teasie McCormack (Burial)": { lng: -9.2171, lat: 52.9906, linkedTo: { kind: "site", name: "Kilfenora Cathedral" },
       years: "c. 1930 – 2025", domain: "Hearth Wisdom & Domestic Lore",
       note: "Buried at St Fachnan's Cathedral, Kilfenora, closing an Ollamh's life spent as the marrow of this stone landscape." },
     "Saint MacCreiche (Liscannor)": { lng: -9.38, lat: 52.94, linkedTo: { kind: "town", name: "Liscannor" },
@@ -2498,7 +2645,7 @@
     "The Roadside Tavern": { lng: -9.28965, lat: 53.02712, linkedTo: { kind: "town", name: "Lisdoonvarna" }, category: "Pub / Brewery", established: "est. 1893", patrons: "Peter Curtin, local botanists, visiting geologists", provisional: "Coordinate is an approximate placement near Lisdoonvarna — the source record gives a village name, not a street address, so this is not a verified location.", note: "Iconic rustic pub home to the Burren Brewery crafting micro-brews inspired by local karst spring water and wild botanicals." },
     "Monks Ballyvaughan": { lng: -9.1494, lat: 53.1167, linkedTo: { kind: "town", name: "Ballyvaughan" }, category: "Pub / Seafood", established: "est. 1960", patrons: "Local fishermen, maritime travelers, coastal sailors", provisional: "Coordinate is an approximate placement near Ballyvaughan — the source record gives a village name, not a street address, so this is not a verified location.", note: "Pier-side tavern overlooking Galway Bay, renowned for fresh local seafood and sheltering sailors and travelers since the mid-twentieth century." },
     "The Hydro Hotel Bar": { lng: -9.29299, lat: 53.0281, linkedTo: { kind: "town", name: "Lisdoonvarna" }, category: "Pub / Hotel Bar", established: "est. 1902", patrons: "Spa tourists, Victorian writers, medical seekers", provisional: "Coordinate is an approximate placement near Lisdoonvarna — the source record gives a village name, not a street address, so this is not a verified location.", note: "Historic Victorian spa hotel bar reflecting the heyday of Lisdoonvarna's mineral-water tourism and literary gatherings." },
-    "Vaughan's Pub": { lng: -9.21475, lat: 52.98942, linkedTo: { kind: "town", name: "Kilfenora" }, category: "Pub / Music", established: "est. 1826", patrons: "Traditional céilí bands, dancers from across Clare", provisional: "Coordinate is an approximate placement near Kilfenora — the source record gives a village name, not a street address, so this is not a verified location.", note: "Renowned hub for traditional music and set dancing, deeply tied to the rich ecclesiastical and archaeological history of Kilfenora." },
+    "Vaughan's Pub": { lng: -9.21475, lat: 52.98942, linkedTo: { kind: "town", name: "Kilfenora" }, category: "Pub / Music", established: "est. 1826", patrons: "Traditional céilí bands, dancers from across Clare", provisional: "Coordinate is an approximate placement near Kilfenora — the source record gives a village name, not a street address, so this is not a verified location.", note: "Still the home of set dancing and the Kilfenora Céilí Band, but the kitchen has become the bigger draw in recent years — a well-reviewed restaurant known for its seafood chowder and Sunday sessions in the Barn, not just a music stop." },
     "The Burren Storehouse": { lng: -9.28942, lat: 53.02873, linkedTo: { kind: "town", name: "Lisdoonvarna" }, category: "Pub / Venue", established: "est. 2014", patrons: "Food writers, acoustic artists, cultural tourists", provisional: "Coordinate is an approximate placement near Lisdoonvarna — the source record gives a village name, not a street address, so this is not a verified location.", note: "Modern cultural hub and performance space housed in a restored heritage building, celebrating local food, music, and Burren artistry." },
     "The Rathbaun Hotel Bar": { lng: -9.29135, lat: 53.02682, linkedTo: { kind: "town", name: "Lisdoonvarna" }, category: "Pub / Family", established: "est. 1952", patrons: "Festival participants, matchmaking hopefuls", provisional: "Coordinate is an approximate placement near Lisdoonvarna — the source record gives a village name, not a street address, so this is not a verified location.", note: "Long-standing family-run hotel bar serving as a lively gathering point during the autumn matchmaking and festival seasons." },
     "Green's Pub": { lng: -9.15139, lat: 53.1156, linkedTo: { kind: "town", name: "Ballyvaughan" }, category: "Pub / Historic", established: "est. 1888", patrons: "Local elders, artists, rural storytellers", provisional: "Coordinate is an approximate placement near Ballyvaughan — the source record gives a village name, not a street address, so this is not a verified location.", note: "Traditional stone-fronted village pub retaining old-world character, local drafts, and quiet corners for storytelling." },
@@ -2598,6 +2745,35 @@
   // Drawer navigation history — shared between the load-scoped render
   // functions below and closeDrawer (defined at the bottom of this script),
   // so both can read/reset it.
+  // ==========================================================================
+  // Canonical URL sync
+  // ==========================================================================
+  // While a Scriptorium entry's drawer is open, the address bar reads that
+  // entry's OWN canonical URL — the exact same URL its static page is
+  // served at. That's the whole "one canonical URL, two renderers" idea:
+  // copy the link out of the map and paste it anywhere and it works;
+  // reload here and you land on the real page instead of the default map
+  // view; share from iOS and the sheet offers the entry's title rather
+  // than "The Burren — Field Map".
+  //
+  // Declared at top-level script scope rather than inside the map's load
+  // callback because closeDrawer lives out here too and needs to put the
+  // map's own URL back.
+  var DEFAULT_DOC_TITLE = document.title;
+  var BASE_MAP_URL = location.pathname + location.search.replace(/[?&](entry|q|identify)=[^&]*/g, '').replace(/^\?$/, '');
+  function setCanonicalUrl(href, title) {
+    try { history.replaceState(history.state, '', href); } catch (e) { /* file:// preview */ }
+    document.title = title ? title + ' \u2014 The Burren Scriptorium' : DEFAULT_DOC_TITLE;
+    var og = document.querySelector('meta[property="og:title"]');
+    if (og) og.setAttribute('content', document.title);
+  }
+  function clearCanonicalUrl() {
+    try { history.replaceState(history.state, '', BASE_MAP_URL); } catch (e) { /* file:// preview */ }
+    document.title = DEFAULT_DOC_TITLE;
+    var og = document.querySelector('meta[property="og:title"]');
+    if (og) og.setAttribute('content', DEFAULT_DOC_TITLE);
+  }
+
   var drawerStack = []; // {kind:'site'|'town'|'route', id, scrollTop}
   var drawerCurrent = null;
 
@@ -2608,46 +2784,66 @@
   // toggle it, so it lives here at top-level script scope like drawerStack
   // above rather than nested inside either one.
   // ==========================================================================
-  var FIELD_NOTES_KEY = 'burrenFieldNotesV1';
+  // These are now thin delegations to scriptorium/assets/state.js, which
+  // owns the one implementation. The localStorage key and the
+  // 'kind::name' id format are UNCHANGED, so every entry anyone has
+  // already saved survives this move — and, more to the point, a star
+  // pressed on a static Scriptorium page and a star pressed in this
+  // drawer are now the same star, because they're the same code writing
+  // the same key on the same origin.
+  //
+  // The fallback exists because scriptorium/assets/ is build output: if
+  // someone opens this file without having run build.js, or a deploy
+  // misses the folder, bookmarks degrade to in-memory for the session
+  // rather than throwing on first render and taking the map down with
+  // them.
+  var BurrenStateRef = window.BurrenState || (function () {
+    console.warn('scriptorium/assets/state.js did not load — Field Notes will not persist this session. Run scriptorium/build.js.');
+    var mem = [];
+    function has(kind, name) { return mem.some(function (n) { return n.id === kind + '::' + name; }); }
+    return {
+      fieldNotes: {
+        list: function () { return mem; },
+        has: has,
+        toggle: function (kind, name, extra) {
+          var id = kind + '::' + name;
+          var at = -1;
+          for (var i = 0; i < mem.length; i++) { if (mem[i].id === id) { at = i; break; } }
+          if (at !== -1) { mem.splice(at, 1); return false; }
+          var e = { id: id, kind: kind, name: name, savedAt: new Date().toISOString() };
+          if (extra) { for (var k in extra) { if (extra.hasOwnProperty(k)) e[k] = extra[k]; } }
+          mem.push(e);
+          return true;
+        }
+      },
+      bookmarkBtnHtml: function (kind, name, extraClass) {
+        var saved = has(kind, name);
+        return '<button class="bookmark-btn' + (extraClass ? ' ' + extraClass : '') + (saved ? ' saved' : '') + '" ' +
+          'data-bookmark-kind="' + kind + '" data-bookmark-name="' + String(name).replace(/"/g, '&quot;') + '" ' +
+          'title="' + (saved ? 'Remove from Field Notes' : 'Save to Field Notes') + '" aria-label="Save to Field Notes">' +
+          '<svg viewBox="0 0 24 24"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/></svg></button>';
+      },
+      wireBookmarkBtn: function () {},
+      read: { mark: function () {}, has: function () { return false; }, list: function () { return []; } },
+      mapView: { save: function () {}, take: function () { return null; }, peek: function () { return null; } },
+      soundscape: { get: function () { return { playing: false, volume: 0.15, mode: null }; }, set: function () {} },
+      onChange: function () { return function () {}; },
+      notify: function () {}
+    };
+  })();
 
-  function fieldNotesList() {
-    try { return JSON.parse(localStorage.getItem(FIELD_NOTES_KEY) || '[]'); }
-    catch (e) { console.warn('Field Notes: could not read localStorage', e); return []; }
-  }
-  function fieldNotesSave(list) {
-    try { localStorage.setItem(FIELD_NOTES_KEY, JSON.stringify(list)); }
-    catch (e) { console.warn('Field Notes: could not write localStorage (private browsing mode?)', e); }
-  }
-  function fieldNoteId(kind, name) { return kind + '::' + name; }
-  function fieldNotesHas(kind, name) {
-    var id = fieldNoteId(kind, name);
-    return fieldNotesList().some(function (n) { return n.id === id; });
-  }
-  // Returns true if the entry is now saved, false if it was just removed —
-  // callers use this to flip the star icon without a second lookup.
-  function fieldNotesToggle(kind, name, extra) {
-    var list = fieldNotesList();
-    var id = fieldNoteId(kind, name);
-    var existingIndex = -1;
-    for (var i = 0; i < list.length; i++) { if (list[i].id === id) { existingIndex = i; break; } }
-    if (existingIndex !== -1) {
-      list.splice(existingIndex, 1);
-      fieldNotesSave(list);
-      return false;
-    }
-    var entry = { id: id, kind: kind, name: name, savedAt: new Date().toISOString() };
-    if (extra) { for (var k in extra) { if (extra.hasOwnProperty(k)) entry[k] = extra[k]; } }
-    list.push(entry);
-    fieldNotesSave(list);
-    return true;
-  }
-  function bookmarkBtnHtml(kind, name, extraClass) {
-    var saved = fieldNotesHas(kind, name);
-    return '<button class="bookmark-btn' + (extraClass ? ' ' + extraClass : '') + (saved ? ' saved' : '') + '" ' +
-      'data-bookmark-kind="' + kind + '" data-bookmark-name="' + name.replace(/"/g, '&quot;') + '" ' +
-      'title="' + (saved ? 'Remove from Field Notes' : 'Save to Field Notes') + '" aria-label="Save to Field Notes">' +
-      '<svg viewBox="0 0 24 24"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/></svg></button>';
-  }
+  // Development aid: warns if anything ever registers an unload/
+  // beforeunload listener, which would silently disqualify this page from
+  // the back/forward cache. Nothing throws when that happens and nothing
+  // looks broken — returning from a Scriptorium page just quietly stops
+  // being instant, which is the kind of regression that survives for
+  // months. See scriptorium/assets/seam.js.
+  if (window.BurrenSeam) window.BurrenSeam.checkBfcacheHazards();
+
+  function fieldNotesList() { return BurrenStateRef.fieldNotes.list(); }
+  function fieldNotesHas(kind, name) { return BurrenStateRef.fieldNotes.has(kind, name); }
+  function fieldNotesToggle(kind, name, extra) { return BurrenStateRef.fieldNotes.toggle(kind, name, extra); }
+  function bookmarkBtnHtml(kind, name, extraClass) { return BurrenStateRef.bookmarkBtnHtml(kind, name, extraClass); }
 
   // Existing site categories double as a rough habitat vocabulary for the
   // ones that are genuinely environmental — architectural/archaeological
@@ -2681,223 +2877,33 @@
   }
 
   // ==========================================================================
-  // Ambient soundscape engine — same procedurally-synthesized Web Audio
-  // module used on the Scriptorium pages (scriptorium/assets/scriptorium-
-  // soundscape.js), inlined here to keep this map file self-contained. See
-  // that file's own header comment for the full design rationale.
+  // Ambient soundscape — now loaded from scriptorium/assets/soundscape.js
+  // rather than inlined here.
+  //
+  // This file used to carry the whole engine with a comment saying it was
+  // "the same module used on the Scriptorium pages
+  // (scriptorium/assets/scriptorium-soundscape.js), inlined here to keep
+  // this map file self-contained". That second file never existed in the
+  // repo, so the Scriptorium had no soundscape at all and the comment
+  // described an intention rather than a fact. It exists now, both
+  // surfaces load it, and the preference (playing / volume / mode) rides
+  // across the seam in shared state.
+  //
+  // The stub keeps the map working if the script didn't load — every call
+  // site below treats the soundscape as optional decoration already, so a
+  // no-op object is a genuinely safe degradation rather than a papered-over
+  // failure.
   // ==========================================================================
-  /* ==========================================================================
-     Scriptorium ambient soundscape engine
-     Procedurally synthesized (filtered noise + slow LFOs) via the native
-     Web Audio API — no audio files to host or license. Four broad modes
-     (wind / water / woodland / meadow) that the many specific habitat tags
-     map down to, cross-fading between them rather than hard-cutting.
+  var Soundscape = window.BurrenSoundscape || {
+    setHabitat: function () {}, play: function () {}, pause: function () {},
+    toggle: function () { return false; }, setVolume: function () {},
+    duck: function () {}, unduck: function () {},
+    isPlaying: function () { return false; }, getVolume: function () { return 0; },
+    getMode: function () { return null; },
+    mount: function () {}, widgetEl: null,
+    restorePrefs: function () { return null; }, persistPrefs: function () {}
+  };
 
-     This is DSP I've written and reasoned through, not something I've been
-     able to actually listen to and tune by ear in this environment — the
-     structure (noise source → filter → slow LFO modulation → gain) is
-     sound, but treat the exact tone/levels as a first draft, not a
-     finished mix.
-
-     Starts silent; playback only begins on an explicit user click (both
-     because that's the "non-intrusive" ask and because browsers block
-     AudioContext startup without a user gesture regardless).
-     ========================================================================== */
-  var Soundscape = (function () {
-    'use strict';
-
-    var ctx = null;
-    var master = null;
-    var modeGains = {};
-    var MODES = ['wind', 'water', 'woodland', 'meadow'];
-    var currentMode = null;
-    var isPlaying = false;
-    var userVolume = 0.15; // default 15%, per the "quiet by default" ask
-    var duckedFactor = 1;
-    var CROSSFADE_SEC = 2.6;
-
-    // The many specific habitat tags used across sites/flora collapse down
-    // to just four ambience families — enough variety to feel context-aware
-    // without needing a distinct stem per habitat tag.
-    var HABITAT_TO_MODE = {
-      'Upland': 'wind', 'Limestone Pavement': 'wind', 'Exposed Limestone Rock': 'wind',
-      'Coastal Dune': 'wind', 'Short Turf / Grassland': 'wind',
-      'Wetland / Turlough': 'water', 'Freshwater Lake': 'water', 'Coastal Bay': 'water', 'Cave System': 'water',
-      'Hazel Woodland': 'woodland', 'Hazel Scrub': 'woodland',
-      'Meadow': 'meadow', 'Calcareous Grassland': 'meadow', 'Grassland Grips': 'meadow'
-    };
-
-    function makeNoiseBuffer(audioCtx, seconds) {
-      var rate = audioCtx.sampleRate;
-      var length = Math.floor(rate * seconds);
-      var buffer = audioCtx.createBuffer(1, length, rate);
-      var data = buffer.getChannelData(0);
-      for (var i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
-      return buffer;
-    }
-
-    // A slow sub-audible oscillator used purely as a modulation source
-    // (e.g. wandering a filter's cutoff for a "gusting" feel), scaled down
-    // through its own gain node before reaching the target AudioParam.
-    function makeLFO(audioCtx, freq, depth, targetParam) {
-      var lfo = audioCtx.createOscillator();
-      lfo.frequency.value = freq;
-      var scaler = audioCtx.createGain();
-      scaler.gain.value = depth;
-      lfo.connect(scaler);
-      scaler.connect(targetParam);
-      lfo.start();
-      return lfo;
-    }
-
-    function buildMode(audioCtx, mode) {
-      var gain = audioCtx.createGain();
-      gain.gain.value = 0;
-      var noise = audioCtx.createBufferSource();
-      noise.buffer = makeNoiseBuffer(audioCtx, 4);
-      noise.loop = true;
-
-      if (mode === 'wind') {
-        var windFilter = audioCtx.createBiquadFilter();
-        windFilter.type = 'lowpass'; windFilter.frequency.value = 500; windFilter.Q.value = 0.7;
-        makeLFO(audioCtx, 0.07, 220, windFilter.frequency);
-        noise.connect(windFilter); windFilter.connect(gain);
-      } else if (mode === 'water') {
-        var waterFilter = audioCtx.createBiquadFilter();
-        waterFilter.type = 'bandpass'; waterFilter.frequency.value = 1100; waterFilter.Q.value = 0.9;
-        makeLFO(audioCtx, 0.11, 300, waterFilter.frequency);
-        var rumble = audioCtx.createOscillator();
-        rumble.type = 'sine'; rumble.frequency.value = 70;
-        var rumbleGain = audioCtx.createGain(); rumbleGain.gain.value = 0.05;
-        rumble.connect(rumbleGain); rumbleGain.connect(gain);
-        rumble.start();
-        noise.connect(waterFilter); waterFilter.connect(gain);
-      } else if (mode === 'woodland') {
-        var woodFilter = audioCtx.createBiquadFilter();
-        woodFilter.type = 'highpass'; woodFilter.frequency.value = 2200; woodFilter.Q.value = 0.6;
-        makeLFO(audioCtx, 0.05, 500, woodFilter.frequency);
-        noise.connect(woodFilter); woodFilter.connect(gain);
-      } else { // meadow
-        var meadowFilter = audioCtx.createBiquadFilter();
-        meadowFilter.type = 'bandpass'; meadowFilter.frequency.value = 900; meadowFilter.Q.value = 0.5;
-        var ampLfo = audioCtx.createOscillator(); ampLfo.frequency.value = 0.09;
-        var ampScaler = audioCtx.createGain(); ampScaler.gain.value = 0.15;
-        ampLfo.connect(ampScaler); ampScaler.connect(gain.gain);
-        ampLfo.start();
-        noise.connect(meadowFilter); meadowFilter.connect(gain);
-      }
-      noise.start();
-      gain.connect(master);
-      return gain;
-    }
-
-    function ensureContext() {
-      if (ctx) return;
-      ctx = new (window.AudioContext || window.webkitAudioContext)();
-      master = ctx.createGain();
-      master.gain.value = 0;
-      master.connect(ctx.destination);
-      MODES.forEach(function (m) { modeGains[m] = buildMode(ctx, m); });
-    }
-
-    function modeForHabitats(tags) {
-      if (!tags || !tags.length) return null;
-      for (var i = 0; i < tags.length; i++) { if (HABITAT_TO_MODE[tags[i]]) return HABITAT_TO_MODE[tags[i]]; }
-      return null;
-    }
-
-    function crossfadeTo(mode) {
-      if (!ctx || mode === currentMode) return;
-      currentMode = mode;
-      var now = ctx.currentTime;
-      MODES.forEach(function (m) {
-        var g = modeGains[m];
-        g.gain.cancelScheduledValues(now);
-        g.gain.setValueAtTime(g.gain.value, now);
-        g.gain.linearRampToValueAtTime(m === mode ? 1 : 0, now + CROSSFADE_SEC);
-      });
-    }
-
-    function applyVolume() {
-      if (!ctx) return;
-      var now = ctx.currentTime;
-      master.gain.cancelScheduledValues(now);
-      master.gain.setValueAtTime(master.gain.value, now);
-      master.gain.linearRampToValueAtTime(isPlaying ? userVolume * duckedFactor : 0, now + 0.4);
-    }
-
-    var Soundscape = {
-      // Called when a drawer/entry with habitat tags becomes active. Safe
-      // to call before play() — it just remembers the mode for whenever
-      // playback starts.
-      setHabitat: function (tags) {
-        var mode = modeForHabitats(tags) || currentMode || 'wind';
-        if (!ctx) { currentMode = mode; updateModeLabel(); return; }
-        crossfadeTo(mode);
-        updateModeLabel();
-      },
-      play: function () {
-        ensureContext();
-        if (ctx.state === 'suspended') ctx.resume();
-        isPlaying = true;
-        if (!currentMode) currentMode = 'wind';
-        var mode = currentMode;
-        currentMode = null; // force crossfadeTo to actually ramp the chosen mode up from 0
-        crossfadeTo(mode);
-        applyVolume();
-        updateModeLabel();
-      },
-      pause: function () { isPlaying = false; applyVolume(); },
-      toggle: function () { if (isPlaying) this.pause(); else this.play(); return isPlaying; },
-      setVolume: function (v) { userVolume = Math.max(0, Math.min(1, v)); applyVolume(); },
-      // Ducks under a pronunciation/bird-call trigger without pausing outright
-      // (and without fighting the user's own volume setting — duckedFactor is
-      // a multiplier on top of it, restored to 1 on unduck).
-      duck: function () { duckedFactor = 0.25; applyVolume(); },
-      unduck: function () { duckedFactor = 1; applyVolume(); },
-      isPlaying: function () { return isPlaying; },
-      getVolume: function () { return userVolume; },
-      getMode: function () { return currentMode; }
-    };
-
-    function updateModeLabel() {
-      var label = document.getElementById('soundscapeModeLabel');
-      if (label && currentMode) label.textContent = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
-    }
-
-    // Builds the small persistent control widget (play/pause, volume,
-    // current-mode label) once per page. Call Soundscape.mount() after
-    // the page's own DOM is ready; safe to call more than once. No
-    // longer appends itself anywhere — it now lives inside the burger
-    // menu (see renderBurgerMenu, which re-attaches this same node,
-    // listeners intact, every time the menu panel is rebuilt) rather
-    // than as a standalone floating widget.
-    Soundscape.mount = function () {
-      if (Soundscape.widgetEl) return;
-      var el = document.createElement('div');
-      el.id = 'soundscapeWidget';
-      el.className = 'soundscape-widget';
-      el.innerHTML =
-        '<button class="soundscape-toggle" id="soundscapeToggle" aria-label="Play ambient soundscape" title="Play ambient soundscape">' +
-        '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>' +
-        '<input class="soundscape-volume" id="soundscapeVolume" type="range" min="0" max="100" value="15" aria-label="Soundscape volume">' +
-        '<span class="soundscape-mode" id="soundscapeModeLabel">' + (currentMode ? currentMode.charAt(0).toUpperCase() + currentMode.slice(1) : 'Wind') + '</span>';
-      var toggleBtn = el.querySelector('#soundscapeToggle');
-      toggleBtn.addEventListener('click', function () {
-        var playing = Soundscape.toggle();
-        toggleBtn.classList.toggle('playing', playing);
-        toggleBtn.innerHTML = playing
-          ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>'
-          : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-      });
-      el.querySelector('#soundscapeVolume').addEventListener('input', function (e) {
-        Soundscape.setVolume(e.target.value / 100);
-      });
-      Soundscape.widgetEl = el;
-    };
-
-    return Soundscape;
-  })();
 
   // ---- Elevation data for 3D terrain + contour lines ----
   // AWS's public, no-auth Terrarium-encoded elevation tiles (the old
@@ -4052,7 +4058,19 @@
     // visible at that spot on the map, since panning alone never checked
     // whether the marker would even exist at the zoom it arrived at.
     function tierForNamedEntry(kind, coords) {
-      if (kind === 'town') return 0;
+      if (kind === 'town') {
+        // A town's OWN floor is trivial (tier 0 — always visible), but
+        // that's not what "zoom in on this town" should mean when a
+        // person clicks one: what they actually want is to see the
+        // pubs/wells/graves/etc. fused into its badge pop out into their
+        // own markers, and those are JOINABLE_KINDS' tier, not the
+        // town's. Target the deepest tier among them instead, derived
+        // rather than hardcoded so this stays correct if tiers ever
+        // diverge per kind.
+        var maxJoinableTier = 0;
+        JOINABLE_KINDS.forEach(function (jk) { if (jk.defaultTier > maxJoinableTier) maxJoinableTier = jk.defaultTier; });
+        return maxJoinableTier;
+      }
       if (typeof coords.tier === 'number') return coords.tier;
       for (var i = 0; i < JOINABLE_KINDS.length; i++) {
         if (JOINABLE_KINDS[i].kind === kind) return JOINABLE_KINDS[i].defaultTier;
@@ -4318,7 +4336,7 @@
     // ==========================================================================
     // Deep-link bootstrap — a Scriptorium static page can send someone
     // "back into the map" at a specific entry via ?entry=<kind>:<name>
-    // (see build.js's {{MAP_LINK}}) rather than just dropping them at the
+    // (see build.js's fillEntry) rather than just dropping them at the
     // default view with no context. Parsed once, up front; consumeDeepLink
     // is deliberately safe to call more than once and before its data is
     // ready — site/town/legend data is already available synchronously,
@@ -4340,9 +4358,16 @@
       if (!pendingDeepLink) return;
       var link = pendingDeepLink;
       var isMapKind = link.kind === 'site' || link.kind === 'town' || link.kind === 'legend';
-      if (!isMapKind && !scriptoriumEntries[link.id]) return; // Scriptorium data not in yet — wait for the next call
+      if (isMapKind) { pendingDeepLink = null; navigateTo(link.kind, link.id); return; }
+      // A Scriptorium link now arrives as a SLUG (flora:spring-gentian),
+      // but every ?entry= link ever published used the encoded display
+      // title (flora:Spring%20Gentian). resolveScriptorium accepts both,
+      // plus any former title listed in an entry's aliases — so nothing
+      // that was ever shared, bookmarked or indexed stops working.
+      var entry = resolveScriptorium(link.id);
+      if (!entry) return; // manifest not in yet — no-op, tried again on load
       pendingDeepLink = null;
-      navigateTo(link.kind, link.id);
+      navigateTo(entry.category, entry.title);
     }
 
 
@@ -4360,11 +4385,46 @@
     // ==========================================================================
     var SCRIPTORIUM_MANIFEST_URL = 'scriptorium/manifest.json';
     var scriptoriumSearchCallback = null; // set by the search IIFE further down
+
+    // A second, slug-and-alias-keyed view of the same records.
+    // scriptoriumEntries stays keyed by display title because several
+    // call sites (the search index, the linked-poems chips, the category
+    // facet) already read it that way — but the SLUG is the canonical
+    // identity now, and this is what lets a deep link, an in-article
+    // cross-reference and a static page URL all resolve to the same entry
+    // without caring which of the three names they were handed. A title
+    // rename can no longer orphan a published link.
+    var scriptoriumIndex = { byKey: {}, byId: {}, byTitle: {}, byAlias: {}, all: [] };
+    // Delegates to BurrenRender.resolveRef rather than reading
+    // scriptoriumIndex's tables directly — a bare slug/title/alias is
+    // only trustworthy when exactly one record matches (see that
+    // function's own comment), and duplicating that logic here would be
+    // exactly the kind of drift this whole unification was meant to end.
+    // Falls back to a plain byId/byTitle/byAlias-first probe only if
+    // entry-render.js somehow didn't load, so a deep link still resolves
+    // in the simple, no-collision case rather than going fully dark.
+    function resolveScriptorium(ref) {
+      if (ref == null) return null;
+      if (window.BurrenRender) return window.BurrenRender.resolveRef(scriptoriumIndex, ref);
+      var lists = [scriptoriumIndex.byId[ref], scriptoriumIndex.byTitle[ref], scriptoriumIndex.byAlias[ref]];
+      for (var i = 0; i < lists.length; i++) { if (lists[i] && lists[i].length === 1) return lists[i][0]; }
+      return null;
+    }
+    // The path to an entry's canonical page, from this document. One
+    // function, so the drawer link, the prefetch hint and the search card
+    // can never disagree about where an entry lives.
+    function scriptoriumPageHref(entry) {
+      return 'scriptorium/' + entry.category + '/' + entry.id + '/';
+    }
+
     function loadScriptoriumManifest() {
       fetch(SCRIPTORIUM_MANIFEST_URL)
         .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
         .then(function (list) {
           list.forEach(function (entry) { scriptoriumEntries[entry.title] = entry; });
+          scriptoriumIndex = window.BurrenRender
+            ? window.BurrenRender.buildIndex(list)
+            : { byKey: {}, byId: {}, byTitle: {}, byAlias: {}, all: list };
           if (scriptoriumSearchCallback) scriptoriumSearchCallback(list);
           if (pendingDeepLink) consumeDeepLink();
         })
@@ -4375,7 +4435,10 @@
     loadScriptoriumManifest();
 
     function openScriptoriumDrawer(name) {
-      var entry = scriptoriumEntries[name];
+      // `name` may be a display title (how the map's own navigateTo calls
+      // this), a slug (how a deep link or an in-article cross-reference
+      // does), or a former title carried in an entry's aliases.
+      var entry = scriptoriumEntries[name] || resolveScriptorium(name);
       var accent = (entry && disciplineColor[entry.category]) || '#ded2b3';
       var drawerEl = document.getElementById('drawer');
       drawerEl.style.setProperty('--accent', accent);
@@ -4392,16 +4455,42 @@
         // than a blank drawer, say so plainly instead of looking broken.
         entryEl.innerHTML = '<h2>' + name + '</h2><p>Still loading this entry from the Scriptorium \u2014 if this doesn\u2019t resolve in a moment, the data may not be reachable from here right now.</p>';
       } else {
-        var staticPageHref = 'scriptorium/' + entry.category + '/' + entry.id + '.html';
-        entryEl.innerHTML = '<div class="entry-header-row"><h2>' + entry.title + '</h2>' + bookmarkBtnHtml(entry.category, entry.title) + '</div>' +
-          (entry.irishTitle ? '<div class="irish-name">' + entry.irishTitle + '</div>' : '') +
-          '<span class="tag">' + entry.category + '</span>' +
-          '<div class="scriptorium-content">' + entry.content + '</div>' +
-          deepDiveBtnHtml() +
-          '<p class="site-maplinks"><a class="maplink-btn" href="' + staticPageHref + '" target="_blank" rel="noopener noreferrer">View full citation &amp; sources \u2197</a></p>';
+        // ONE renderer, shared with build.js — see
+        // scriptorium/assets/entry-render.js. This drawer used to
+        // hand-assemble its own markup, which is why it was missing the
+        // auto-linked cross-references, the subCategory/scientificName
+        // meta row, the ogham line and the verse treatment the static
+        // page already had. Those aren't four separate fixes now; they're
+        // a property of both surfaces calling the same function.
+        //
+        // linkBase turns the manifest's %%R%% tokens into paths correct
+        // from THIS document (one level above scriptorium/) — which is
+        // the thing that used to force the manifest to ship unlinked
+        // content and let the two surfaces drift apart.
+        var pageHref = scriptoriumPageHref(entry);
+        if (window.BurrenRender) {
+          entryEl.innerHTML = window.BurrenRender.drawerHtml(entry, {
+            linkBase: 'scriptorium/',
+            bookmarkHtml: bookmarkBtnHtml(entry.category, entry.title),
+            afterContentHtml: deepDiveBtnHtml(),
+            pageHref: pageHref,
+            pageLabel: (window.BurrenConfig && window.BurrenConfig.crossing.toPage) || 'Read the full leaf'
+          });
+        } else {
+          // entry-render.js didn't load (build not run, or a deploy that
+          // missed scriptorium/assets/). Degrade to the plain shape
+          // rather than an empty drawer.
+          entryEl.innerHTML = '<div class="entry-header-row"><h2>' + entry.title + '</h2>' + bookmarkBtnHtml(entry.category, entry.title) + '</div>' +
+            (entry.irishTitle ? '<div class="irish-name" lang="ga">' + entry.irishTitle + '</div>' : '') +
+            '<span class="tag">' + entry.category + '</span>' +
+            '<div class="scriptorium-content">' + String(entry.content).split('%%R%%').join('scriptorium/') + '</div>' +
+            deepDiveBtnHtml() +
+            '<p class="site-maplinks"><a class="maplink-btn" href="' + pageHref + '">Read the full leaf</a></p>';
+        }
       }
       drawerBody.appendChild(entryEl);
       wireDeepDiveBtn(entryEl);
+      wireScriptoriumLinks(entryEl);
       var scriptoriumBookmarkBtn = entryEl.querySelector('.bookmark-btn');
       if (scriptoriumBookmarkBtn) wireBookmarkBtn(scriptoriumBookmarkBtn);
       drawerEl.classList.add('open');
@@ -4410,6 +4499,44 @@
       // the full reading view instead of the compact sidebar, same as
       // manually pressing "Deeper dive" on a site would.
       deepenDrawer();
+      if (entry) {
+        // The address bar now reads the entry's OWN canonical URL while
+        // its drawer is open. Copy it out of the map and paste it
+        // anywhere and it lands on the real page; reload here and you get
+        // the page too, rather than being dumped at the default map view.
+        // This is the whole "one canonical URL, two renderers" idea in
+        // one line.
+        //
+        // replaceState, not pushState: the drawer's own history entry was
+        // already pushed by navigateTo, and a second one here would make
+        // Back need two presses to leave a single drawer.
+        setCanonicalUrl(pageHref, entry.title);
+        if (window.BurrenState) window.BurrenState.read.mark(entry.category, entry.id, entry.title);
+      }
+    }
+
+    // Cross-references inside an entry's prose are real <a href> tags —
+    // that's what lets a crawler follow them and a screen reader announce
+    // a destination. Inside the map, though, following one should open
+    // the next entry in the drawer rather than tearing down the whole map
+    // to load a page. Same markup, two behaviours: the href is the truth,
+    // this is the enhancement.
+    //
+    // data-entry-ref is written by entry-render.js's auto-linker, so this
+    // only ever intercepts links that genuinely point at a Scriptorium
+    // entry. An external link, or a plain anchor typed into the content
+    // by hand, is left completely alone.
+    function wireScriptoriumLinks(scope) {
+      scope.querySelectorAll('a[data-entry-ref]').forEach(function (a) {
+        a.addEventListener('click', function (ev) {
+          // Modified clicks (new tab, new window, download) behave normally.
+          if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+          var target = resolveScriptorium(a.getAttribute('data-entry-ref'));
+          if (!target) return; // not in the manifest — let the real navigation happen
+          ev.preventDefault();
+          navigateTo(target.category, target.title);
+        });
+      });
     }
 
     function openLegendDrawer(name) {
@@ -4418,7 +4545,7 @@
       var drawerEl = document.getElementById('drawer');
       drawerEl.style.setProperty('--accent', accent);
       drawerEl.style.setProperty('--accent-soft', accentSoftColor.lore);
-      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('legend', name);
+      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('legend', name, LEGEND_SPECIMEN_VARIANT[name] || 3);
       renderAmbientRows('legend', 'legend', name);
       var drawerBody = document.getElementById('drawerBody');
       drawerBody.innerHTML = '';
@@ -4547,6 +4674,21 @@
       drawerEl.setAttribute('aria-hidden', 'false');
     }
 
+    // The old text here ("No site or town close enough nearby to link
+    // honestly...") rendered unconditionally off wellData's own
+    // `provisional` field — including, contradictorily, on wells that DO
+    // have a resolved linkedTo (the field predates some of those links
+    // and was never cleaned up after — e.g. St. Colman's Well links to
+    // Kilmacduagh Monastery and still carried this text). Shown only
+    // when there's genuinely no link, with live distance to the actual
+    // nearest town rather than repeating stale, apologetic prose.
+    function wellProvisionalNoteHtml(w, name) {
+      if (w.linkedTo) return '';
+      var nearest = nearestTownForEntry(name);
+      if (!nearest) return '';
+      return '<div class="provisional-note">Nearest town: ' + nearest.name + ' (' + nearest.km.toFixed(1) + 'km away) — coordinate as given in the source record, not independently verified.</div>';
+    }
+
     // Holy Wells — same shape again, built from wellData's location/
     // firstDocumented/saint/note fields. The note text is kept close to
     // the source's own skeptical framing (see the comment above
@@ -4571,9 +4713,9 @@
       entry.innerHTML = '<div class="entry-header-row"><h2>' + name + '</h2>' + bookmarkBtnHtml('well', name) + '</div>' +
         '<span class="tag">Holy Well — ' + w.location + (w.saint ? ' (' + w.saint + ')' : '') + '</span>' +
         (w.firstDocumented ? '<p><strong>First Documented:</strong> ' + w.firstDocumented + '</p>' : '') +
-        '<p><strong>Dubious Claims &amp; Field Notes:</strong> ' + autoLinkNote(w.note, name) + '</p>' +
+        '<p>' + autoLinkNote(w.note, name) + '</p>' +
         (w.warning ? '<div class="warning">' + w.warning + '</div>' : '') +
-        (w.provisional ? '<div class="provisional-note">' + w.provisional + '</div>' : '') +
+        wellProvisionalNoteHtml(w, name) +
         deepDiveBtnHtml() +
         siteOrTownLinkChipHtml(w) +
         externalMapLinksHtml(w.lat, w.lng, name);
@@ -4638,6 +4780,19 @@
       var dLng = (a.lng - b.lng) * 66.8; // ~km per degree of longitude at this latitude
       var dLat = (a.lat - b.lat) * 111;  // ~km per degree of latitude
       return Math.sqrt(dLng * dLng + dLat * dLat);
+    }
+
+    // Reuses stopDistanceKm/coordsForStop rather than a fresh haversine —
+    // an entry without a resolved linkedTo still deserves an honest
+    // "how far is this from anywhere" answer, and this is the same rough
+    // straight-line distance already used elsewhere for that purpose.
+    function nearestTownForEntry(name) {
+      var best = null;
+      Object.keys(townData).forEach(function (townName) {
+        var km = stopDistanceKm(name, townName);
+        if (!best || km < best.km) best = { name: townName, km: km };
+      });
+      return best;
     }
 
     // Plain rotation ("start here") on its own can ask you to drive past a
@@ -4778,6 +4933,16 @@
         visited[i] = true;
         for (var k = i + 1; k < n; k++) {
           if (visited[k] || absorbed[k] || projected[k].p.kind === 'town') continue;
+          // Only fuse points that actually share a discipline. Two
+          // nearby points with no discipline in common (a flora record
+          // next to an archaeology one) used to merge into the same
+          // numbered bubble regardless — visually implying "these are
+          // the same kind of thing, pick one," which isn't true across
+          // disciplines. Left unfused, each renders as its own single
+          // marker at its own real coordinate; at cluster radius apart
+          // those naturally overlap on screen rather than being forced
+          // into one larger point standing in for both.
+          if (!projected[i].p.disciplines.some(function (d) { return projected[k].p.disciplines.indexOf(d) !== -1; })) continue;
           var dx = projected[i].x - projected[k].x;
           var dy = projected[i].y - projected[k].y;
           if (Math.sqrt(dx * dx + dy * dy) <= radius) {
@@ -5157,6 +5322,40 @@
     // mounted once above, rebuilds only the ephemeral cluster bubbles, and
     // refreshes the constraint badge — never destroys a real entry's
     // marker, on a filter toggle, a route change, or a zoom/rotate/pitch.
+    // Town names are a permanent caption (see .mk.town .mk-label), not a
+    // hover-only label like everything else — so two towns close enough
+    // together read as overlapping text all the time, not just on hover.
+    // This doesn't try to be a real label-placement solver: it's a cheap
+    // per-pass check that flips one of a colliding pair to render its
+    // name below the marker instead of above (see .mk-label-flip), which
+    // clears the obvious case without needing real text metrics. Not
+    // guaranteed collision-free for three-or-more towns crowded into the
+    // same small screen area — a genuinely hard case a heuristic this
+    // simple was never going to solve — but that's rare at any zoom
+    // where towns are still individually visible rather than clustered.
+    function resolveTownLabelCollisions(townProjected) {
+      var LABEL_ROW_HEIGHT = 40, CHAR_WIDTH = 7.5, LABEL_GAP = 12;
+      var flipped = {};
+      for (var i = 0; i < townProjected.length; i++) {
+        for (var j = i + 1; j < townProjected.length; j++) {
+          var a = townProjected[i], b = townProjected[j];
+          var dy = Math.abs(a.y - b.y);
+          if (dy >= LABEL_ROW_HEIGHT) continue;
+          var halfWidths = (a.p.name.length + b.p.name.length) * CHAR_WIDTH / 2;
+          if (Math.abs(a.x - b.x) < halfWidths + LABEL_GAP) {
+            // Stable choice (alphabetically later name loses) so the
+            // same pair resolves the same way every pass instead of
+            // flickering between above/below as the map moves.
+            flipped[a.p.name > b.p.name ? a.p.name : b.p.name] = true;
+          }
+        }
+      }
+      townProjected.forEach(function (t) {
+        var entry = pointMarkers[t.p.key];
+        if (entry) entry.el.classList.toggle('mk-label-flip', !!flipped[t.p.name]);
+      });
+    }
+
     function renderAll() {
       renderedMarkers = []; // fresh bookkeeping list each pass
       var activeSet = activeDisciplineSet();
@@ -5173,10 +5372,15 @@
       // all — a zoom-in that splits the group apart just moves that point
       // into this map on the very next pass.
       var roleByKey = {};
+      var visibleTownProjected = [];
       groups.forEach(function (group) {
-        if (group.kind === 'town') roleByKey[group.item.p.key] = { role: 'town', absorbedCount: group.absorbedCount, absorbedItems: group.absorbedItems };
+        if (group.kind === 'town') {
+          roleByKey[group.item.p.key] = { role: 'town', absorbedCount: group.absorbedCount, absorbedItems: group.absorbedItems };
+          visibleTownProjected.push(group.item);
+        }
         else if (group.kind === 'single') roleByKey[group.items[0].p.key] = { role: 'single' };
       });
+      resolveTownLabelCollisions(visibleTownProjected);
 
       // Linked items (legend/grave/person/pub/well with a resolved
       // linkedTo) that are STILL below their own tier floor this pass —
@@ -5275,6 +5479,21 @@
 
       updateConstraintBadge(activeSet, hiddenPoints);
     }
+
+    // --topbar-height drives .scriptorium-fab's position (see its CSS) —
+    // measured rather than guessed, since the topbar's flex-wrap can push
+    // it to two rows on narrow screens and a fixed guess would either
+    // overlap it or leave a gap depending on how many rows it's wrapped
+    // to right now.
+    (function () {
+      var topbarEl = document.querySelector('.topbar');
+      if (!topbarEl) return;
+      function syncTopbarHeight() {
+        document.documentElement.style.setProperty('--topbar-height', topbarEl.offsetHeight + 'px');
+      }
+      syncTopbarHeight();
+      window.addEventListener('resize', syncTopbarHeight);
+    })();
 
     mountAllPointMarkers();
     renderAll();
@@ -6042,7 +6261,7 @@
         // Scriptorium page (used for the drawer's "View full citation"
         // link) the moment hover/focus intent shows up on the card.
         if (e.slug) {
-          var prefetchEntry = function () { prefetchUrl('scriptorium/' + e.category.toLowerCase() + '/' + e.slug + '.html'); };
+          var prefetchEntry = function () { prefetchUrl('scriptorium/' + e.category.toLowerCase() + '/' + e.slug + '/'); };
           cardEl.addEventListener('mouseenter', prefetchEntry, { once: true });
           cardEl.addEventListener('focus', prefetchEntry, { once: true });
         }
@@ -6379,7 +6598,7 @@
       // renders as just the Scriptorium Home link — never a dead end,
       // since that page's own nav has the categories once they exist.
       return scriptoriumCategoriesPresent().map(function (cat) {
-        return '<a class="burger-menu-item" href="scriptorium/' + cat + '/index.html" target="_blank" rel="noopener noreferrer">' +
+        return '<a class="burger-menu-item" href="scriptorium/' + cat + '/">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">' + (CATEGORY_ICONS[cat] || GENERIC_CATEGORY_ICON) + '</svg>' +
           scriptoriumCategoryLabel(cat) +
           '</a>';
@@ -6397,7 +6616,7 @@
         'Plan a Route' +
         '</button>' +
         '<div class="burger-menu-divider"><span>Browse the Scriptorium</span></div>' +
-        '<a class="burger-menu-item" href="scriptorium/index.html" target="_blank" rel="noopener noreferrer">' +
+        '<a class="burger-menu-item" href="scriptorium/">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21 C12 21 5 15 5 9 C5 5 8 3 12 3 C16 3 19 5 19 9 C19 15 12 21 12 21 Z"/><circle cx="12" cy="9.5" r="2.6"/></svg>' +
         'Scriptorium Home' +
         '</a>' +
@@ -6433,11 +6652,17 @@
         closeBurgerMenu();
         openIdentifyOverlay();
       });
-      // Flora/Stories links are plain <a target="_blank"> — real static
-      // pages living outside the map's own SPA navigation (see the new
-      // scriptorium/hub-template.html), same reasoning as why the
-      // Google/Apple Maps links also open in a new tab rather than
-      // navigating the map itself away.
+      // The Scriptorium links above are plain same-tab <a href> now.
+      // They used to open in a new tab, which was the single loudest
+      // "these are two different websites" moment in the product — you
+      // ended up with a tab graveyard and a back button that did
+      // nothing. Same-tab is safe because the crossing is now cheap in
+      // both directions: the page carries the same chrome, and its
+      // "Return to the ground" uses history.back(), which restores this
+      // map from the back/forward cache with camera, filters and drawer
+      // stack intact rather than booting a fresh MapLibre instance.
+      // (Google/Apple Maps links still open in a new tab — those really
+      // are a different site.)
     }
     burgerMenuBtn.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -6458,6 +6683,53 @@
     // manifest fetch above completes, since consumeDeepLink no-ops
     // until the entry it needs actually exists.
     consumeDeepLink();
+
+    // ======================================================================
+    // Arriving from a Scriptorium page
+    // ======================================================================
+    // The shared chrome's menu has "Identify a Species" and its
+    // empty-search-result state offers "Try the map instead" — neither of
+    // which a static page can do on its own, so both hand off here with a
+    // parameter rather than being quietly missing from half the site.
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('identify') === '1') openIdentifyOverlay();
+      var q = params.get('q');
+      if (q) {
+        var trigger = document.getElementById('searchTrigger');
+        var input = document.getElementById('searchInput');
+        if (trigger && input) {
+          trigger.click();
+          input.value = q;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+    })();
+
+    // Restore the camera if we came back from a page WITHOUT the
+    // back/forward cache doing it for us. When bfcache works this never
+    // runs, because the whole document is restored live and this script
+    // doesn't re-execute at all — which is exactly why it's a fallback
+    // and not the mechanism. Skipped when a deep link is already driving
+    // the view, since that's a more specific intent than "where I was".
+    (function () {
+      if (pendingDeepLink || !window.BurrenState) return;
+      var view = window.BurrenState.mapView.take();
+      if (!view || typeof view.lng !== 'number') return;
+      map.jumpTo({ center: [view.lng, view.lat], zoom: view.zoom, pitch: view.pitch || 0, bearing: view.bearing || 0 });
+    })();
+
+    // …and save it on the way out. 'pagehide', deliberately, NOT
+    // 'beforeunload': a beforeunload listener disqualifies this page from
+    // the back/forward cache entirely, which would break the fast path
+    // this fallback exists to back up. checkBfcacheHazards below warns if
+    // anything ever registers one.
+    if (window.BurrenSeam) {
+      window.BurrenSeam.armMapViewSaver(function () {
+        var c = map.getCenter();
+        return { lng: c.lng, lat: c.lat, zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing() };
+      });
+    }
   });
 
   function closeDrawer() {
@@ -6471,9 +6743,35 @@
     drawerCurrent = null;
     var backBtn = document.getElementById('drawerBack');
     if (backBtn) backBtn.classList.remove('visible');
+    // The address bar was showing an entry's canonical URL while its
+    // drawer was open (see setCanonicalUrl) — closing puts the map's own
+    // URL back, so a reload or a share from here means "the map", not
+    // "whatever I happened to read last".
+    clearCanonicalUrl();
   }
 
+  // Arms the "genuinely came from the map" flag right before any same-tab
+  // navigation into scriptorium/ — burger menu category links, Scriptorium
+  // Home, and the drawer's "Read the full leaf" link all match. Delegated
+  // at document level (rather than wired per-link) so it also covers any
+  // future scriptorium/ link added without a matching updates here. Does
+  // NOT preventDefault — this only sets a flag, the click's own navigation
+  // proceeds exactly as it would have. See seam.js's own comment for why
+  // this beats a same-origin referrer check.
+  document.addEventListener('click', function (ev) {
+    if (ev.defaultPrevented || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+    var a = ev.target.closest && ev.target.closest('a[href]');
+    if (!a || a.target === '_blank') return;
+    if (/^scriptorium\//.test(a.getAttribute('href') || '') && window.BurrenSeam) {
+      window.BurrenSeam.armMapArrival();
+    }
+  });
+
   Soundscape.mount();
+  // Picks the ambient mix back up where a Scriptorium page left it — the
+  // AudioContext can't survive a document change, so what crosses the
+  // seam is the preference, and this resumes on the first user gesture.
+  if (window.BurrenSeam) window.BurrenSeam.resumeSoundscapeOnFirstGesture();
 </script>
 </body>
 </html>

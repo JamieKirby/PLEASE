@@ -1,0 +1,98 @@
+/* ==========================================================================
+   Burren — shared design tokens.
+
+   THE single source of truth for the palette, type scale and radius
+   scale, linked by BOTH the map (index.html) and every Scriptorium page.
+
+   This file exists because the two documents used to carry two
+   hand-copied :root blocks, with a comment in styles.css that read
+   "the two documents can't share CSS custom properties across files, so
+   these are a deliberate, exact-value copy… Keep them in sync." They
+   can share them — this is that file, and both copies are now deleted.
+
+   Nothing here is map-specific or page-specific. Anything that only one
+   surface uses stays in that surface's own stylesheet.
+   ========================================================================== */
+
+:root {
+  --canvas: #121212;
+  --canvas-2: #1a1a1a;
+  --ink: #e6e6e6;
+  --ink-dim: #a8a8a8;
+  --ink-prose: #cfcfcf;
+  --parchment: #ded2b3;
+  --vein: #8f7fae;
+  --throat: #d9a441;
+  --flora: #4A6B53;
+  --geology: #5C6B73;
+  --archaeology: #A9822E;
+  --lore: #35617A;
+
+  /* Categories that live only in the Scriptorium still need an accent so
+     the shared chrome can tint itself the same way the map's drawer
+     does. Fauna borrows a warmer green than flora; poetry and story take
+     the parchment/vein pair. */
+  --fauna: #6B7A45;
+  --poetry: #8f7fae;
+  --story: #A9822E;
+
+  /* A little overshoot rather than a flat ease — used on presses and
+     small interactive pops (badges, buttons, popovers), NOT on large
+     panel/drawer resizes, where the same bounce would read as a glitch
+     rather than a deliberate spring. */
+  --spring: cubic-bezier(.34, 1.56, .64, 1);
+
+  /* Type scale — was ~26 distinct font-size values scattered through
+     the file (several within a hair of each other, e.g. .74/.76/.78rem
+     all doing the same job); consolidated to 8 named tiers. SVG marker/
+     specimen label sizes (10-22px) are a separate, already-intentional
+     micro-system and are NOT part of this — those stay as literal px. */
+  --fs-2xs: .68rem;   /* tiny badges, uppercase meta */
+  --fs-xs: .74rem;    /* small labels, timestamps, meta */
+  --fs-sm: .8rem;     /* secondary body text */
+  --fs-base: .85rem;  /* primary body text, buttons */
+  --fs-md: 1rem;      /* sub-headings, prominent body */
+  --fs-lg: 1.3rem;    /* section headings */
+  --fs-xl: 1.7rem;    /* major headings */
+  --fs-2xl: 2.1rem;   /* page title */
+
+  /* Radius scale — was 7 distinct px values, now 4 named tiers. */
+  --radius-sm: 4px;    /* tags, tiny accents */
+  --radius-md: 8px;    /* cards, dropdown panels */
+  --radius-lg: 14px;   /* larger badges/cards */
+  --radius-full: 20px; /* pill buttons */
+}
+
+/* ==========================================================================
+   Cross-document view transitions.
+
+   Declared here rather than in either stylesheet because it only works
+   if BOTH sides of a navigation opt in — the map and the page each need
+   this rule for the transition between them to run at all.
+
+   Browsers without support ignore the whole at-rule and navigate
+   normally, so there's no feature detection and no fallback branch to
+   maintain. This replaces the old `body.leaving` + setTimeout(160) fade
+   in the Scriptorium templates, which paid a fixed 160ms tax on every
+   single click to approximate what the platform now does properly.
+   ========================================================================== */
+
+@view-transition { navigation: auto; }
+
+/* An entry's title and its specimen illustration are the two things that
+   exist on both sides of a map↔page crossing, so they're the two things
+   that morph. Everything else cross-fades as one group, which is the
+   default. Names are assigned by the render layer (see entry-render.js)
+   so the drawer and the page always agree on them. */
+::view-transition-old(entry-title),
+::view-transition-new(entry-title) {
+  animation-duration: .32s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
