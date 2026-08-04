@@ -25,6 +25,7 @@
   --geology: #5C6B73;
   --archaeology: #A9822E;
   --lore: #35617A;
+  --vein: #8f7fae;
 
   --spring: cubic-bezier(.34, 1.56, .64, 1);
 
@@ -116,6 +117,18 @@ main { max-width: 720px; margin: 0 auto; padding: 40px 24px 90px; }
    visually to the map's own .note-link inline-link style. */
 .entry-content a { color: var(--parchment); text-decoration: underline dotted; text-underline-offset: 3px; }
 .entry-content a:hover { text-decoration-style: solid; }
+
+/* ---- Verse variant (poetry entries only — see build.js's VERSE_CLASS) ----
+   The prose defaults above (justify-free but still paragraph-shaped,
+   1.7 line-height meant for sentences) read wrong for a poem: tighter
+   spacing between actual lines (handled by real <br> tags in the JSON,
+   not by this CSS), a visible break between stanzas, and a small
+   indent marking each stanza after the first as its own unit rather
+   than a continuation of the last. */
+.entry-content.is-verse { line-height: 1.55; font-style: italic; }
+.entry-content.is-verse p { margin: 0 0 26px; }
+.entry-content.is-verse p + p { text-indent: 1.4em; }
+.entry-content.is-verse p:last-child { margin-bottom: 16px; }
 
 /* Inline field-guide illustrations (currently the 5 orchids) — reuses
    the map's own .specimen-line/-leader/-label classes, defined here so

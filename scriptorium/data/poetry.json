@@ -1,0 +1,56 @@
+[
+  {
+    "id": "the-grikes-arithmetic",
+    "category": "poetry",
+    "title": "The Grike's Arithmetic",
+    "irishTitle": "",
+    "summary": "A short poem on the Burren's limestone pavement — the crack, not the stone, is where everything actually grows.",
+    "content": "<p>Nothing here agreed to grow easy.<br>The pavement cracked once, long before us,<br>and every root since has taken the crack's side —<br>not the stone's.</p><p>Call it soil if you like. It is mostly absence:<br>a finger's width of dark between two grey slabs,<br>enough for a gentian to call home,<br>enough for a fern to call deep enough.</p><p>The arithmetic is simple and merciless —<br>less ground than anywhere, more flower than anywhere,<br>and no one has explained that trade<br>except the grike itself, which keeps no ledger,<br>only the crack, only the blue.</p>",
+    "subCategory": "Landscape",
+    "noAutoLink": true
+  },
+  {
+    "id": "poulnabrone",
+    "category": "poetry",
+    "title": "Poulnabrone",
+    "irishTitle": "Poll na mBrón",
+    "summary": "A short elegy at the portal tomb — five thousand years and the capstone still holds its angle.",
+    "content": "<p>Five thousand years and the stone still holds its angle,<br>capstone tilted like a held breath,<br>like something about to be said<br>and thinking better of it.</p><p>They buried the dead here standing almost,<br>knees drawn up, facing whatever direction<br>faces mattered in — we don't ask the stone,<br>it wouldn't answer the way we'd want.</p><p>What's left is the shape of a decision:<br>two uprights, one weight balanced between them,<br>a door built for no one to walk through,<br>only to walk past, and slow down.</p>",
+    "subCategory": "Elegy",
+    "linkedTo": { "kind": "site", "name": "Poulnabrone Dolmen" },
+    "noAutoLink": true
+  },
+  {
+    "id": "compline-at-corcomroe",
+    "category": "poetry",
+    "title": "Compline at Corcomroe",
+    "irishTitle": "",
+    "summary": "A short devotional poem at the ruined abbey, where swallows have taken over the evening office.",
+    "content": "<p>The roof gave up centuries ago<br>and the monks with it, but the walls kept<br>the shape of an hour they used to keep —<br>last light, last office, last word before sleep.</p><p>Now it's swallows that take the evening watch,<br>stitching the empty window with their going,<br>and the carved stone faces overhead<br>still listening for something sung.</p><p>Stand here at the right hour<br>and the valley does the singing for them —<br>wind through the east window,<br>a psalm with no one left to close it.</p>",
+    "subCategory": "Devotional",
+    "linkedTo": { "kind": "site", "name": "Corcomroe Abbey" },
+    "noAutoLink": true
+  },
+  {
+    "id": "cliff-notation",
+    "category": "poetry",
+    "title": "Cliff Notation",
+    "irishTitle": "",
+    "summary": "A short coastal poem at the Cliffs of Moher, on scale, patience, and an ocean still mid-sentence.",
+    "content": "<p>Two hundred metres is not a number<br>until you're the one standing at the top of it,<br>watching gannets fold their wings at the exact moment<br>faith requires and gravity permits.</p><p>The Atlantic doesn't perform for anyone.<br>It was doing this before there were cliffs to hit,<br>and it will keep doing it after,<br>patient the way only erosion is patient.</p><p>Every guidebook calls this a view.<br>Standing here, it is closer to a sentence<br>the ocean has been writing for six thousand years,<br>and hasn't reached the end of yet.</p>",
+    "subCategory": "Coastal",
+    "linkedTo": { "kind": "site", "name": "Cliffs of Moher" },
+    "noAutoLink": true
+  },
+  {
+    "id": "doolin-low-tide",
+    "category": "poetry",
+    "title": "Doolin, Low Tide",
+    "irishTitle": "",
+    "summary": "A short portrait of Doolin with the tide out, the currachs beached, and a fiddle tune drifting from a doorway.",
+    "content": "<p>The tide goes out far enough here<br>to make liars of the maps,<br>flat rock where there should be water,<br>a fiddle tune drifting down from the pub door<br>like it's not sure the sea is really gone.</p><p>Someone's currach is up on the stones,<br>someone's washing is up on the line,<br>and the whole town holds still for an hour,<br>the way a place does<br>when it knows the water is only resting.</p><p>By dark it will all come back —<br>the tide, the boats, the noise from the doorway —<br>but for now: bare rock, bare sky,<br>and a town that knows exactly<br>how long low tide lasts.</p>",
+    "subCategory": "Portrait",
+    "linkedTo": { "kind": "town", "name": "Doolin" },
+    "noAutoLink": true
+  }
+]

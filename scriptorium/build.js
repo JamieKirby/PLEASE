@@ -147,7 +147,18 @@ function autoLinkContent(content, entries, selfId) {
 // not just the first — same effect as a global regex replace, but with
 // no need to escape regex special characters in the placeholder text.
 function fillTemplate(template, entry, allEntries, categories) {
-  const linkedContent = autoLinkContent(entry.content, allEntries, entry.id);
+  // Poems opt out of this by default (see data/poetry.json's noAutoLink
+  // flag) — autoLinkContent's title-matching is a prose convenience, and
+  // isn't assumed to be wanted inside a poem's own line breaks without
+  // saying so explicitly per entry.
+  const linkedContent = entry.noAutoLink
+    ? entry.content
+    : autoLinkContent(entry.content, allEntries, entry.id);
+  // Verse gets its own light CSS treatment (see styles.css's
+  // .entry-content.is-verse) — driven off category rather than a
+  // separate flag, since "is this a poem" and "is this category poetry"
+  // are the same question today.
+  const verseClass = entry.category === 'poetry' ? ' is-verse' : '';
   // The map's own drawer system (siteData/townData/legendData, and now
   // scriptoriumEntries) looks everything up by its display title, not a
   // slug — so the deep-link back to the map uses the title too, kept
@@ -183,6 +194,7 @@ function fillTemplate(template, entry, allEntries, categories) {
     .split('{{CATEGORY}}').join(escapeHtml(entry.category))
     .split('{{SUMMARY}}').join(escapeHtml(deriveSummary(entry)))
     .split('{{CONTENT}}').join(linkedContent)
+    .split('{{VERSE_CLASS}}').join(verseClass)
     .split('{{MAP_LINK}}').join(mapLink)
     .split('{{NAV_LINKS}}').join(navLinksHtml(categories, '../'));
 }
@@ -313,6 +325,12 @@ function build() {
     if (entry.oghamGloss) item.oghamGloss = entry.oghamGloss;
     if (entry.subCategory) item.subCategory = entry.subCategory;
     if (entry.scientificName) item.scientificName = entry.scientificName;
+    // Carries a poem's site/town attribution through to the map's own
+    // runtime data (see index.html's linkedPoemsChipsHtml) — this is the
+    // one field the map needs from an entry that isn't already part of
+    // its display copy, so it has to be listed explicitly like the
+    // optional fields above rather than falling out of entry.content.
+    if (entry.linkedTo) item.linkedTo = entry.linkedTo;
     return item;
   });
   fs.writeFileSync(path.join(OUTPUT_DIR, 'manifest.json'), JSON.stringify(manifest), 'utf8');

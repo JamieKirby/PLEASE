@@ -529,6 +529,17 @@
   @media (prefers-reduced-motion: reduce) {
     .ambient-row-text { animation: none !important; opacity: var(--peak, .12) !important; transform: none !important; }
   }
+  /* A closed drawer is only translated off-screen (.drawer's
+     translateX(100%)), never removed from the render tree — so without
+     this, every ambient row kept its two infinite animations running
+     and kept compositing off-screen forever, including the entire time
+     someone is just panning the map with no drawer open at all. That is
+     the worst possible time to be paying for it: map interaction is
+     exactly when the main thread and GPU are busiest, and the cost was
+     buying literally nothing visible. Paused rather than animation:none
+     so reopening resumes mid-sway instead of snapping every row back to
+     its start position. */
+  .drawer:not(.open) .ambient-row-text { animation-play-state: paused; }
 
   /* Floating chrome — the left slot is dual-purpose: it's a plain history
      "back" when there's a navigation stack, or "collapse to compact" while
@@ -1374,7 +1385,7 @@
     wellSpiral: '<circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="12" r="6.2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 2.2"/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="1.5 3"/>',
     triskelion: '<path d="M12,12 C12,7 16,6 17.5,9 C18.5,11 16.5,13 14,12" fill="currentColor"/><path d="M12,12 C7,12 6,8 9,6.5 C11,5.5 13,7.5 12,10" fill="currentColor"/><path d="M12,12 C12,17 8,18 6.5,15 C5.5,13 7.5,11 10,12" fill="currentColor"/>'
   };
-  var disciplineColor = { archaeology: "#A9822E", geology: "#5C6B73", flora: "#4A6B53", lore: "#35617A" };
+  var disciplineColor = { archaeology: "#A9822E", geology: "#5C6B73", flora: "#4A6B53", lore: "#35617A", poetry: "#8f7fae" };
 
   // A cluster's emblem is chosen from the actual mix of disciplines
   // among its members — a small cultural cross-reference rather than a
@@ -1450,7 +1461,8 @@
     grave: 'rgba(215,70,70,.75)',
     person: 'rgba(156,107,62,.75)',
     pub: 'rgba(197,106,31,.75)',
-    well: 'rgba(46,139,139,.75)'
+    well: 'rgba(46,139,139,.75)',
+    poetry: 'rgba(143,127,174,.75)'
   };
 
   // Short field-vocabulary phrase banks, one per discipline plus a neutral
@@ -1464,7 +1476,12 @@
     legend: ['told at the hearth', 'handed-down tale', 'oral memory', 'local motif', 'the good people', 'changeling', 'second sight', 'a tale still told'],
     grave: ['graven stone', 'burial ground', 'lichened headstone', 'a name half-worn away', 'consecrated ground', 'the long sleep', 'epitaph', 'ashes to ashes'],
     town: ['market day', 'harbour tide', 'fiddle tune at the crossroads', 'turf smoke over the roofs', 'postcard bay', 'pier and currach', 'village green', 'crossroads inn'],
-    route: ['waymarked trail', 'stone stile', 'trailhead cairn', 'boreen', "drover's path", 'signal cairn', 'townland boundary', 'the next stop']
+    route: ['waymarked trail', 'stone stile', 'trailhead cairn', 'boreen', "drover's path", 'signal cairn', 'townland boundary', 'the next stop'],
+    // Short fragments in the same terse register as the banks above —
+    // not lines lifted whole from data/poetry.json (those run too long
+    // for this mid-arc sway text, see the design doc), just phrases in
+    // their spirit.
+    poetry: ['capstone tilted', "a held breath", 'the grike\u2019s blue ledger', 'swallows keep vespers', 'low tide silence', 'cliff-edge sentence', 'a psalm unclosed', 'stanza by stanza']
   };
   var AMBIENT_OGHAM = ['ᚓᚑᚋᚏᚐᚄᚔᚐ', 'ᚈᚑᚋ ᚅᚐ ᚄᚒᚔᚂ', 'ᚑᚌᚐᚋ ᚅᚑᚋᚓᚅᚂᚐᚈᚒᚏᚐ', 'ᚂᚒᚊ ᚌᚂᚐᚅ'];
 
@@ -1490,7 +1507,32 @@
   // frame even though the row count and animation logic are identical.
   // Cutting the count is the direct, low-risk lever for that, rather
   // than a fragile per-mode conditional animation system.
-  var AMBIENT_ROW_COUNT = 48;
+  // Cut again, and made responsive rather than one fixed number for
+  // every device (48→32 desktop, →14 on phones), after mobile
+  // performance regressed again. The count was the right lever last
+  // time and still is, but a single global constant was the wrong
+  // shape for it: the cost of a row is not constant across devices.
+  // Each row is its own compositor layer (will-change: transform,
+  // opacity) carrying three concurrent animations over text-on-path,
+  // and a phone pays far more per layer than a laptop does — less GPU
+  // memory and fill rate to spend, a much higher device-pixel-ratio
+  // multiplying the actual pixels composited per layer per frame, and
+  // no discrete GPU to absorb it. 48 rows that composite comfortably on
+  // a desktop is simply a different workload on a phone at DPR 3.
+  //
+  // Read once at load rather than on resize: AMBIENT_ROW_DEFS is an
+  // IIFE that also injects one <path> per row into the SVG, so the
+  // count can't change after this without tearing those down too. A
+  // desktop browser resized narrow keeps its original count for the
+  // session, which is the right trade — the real target here is actual
+  // phones, which don't change class mid-session.
+  var AMBIENT_ROW_COUNT = (function () {
+    var coarse = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    var w = window.innerWidth || 1024;
+    if (coarse || w <= 700) return 14;  // phones — the reported regression
+    if (w <= 1100) return 22;           // tablets / small laptops
+    return 32;                          // desktop — down from 48
+  })();
 
   // Movement/opacity used to run on SMIL <animate> (attribute animation,
   // resampled by the layout engine every frame) — switched to CSS
@@ -1534,7 +1576,14 @@
     var dxL = AMBIENT_ARC_X_LEFT - AMBIENT_ARC_CX, dxR = AMBIENT_ARC_X_RIGHT - AMBIENT_ARC_CX;
     for (var i = 0; i < AMBIENT_ROW_COUNT; i++) {
       var t = i / (AMBIENT_ROW_COUNT - 1);
-      var gap = 7 + t * 10;       // ~7px apart near the top, ~17px apart by the bottom
+      // Spacing scales inversely with the row count so the field still
+      // spans the same vertical extent it always did (~576 units) no
+      // matter how many rows are drawing it. Without this, cutting the
+      // count would just stop the backdrop halfway down the panel and
+      // leave the lower half bare — the rows are meant to thin out, not
+      // to cover less. Ratios are unchanged, so the familiar "denser
+      // near the top, wider near the bottom" gradient survives intact.
+      var gap = (7 + t * 10) * (48 / AMBIENT_ROW_COUNT);
       y += gap;
       var id = 'drawerCurveGen' + i;
       if (svg && anchor) {
@@ -1912,7 +1961,11 @@
       '<path class="specimen-leader" d="M 150,178 C 110,140 80,118 40,90"/>' +
       '<text class="specimen-label" x="8" y="78">LIMESTONE PAVEMENT</text>' +
       '<text class="specimen-label" x="8" y="94" font-style="italic">(karst)</text>',
-    village:
+    // Was a single fixed illustration for all 21 towns — now 3 variants,
+    // picked per-town by TOWN_SPECIMEN_VARIANT below (curated by actual
+    // geography — Kinvara is a harbour town, Ennis is not — rather than
+    // an arbitrary hash, since which is which is knowable).
+    village: [
       '<path class="specimen-line" d="M 40,340 L 360,340"/>' +
       '<path class="specimen-line" d="M 70,340 L 70,260 L 110,220 L 150,260 L 150,340 Z"/>' +
       '<path class="specimen-line" d="M 160,340 L 160,250 L 210,205 L 260,250 L 260,340 Z"/>' +
@@ -1920,6 +1973,25 @@
       '<path class="specimen-leader" d="M 210,205 C 190,176 178,160 152,136"/>' +
       '<text class="specimen-label" x="8" y="128">VILLAGE</text>' +
       '<text class="specimen-label" x="8" y="144" font-style="italic">(settlement)</text>',
+      '<path class="specimen-line" d="M 40,300 L 360,300"/>' +
+      '<path class="specimen-line" d="M 40,340 L 130,340 L 130,300"/>' +
+      '<path class="specimen-line" d="M 150,298 C 175,278 225,278 250,298 C 225,290 175,290 150,298 Z"/>' +
+      '<path class="specimen-line" d="M 190,298 L 190,270"/>' +
+      '<path class="specimen-line" d="M 260,340 L 260,270 L 300,235 L 340,270 L 340,340 Z"/>' +
+      '<path class="specimen-line" d="M 260,340 L 340,340"/>' +
+      '<path class="specimen-leader" d="M 300,235 C 282,206 268,190 242,166"/>' +
+      '<text class="specimen-label" x="8" y="158">HARBOUR VILLAGE</text>' +
+      '<text class="specimen-label" x="8" y="174" font-style="italic">(coastal settlement)</text>',
+      '<path class="specimen-line" d="M 40,340 L 360,340"/>' +
+      '<path class="specimen-line" d="M 80,340 L 80,220 L 160,220 L 160,340"/>' +
+      '<path class="specimen-line" d="M 160,340 L 160,195 L 240,195 L 240,340"/>' +
+      '<path class="specimen-line" d="M 240,340 L 240,225 L 320,225 L 320,340"/>' +
+      '<path class="specimen-line" d="M 190,340 L 190,290 L 210,290 L 210,340"/>' +
+      '<path class="specimen-line" d="M 190,195 L 200,140 L 210,195 Z"/>' +
+      '<path class="specimen-leader" d="M 200,140 C 184,114 171,98 146,74"/>' +
+      '<text class="specimen-label" x="8" y="66">MARKET TOWN</text>' +
+      '<text class="specimen-label" x="8" y="82" font-style="italic">(street frontage)</text>'
+    ],
     route:
       '<path class="specimen-line" d="M 70,360 C 130,320 110,270 160,240 C 210,210 190,160 240,130 C 270,112 290,100 330,80"/>' +
       '<circle class="specimen-line" cx="70" cy="360" r="7"/>' +
@@ -1939,7 +2011,65 @@
       '<path class="specimen-line" d="M 180,340 L 175,180 C 173,160 227,160 225,180 L 220,340 Z"/>' +
       '<path class="specimen-leader" d="M 200,175 C 182,148 168,132 142,108"/>' +
       '<text class="specimen-label" x="8" y="100">FIELD SITE</text>' +
-      '<text class="specimen-label" x="8" y="116" font-style="italic">(Burren)</text>'
+      '<text class="specimen-label" x="8" y="116" font-style="italic">(Burren)</text>',
+    // ---- Added for grave/pub/person marker kinds, which previously had
+    // no family of their own and silently fell through to
+    // generic-fallback (see specimenSvg's `|| SPECIMEN_SVGS['generic-fallback']`)
+    // — same minimal convention as everything above: one simple line
+    // silhouette, a leader line to a two-line label. ----
+    grave:
+      '<path class="specimen-line" d="M 90,340 L 90,275 C 90,260 120,260 120,275 L 120,340"/>' +
+      '<path class="specimen-line" d="M 280,340 L 280,285 C 280,273 305,273 305,285 L 305,340"/>' +
+      '<path class="specimen-line" d="M 150,340 L 150,220 C 150,190 250,190 250,220 L 250,340 Z"/>' +
+      '<path class="specimen-line" d="M 200,232 L 200,280 M 185,250 L 215,250"/>' +
+      '<path class="specimen-line" d="M 40,340 L 360,340"/>' +
+      '<path class="specimen-leader" d="M 200,190 C 180,160 165,144 138,120"/>' +
+      '<text class="specimen-label" x="8" y="112">GRAVE SITE</text>' +
+      '<text class="specimen-label" x="8" y="128" font-style="italic">(burial ground)</text>',
+    person:
+      '<path class="specimen-line" d="M 130,340 L 130,210 L 200,150 L 270,210 L 270,340 Z"/>' +
+      '<path class="specimen-line" d="M 185,340 L 185,290 L 215,290 L 215,340"/>' +
+      '<path class="specimen-line" d="M 148,255 L 168,255 L 168,275 L 148,275 Z"/>' +
+      '<path class="specimen-line" d="M 240,165 L 258,165 L 258,200 L 240,190 Z"/>' +
+      '<path class="specimen-line" d="M 60,340 L 340,340"/>' +
+      '<path class="specimen-leader" d="M 200,150 C 182,122 168,106 142,82"/>' +
+      '<text class="specimen-label" x="8" y="74">NOTABLE FIGURE</text>' +
+      '<text class="specimen-label" x="8" y="90" font-style="italic">(birthplace / residence)</text>',
+    pub:
+      '<path class="specimen-line" d="M 110,340 L 110,180 L 290,180 L 290,340 Z"/>' +
+      '<path class="specimen-line" d="M 110,180 L 100,160 L 300,160 L 290,180"/>' +
+      '<path class="specimen-line" d="M 185,340 L 185,270 L 215,270 L 215,340"/>' +
+      '<path class="specimen-line" d="M 135,215 L 175,215 L 175,255 L 135,255 Z"/>' +
+      '<path class="specimen-line" d="M 225,215 L 265,215 L 265,255 L 225,255 Z"/>' +
+      '<path class="specimen-line" d="M 200,160 L 200,121"/>' +
+      '<rect class="specimen-line" x="175" y="95" width="50" height="26"/>' +
+      '<path class="specimen-line" d="M 60,340 L 340,340"/>' +
+      '<path class="specimen-leader" d="M 200,95 C 185,76 172,64 148,44"/>' +
+      '<text class="specimen-label" x="8" y="36">PUBLIC HOUSE</text>' +
+      '<text class="specimen-label" x="8" y="52" font-style="italic">(licensed premises)</text>',
+    // Deliberately simpler than `abbey` — a single-cell nave with one
+    // Romanesque window, no cloister or twin towers, for the humbler
+    // isolated ruins (Kilmoon, Rathborney) that `abbey`'s grand
+    // monastic-complex silhouette overstated.
+    church:
+      '<path class="specimen-line" d="M 130,340 L 130,200 L 200,150 L 270,200 L 270,340"/>' +
+      '<path class="specimen-line" d="M 192,300 L 192,245 C 192,230 208,230 208,245 L 208,300"/>' +
+      '<path class="specimen-leader" d="M 200,150 C 182,120 168,104 142,80"/>' +
+      '<text class="specimen-label" x="8" y="72">CHURCH RUIN</text>' +
+      '<text class="specimen-label" x="8" y="88" font-style="italic">(single-cell)</text>',
+    // One-off — see SPECIMEN_ONE_OFFS below. Kilfenora Cathedral's own
+    // note already calls out its high crosses specifically, so it gets
+    // this instead of sharing the generic abbey silhouette every other
+    // Ecclesiastical Site falls back to.
+    'kilfenora-highcross':
+      '<path class="specimen-line" d="M 155,340 L 245,340 L 245,315 L 155,315 Z"/>' +
+      '<path class="specimen-line" d="M 172,315 L 228,315 L 228,295 L 172,295 Z"/>' +
+      '<path class="specimen-line" d="M 188,295 L 188,110 L 212,110 L 212,295 Z"/>' +
+      '<path class="specimen-line" d="M 140,165 L 140,145 L 260,145 L 260,165 Z"/>' +
+      '<circle class="specimen-line" cx="200" cy="155" r="58" fill="none"/>' +
+      '<path class="specimen-leader" d="M 200,97 C 182,76 168,62 142,40"/>' +
+      '<text class="specimen-label" x="8" y="32">HIGH CROSS</text>' +
+      '<text class="specimen-label" x="8" y="48" font-style="italic">(Kilfenora)</text>'
   };
 
   // siteData `category` string -> specimen family key.
@@ -1956,7 +2086,7 @@
     'Mountain': 'summit',
     'Ruined Mansion': 'towerhouse',
     'Coastal Dune System': 'dune',
-    'Church Ruin': 'abbey',
+    'Church Ruin': 'church',
     'Hydrology': 'turlough',
     'Cultural Site': 'craft',
     'Monastic Site': 'roundtower',
@@ -1971,9 +2101,48 @@
     'Bay': 'bay'
   };
 
-  function specimenSvg(family) {
-    var inner = SPECIMEN_SVGS[family] || SPECIMEN_SVGS['generic-fallback'];
-    return '<svg viewBox="0 0 400 520" aria-hidden="true">' + inner + '</svg>';
+  // One-off overrides, checked by exact entry name before the shared
+  // family template — an escape hatch for the rare entry (Kilfenora
+  // Cathedral's high crosses) that deserves its own illustration rather
+  // than sharing its category's generic one. Add more names here as
+  // they earn it; most entries should never need this.
+  var SPECIMEN_ONE_OFFS = {
+    'Kilfenora Cathedral': 'kilfenora-highcross'
+  };
+
+  // Deliberate, geography-aware variant choice for the 3 `village`
+  // illustrations — which of the 21 towns is a genuine harbour town
+  // (1) or a market town/city (2) is real, knowable information, so
+  // it's curated by hand here rather than picked by an arbitrary hash.
+  // Anything not listed (Corofin, Carron, Kilnaboy, Kilfenora, Quin,
+  // Bunratty — small inland villages) falls through to variant 0, the
+  // original cottage-cluster illustration.
+  var TOWN_SPECIMEN_VARIANT = {
+    'Kinvara': 1, 'Kilrush': 1, 'Doolin': 1, 'New Quay': 1, 'Ballyvaughan': 1,
+    'Liscannor': 1, 'Lahinch': 1, 'Spanish Point': 1,
+    'Lisdoonvarna': 2, 'Ennistymon': 2, 'Gort': 2, 'Ennis': 2,
+    'Limerick': 2, 'Galway': 2, 'Shannon': 2
+  };
+
+  // Cheap deterministic string hash — used only as the fallback variant
+  // picker for an arrayed family with no hand-curated mapping (like
+  // TOWN_SPECIMEN_VARIANT above). Same entry always lands on the same
+  // variant across visits; no Math.random() involved.
+  function hashStringToInt(str) {
+    var h = 0;
+    for (var i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) | 0; }
+    return Math.abs(h);
+  }
+
+  function specimenSvg(family, entryName, variantIndex) {
+    var key = (entryName && SPECIMEN_ONE_OFFS[entryName]) || family;
+    var art = SPECIMEN_SVGS[key] || SPECIMEN_SVGS['generic-fallback'];
+    if (Array.isArray(art)) {
+      var idx = (typeof variantIndex === 'number') ? variantIndex
+        : (entryName ? hashStringToInt(entryName) % art.length : 0);
+      art = art[idx] || art[0];
+    }
+    return '<svg viewBox="0 0 400 520" aria-hidden="true">' + art + '</svg>';
   }
 
   var siteData = {
@@ -3700,6 +3869,26 @@
         return '<button class="route-chip link-chip" data-link-kind="well" data-link-name="' + k + '" style="--route-accent:#2E8B8B">' + k + '</button>';
       }).join('') + '</div>';
     }
+    // Same idea again, poems — but reading scriptoriumEntries (fetched at
+    // runtime from manifest.json) rather than one of the map's own
+    // baked-in marker datasets, since a poem lives in the Scriptorium,
+    // not as its own point on the map (see docs/poetry-integration.md).
+    // That also means this can legitimately return nothing on a drawer
+    // opened before loadScriptoriumManifest's fetch resolves — same
+    // "fails quietly, nothing else is affected" assumption
+    // loadScriptoriumManifest already documents for itself, and in
+    // practice that fetch resolves well before a person reaches a
+    // site/town drawer.
+    function linkedPoemsChipsHtml(kind, name) {
+      var titles = Object.keys(scriptoriumEntries).filter(function (t) {
+        var e = scriptoriumEntries[t];
+        return e.category === 'poetry' && e.linkedTo && e.linkedTo.kind === kind && e.linkedTo.name === name;
+      });
+      if (!titles.length) return '';
+      return '<div class="site-routes">' + titles.map(function (t) {
+        return '<button class="route-chip link-chip" data-link-kind="poetry" data-link-name="' + t + '" style="--route-accent:' + disciplineColor.poetry + '">A poem: ' + t + '</button>';
+      }).join('') + '</div>';
+    }
     function siteOrTownLinkChipHtml(g) {
       if (!g.linkedTo) return '';
       var label = (g.linkedTo.kind === 'town' ? 'About this town: ' : 'About this place: ') + g.linkedTo.name;
@@ -4055,7 +4244,7 @@
       var drawerEl = document.getElementById('drawer');
       drawerEl.style.setProperty('--accent', accent);
       drawerEl.style.setProperty('--accent-soft', accentSoftColor[discKey] || accentSoftColor.town);
-      document.getElementById('drawerSpecimen').innerHTML = specimenSvg(SPECIMEN_FAMILY_BY_CATEGORY[d.category] || 'generic-fallback');
+      document.getElementById('drawerSpecimen').innerHTML = specimenSvg(SPECIMEN_FAMILY_BY_CATEGORY[d.category] || 'generic-fallback', name);
       renderAmbientRows(discKey, 'site', name);
       var drawerBody = document.getElementById('drawerBody');
       drawerBody.innerHTML = '';
@@ -4073,6 +4262,7 @@
         linkedPersonsChipsHtml('site', name) +
         linkedPubsChipsHtml('site', name) +
         linkedWellsChipsHtml('site', name) +
+        linkedPoemsChipsHtml('site', name) +
         routeChipsHtml(name) +
         externalMapLinksHtml(d.lat, d.lng, name);
       drawerBody.appendChild(entry);
@@ -4091,7 +4281,7 @@
       var drawerEl = document.getElementById('drawer');
       drawerEl.style.setProperty('--accent', '#9a9384');
       drawerEl.style.setProperty('--accent-soft', accentSoftColor.town);
-      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('village');
+      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('village', name, TOWN_SPECIMEN_VARIANT[name] || 0);
       renderAmbientRows('town', 'town', name);
       var drawerBody = document.getElementById('drawerBody');
       drawerBody.innerHTML = '';
@@ -4111,6 +4301,7 @@
         linkedPersonsChipsHtml('town', name) +
         linkedPubsChipsHtml('town', name) +
         linkedWellsChipsHtml('town', name) +
+        linkedPoemsChipsHtml('town', name) +
         routeChipsHtml(name) +
         externalMapLinksHtml(t.lat, t.lng, name) +
         nearestSitesTableHtml(name);
@@ -4227,7 +4418,7 @@
       var drawerEl = document.getElementById('drawer');
       drawerEl.style.setProperty('--accent', accent);
       drawerEl.style.setProperty('--accent-soft', accentSoftColor.lore);
-      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('legend');
+      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('legend', name);
       renderAmbientRows('legend', 'legend', name);
       var drawerBody = document.getElementById('drawerBody');
       drawerBody.innerHTML = '';
@@ -4262,7 +4453,7 @@
       var drawerEl = document.getElementById('drawer');
       drawerEl.style.setProperty('--accent', accent);
       drawerEl.style.setProperty('--accent-soft', accentSoftColor.grave);
-      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('grave');
+      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('grave', name);
       renderAmbientRows('grave', 'grave', name);
       var drawerBody = document.getElementById('drawerBody');
       drawerBody.innerHTML = '';
@@ -4299,7 +4490,7 @@
       var drawerEl = document.getElementById('drawer');
       drawerEl.style.setProperty('--accent', accent);
       drawerEl.style.setProperty('--accent-soft', accentSoftColor.person);
-      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('person');
+      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('person', name);
       renderAmbientRows('legend', 'person', name);
       var drawerBody = document.getElementById('drawerBody');
       drawerBody.innerHTML = '';
@@ -4331,7 +4522,7 @@
       var drawerEl = document.getElementById('drawer');
       drawerEl.style.setProperty('--accent', accent);
       drawerEl.style.setProperty('--accent-soft', accentSoftColor.pub);
-      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('pub');
+      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('pub', name);
       renderAmbientRows('legend', 'pub', name);
       var drawerBody = document.getElementById('drawerBody');
       drawerBody.innerHTML = '';
@@ -4366,7 +4557,11 @@
       var drawerEl = document.getElementById('drawer');
       drawerEl.style.setProperty('--accent', accent);
       drawerEl.style.setProperty('--accent-soft', accentSoftColor.well);
-      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('well');
+      // Was specimenSvg('well') — 'well' was never a real key in
+      // SPECIMEN_SVGS (only 'holywell' is), so every one of these 49
+      // entries was silently rendering the generic-fallback icon
+      // instead of the holywell illustration that already existed.
+      document.getElementById('drawerSpecimen').innerHTML = specimenSvg('holywell', name);
       renderAmbientRows('legend', 'well', name);
       var drawerBody = document.getElementById('drawerBody');
       drawerBody.innerHTML = '';
@@ -6151,11 +6346,12 @@
     // lives in build-time Node and the other in the browser), with the
     // same capitalize-the-raw-key fallback for anything added later
     // that isn't listed here yet.
-    var CATEGORY_LABELS = { flora: 'Flora', fauna: 'Fauna', story: 'Stories & Sites' };
+    var CATEGORY_LABELS = { flora: 'Flora', fauna: 'Fauna', story: 'Stories & Sites', poetry: 'Poetry' };
     var CATEGORY_ICONS = {
       flora: '<path d="M12 21 C12 21 5 15 5 9 C5 5 8 3 12 3 C16 3 19 5 19 9 C19 15 12 21 12 21 Z"/><path d="M12 3 L12 21 M12 9 L7 6 M12 12 L17 9 M12 15 L7 13"/>',
       fauna: '<path d="M12 3 C8 3 5 6 5 10 C5 14 8 15 8 18 C8 20 10 21 12 21 C14 21 16 20 16 18 C16 15 19 14 19 10 C19 6 16 3 12 3 Z"/><path d="M9 10 L9 10.01 M15 10 L15 10.01"/>',
-      story: '<path d="M5 4 H15 A2 2 0 0 1 17 6 V20 H7 A2 2 0 0 1 5 18 Z"/><path d="M5 18 A2 2 0 0 1 7 16 H17"/>'
+      story: '<path d="M5 4 H15 A2 2 0 0 1 17 6 V20 H7 A2 2 0 0 1 5 18 Z"/><path d="M5 18 A2 2 0 0 1 7 16 H17"/>',
+      poetry: '<path d="M20 4 C14 4 6 10 4 20 C10 20 18 14 20 4 Z"/><path d="M4 20 L11 13"/>'
     };
     var GENERIC_CATEGORY_ICON = '<circle cx="12" cy="12" r="8"/>';
     function scriptoriumCategoryLabel(cat) { return CATEGORY_LABELS[cat] || (cat.charAt(0).toUpperCase() + cat.slice(1)); }
